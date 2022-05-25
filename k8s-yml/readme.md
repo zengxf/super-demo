@@ -1,0 +1,3 @@
+- 不是作者，仅自用，勿转载
+- 《Kubernetes权威指南》第4版书中示例
+- 源项目： https://gitee.com/wangbinget/kubernetesym

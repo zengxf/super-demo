@@ -1,0 +1,11 @@
+.gradle
+bin
+.settings
+.classpath
+.project
+*.log
+.idea
+gradlew.bat
+gradlew
+gradle
+lombok.config
