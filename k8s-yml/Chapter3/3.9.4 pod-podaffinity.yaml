@@ -39,7 +39,7 @@ spec:
 apiVersion: v1
 kind: Pod
 metadata:
-  name: anti-affinity
+  name: anti-affinity-2
 spec:
   affinity:
     podAffinity:

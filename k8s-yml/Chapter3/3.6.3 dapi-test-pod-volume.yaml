@@ -14,15 +14,16 @@ spec:
     - name: test-container
       image: busybox
       imagePullPolicy: Never
-      command: ["sh", "-c"]
-      args:
-      - while true; do
-          if [[ -e /etc/labels ]]; then
-            echo -en '\n\n'; cat /etc/labels; fi;
-          if [[ -e /etc/annotations ]]; then
-            echo -en '\n\n'; cat /etc/annotations; fi;
-          sleep 3600;
-        done;
+      command: [ "/bin/sh", "-c", "ls /etc" ]
+      # command: ["sh", "-c"]
+      # args:
+      # - while true; do
+      #     if [[ -e /etc/labels ]]; then
+      #       echo -en '\n\n'; cat /etc/labels; fi;
+      #     if [[ -e /etc/annotations ]]; then
+      #       echo -en '\n\n'; cat /etc/annotations; fi;
+      #     sleep 3600;
+      #   done;
       volumeMounts:
         - name: podinfo
           mountPath: /etc
@@ -31,9 +32,11 @@ spec:
     - name: podinfo
       downwardAPI:
         items:
-          - path: "labels"
-            fieldRef:
-              fieldPath: metadata.labels
-          - path: "annotations"
-            fieldRef:
-              fieldPath: metadata.annotations 
+        - path: "labels"
+          fieldRef:
+            fieldPath: metadata.labels
+        - path: "annotations"
+          fieldRef:
+            fieldPath: metadata.annotations 
+
+  restartPolicy: Never

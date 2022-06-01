@@ -47,7 +47,7 @@ spec:
 apiVersion: v1
 kind: Pod
 metadata:
-  name: pod-with-healthcheck
+  name: pod-with-healthcheck-http
 spec:
   containers:
   - name: nginx
