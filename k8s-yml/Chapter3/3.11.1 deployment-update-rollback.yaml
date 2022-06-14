@@ -1,10 +1,13 @@
 ---
-apiVersion: apps/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: nginx-deployment
 spec:
   replicas: 3
+  selector:
+    matchLabels:
+      app: nginx
   template:
     metadata:
       labels:
@@ -17,21 +20,31 @@ spec:
         - containerPort: 80
 
 
+# create
+# $ k create -f '3.11.1 deployment-update-rollback.yaml' --record=true
 
 # update
-$ kubectl set image deployment/nginx-deployment nginx=nginx:1.9.1
-$ kubectl rollout status deployment/nginx-deployment
+# $ kubectl set image deployment/nginx-deployment nginx=nginx:1.9.1
+# $ kubectl rollout status deployment/nginx-deployment
 
+# update error
+# $ kubectl set image deployment/nginx-deployment nginx=nginx:1.91
+# $ kubectl rollout status deployment/nginx-deployment
+#   执行卡住，执行 Ctrl + C 终止
+# $ k get rs
+# $ k get pods
 
 # rollback
-$ kubectl rollout history deployment/nginx-deployment --revision=3
-$ kubectl rollout undo deployment/nginx-deployment
-$ kubectl rollout undo deployment/nginx-deployment --to-revision=2
-
+# $ kubectl rollout history deployment/nginx-deployment
+# $ kubectl rollout history deployment/nginx-deployment --revision=3
+# $ kubectl rollout undo deployment/nginx-deployment
+# $ kubectl rollout undo deployment/nginx-deployment --to-revision=2
+# $ k describe deployment/nginx-deployment
 
 # pause and resume
-$ kubectl rollout pause deployment/nginx-deployment
-$ kubectl set image deploy/nginx-deployment nginx=nginx:1.9.1
-$ kubectl rollout history deploy/nginx-deployment
-$ kubectl set resources deployment nginx-deployment -c=nginx --limits=cpu=200m,memory=512Mi
-$ kubectl rollout resume deploy nginx-deployment
+# $ kubectl rollout pause deployment/nginx-deployment
+# $ kubectl set image deploy/nginx-deployment nginx=nginx:1.9.1
+# $ kubectl rollout history deploy/nginx-deployment
+# $ kubectl set resources deployment nginx-deployment -c=nginx --limits=cpu=200m,memory=512Mi
+# $ kubectl rollout resume deploy nginx-deployment
+# $ k describe deployment/nginx-deployment
