@@ -38,7 +38,7 @@ public class MCSLock implements Lock {
             if (tail.compareAndSet(node, null)) {
                 return;
             }
-            while (node.next == null) ;
+            // while (node.next == null) ;
         }
         node.next.locked = false;
         node.next = null;

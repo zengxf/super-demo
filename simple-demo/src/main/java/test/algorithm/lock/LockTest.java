@@ -14,7 +14,8 @@ public class LockTest {
 
     public static void main(String[] args) {
         // Lock lock = new CLHLock();
-        Lock lock = new MCSLock();
+        Lock lock = new CLHLock2();
+        // Lock lock = new MCSLock();
 
         Runnable run = () -> {
             for (int i = 1; i <= 5; i++) {
