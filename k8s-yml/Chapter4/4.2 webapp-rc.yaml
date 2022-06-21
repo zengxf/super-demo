@@ -1,0 +1,32 @@
+# 用 kubectl api-resources | grep ReplicationController 查看可用的版本
+# 是对 4.2 webapp-rc-service.yaml 的拆分
+
+---
+kind: ReplicationController
+apiVersion: v1
+metadata:
+  name: webapp
+spec:
+  replicas: 2
+  template:
+    metadata:
+      name: webapp
+      labels:
+        app: webapp
+    spec:
+      containers:
+      - name: webapp
+        image: tomcat
+        ports:
+        - containerPort: 8080
+
+#  k create -f '4.2 webapp-rc.yaml'
+
+#  k get pods -l app=webapp -o yaml | grep podIP
+#  curl 172.16.1.61:8080
+
+#  k expose rc webapp
+#  k get services
+#  curl 10.103.200.99:8080 
+
+#  k delete -f '4.2 webapp-rc.yaml'
