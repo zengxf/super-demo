@@ -1,5 +1,7 @@
 .gradle
 
+.idea
+
 */.gradle
 */*/.gradle
 */*/*/.gradle

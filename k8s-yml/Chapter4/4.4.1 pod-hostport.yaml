@@ -11,3 +11,10 @@ spec:
     ports:
     - containerPort: 8080
       hostPort: 8081
+
+
+#  k create -f '4.4.1 pod-hostport.yaml'
+#  ping vmb (ip: 192.168.13.131)
+#  curl 192.168.13.131:8081
+
+#  k delete -f '4.4.1 pod-hostport.yaml'

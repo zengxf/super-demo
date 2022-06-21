@@ -1,10 +1,13 @@
 ---
-apiVersion: apps/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: nginx-deployment
 spec:
   replicas: 3
+  selector:
+    matchLabels:
+      app: nginx
   template:
     metadata:
       labels:
@@ -18,6 +21,6 @@ spec:
 
 
 
-$ kubectl scale deployment nginx-deployment --replicas 5
-
-$ kubectl scale deployment nginx-deployment --replicas=1
+# $ k create -f '3.12.1 deployment-scale.yaml'
+# $ kubectl scale deployment nginx-deployment --replicas 5
+# $ kubectl scale deployment nginx-deployment --replicas=1

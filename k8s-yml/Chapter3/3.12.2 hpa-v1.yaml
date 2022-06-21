@@ -1,10 +1,12 @@
+# 用 kubectl api-resources | grep autoscaling 查看可用的版本
+
 apiVersion: autoscaling/v1 
 kind: HorizontalPodAutoscaler
 metadata:
   name: php-apache
- spec:
+spec:
   scaleTargetRef:
-    apiVersion: apps/v1beta1
+    apiVersion: apps/v1
     kind: Deployment
     name: php-apache
   minReplicas: 1

@@ -1,3 +1,5 @@
+# 不需要使用此文件
+
 ---
 apiVersion: extensions/v1beta1
 kind: Deployment

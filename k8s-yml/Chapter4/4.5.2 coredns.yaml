@@ -157,4 +157,9 @@ spec:
       - sleep
       - "3600"
 
-# kubectl exec busybox -- nslookup redis-master
+# 不用执行此文件，CoreDNS 已创建好了
+
+#  k get deployment --all-namespaces
+#  k get deployment --namespace=kube-system
+#  k get pods --namespace=kube-system
+#  k get svc --namespace=kube-system

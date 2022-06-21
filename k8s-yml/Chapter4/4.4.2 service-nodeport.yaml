@@ -7,6 +7,14 @@ spec:
   ports:
   - port: 8080
     targetPort: 8080
-    nodePort: 8081
+    nodePort: 30082
   selector:
     app: webapp
+
+#  k create -f '4.2 webapp-rc.yaml'
+#  k create -f '4.4.2 service-nodeport.yaml'
+#  ping vmb (ip: 192.168.13.131)
+#  curl 192.168.13.131:30082
+
+#  k delete -f '4.2 webapp-rc.yaml'
+#  k delete -f '4.4.2 service-nodeport.yaml'

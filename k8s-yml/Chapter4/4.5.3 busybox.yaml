@@ -1,0 +1,27 @@
+# 用于测试 DNS 查找
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: busybox
+  namespace: default
+spec:
+  containers:
+    - name: busybox
+      # image: gcr.io/google_containers/busybox
+      image: omio/gcr.io.google_containers.busybox:1.24
+      command:
+        - sleep
+        - "3600"
+
+
+# 可先执行： k create -f '4.2 webapp-rc-service.yaml'
+
+#  k create -f '4.5.3 busybox.yaml'
+#  k get pods
+#  k exec busybox -- nslookup webapp
+#  k exec busybox -- nslookup kube-dns
+#  k exec busybox -- nslookup kube-dns.kube-system
+
+#  k delete -f '4.5.3 busybox.yaml'
