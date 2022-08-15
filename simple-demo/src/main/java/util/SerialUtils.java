@@ -15,7 +15,7 @@ import lombok.extern.slf4j.Slf4j;
  * @author zxf
  */
 @Slf4j
-public class SerialUtil {
+public class SerialUtils {
 
     public static < T extends Serializable > void writeObject( T obj, String filePath ) {
         try ( ObjectOutputStream oos = new ObjectOutputStream( new FileOutputStream( filePath ) ) ) {

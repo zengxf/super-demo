@@ -1,7 +1,7 @@
 package test.jdkapi.serial;
 
 import lombok.extern.slf4j.Slf4j;
-import util.SerialUtil;
+import util.SerialUtils;
 
 @Slf4j
 public class TestSerialMain {
@@ -16,7 +16,7 @@ public class TestSerialMain {
     }
 
     static void testReadDto( String path ) {
-        TestADto dto = SerialUtil.readObject( path );
+        TestADto dto = SerialUtils.readObject( path );
         log.info( "read: {}", dto );
     }
 
@@ -26,19 +26,19 @@ public class TestSerialMain {
         dtoB.setName( "zxf" );
         dtoB.setMsg( "zxf test" );
         dto.setDto( dtoB );
-        SerialUtil.writeObject( dto, path );
+        SerialUtils.writeObject( dto, path );
         log.info( "write: {}", dto );
     }
 
     static void testRead( String path ) {
-        SerialDto dto = SerialUtil.readObject( path );
+        SerialDto dto = SerialUtils.readObject( path );
         System.out.println( dto );
         System.out.println( SerialDto.sign );
     }
 
     static void testWrite( String path ) {
         SerialDto dto = new SerialDto();
-        SerialUtil.writeObject( dto, path );
+        SerialUtils.writeObject( dto, path );
         System.out.println( dto );
     }
 
