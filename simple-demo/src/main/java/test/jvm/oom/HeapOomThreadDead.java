@@ -11,34 +11,34 @@ import java.util.List;
  * Created by zengxf on 2019-06-27
  */
 // JVM: -Xms16m -Xmx32m
-public class HeapOomOtherThreadDead {
+public class HeapOomThreadDead {
 
-    public static void main( String[] args ) {
-        new Thread( () -> {
+    public static void main(String[] args) {
+        new Thread(() -> {
             List<byte[]> list = new ArrayList<byte[]>();
-            while ( true ) {
-                System.out.println( new Date().toString() + Thread.currentThread() + "==" );
+            while (true) {
+                System.out.println(new Date().toString() + Thread.currentThread() + "==");
                 byte[] b = new byte[1024 * 1024 * 1];
-                list.add( b );
+                list.add(b);
                 try {
-                    Thread.sleep( 500 );
-                } catch ( Exception e ) {
+                    Thread.sleep(500);
+                } catch (Exception e) {
                     e.printStackTrace();
                 }
             }
-        } ).start();
+        }).start();
 
         // 线程二
-        new Thread( () -> {
-            while ( true ) {
-                System.out.println( new Date().toString() + Thread.currentThread() + "==" );
+        new Thread(() -> {
+            while (true) {
+                System.out.println(new Date().toString() + Thread.currentThread() + "==");
                 try {
-                    Thread.sleep( 500 );
-                } catch ( Exception e ) {
+                    Thread.sleep(500);
+                } catch (Exception e) {
                     e.printStackTrace();
                 }
             }
-        } ).start();
+        }).start();
     }
 
 }
