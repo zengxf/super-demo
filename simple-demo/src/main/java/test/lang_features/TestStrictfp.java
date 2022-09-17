@@ -31,7 +31,8 @@ public class TestStrictfp {
         System.out.println( v );
     }
 
-    strictfp static void testStrictfp() {
+    // strictfp // JDK 17 不需要此声明了
+    static void testStrictfp() {
         float aFloat = 0.6710339f;
         double aDouble = 0.04150553411984792d;
         double sum = aFloat + aDouble;

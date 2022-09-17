@@ -43,7 +43,7 @@ import java.util.List;
  * <p>
  * Created by zengxf on 2018-03-16
  */
-public class TestLargeHeapForMAT {
+public class LargeHeapForMAT {
 
     // 5M
     public static class BigObj {

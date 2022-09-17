@@ -7,7 +7,7 @@ import java.util.List;
 /**
  * 参考： https://blog.csdn.net/zzg1229059735/article/details/82715741
  */
-public class TestThreadLocalOOM {
+public class ThreadLocalOOM {
 
     public ThreadLocal<List<Object>> local = new ThreadLocal<List<Object>>() {
         @Override
@@ -30,7 +30,7 @@ public class TestThreadLocalOOM {
 
     public static void main(String[] args) {
         //  为了复现key被回收的场景，我们使用临时变量
-        TestThreadLocalOOM memeory = new TestThreadLocalOOM();
+        ThreadLocalOOM memeory = new ThreadLocalOOM();
 
         // 调用
         incrementSameThreadId(memeory);
@@ -50,7 +50,7 @@ public class TestThreadLocalOOM {
         }
     }
 
-    private static void incrementSameThreadId(final TestThreadLocalOOM memeory) {
+    private static void incrementSameThreadId(final ThreadLocalOOM memeory) {
         try {
             for (int i = 0; i < 5; i++) {
                 System.out.println(Thread.currentThread() + "_" + i + ",threadId:" + memeory.get().size());
