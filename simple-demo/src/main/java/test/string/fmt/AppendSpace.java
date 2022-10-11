@@ -20,7 +20,7 @@ public class AppendSpace {
 
     static {
         enSymbol = "`~!@#$%^&*()_+{}-=[];'\\:\"|,./<>?`\r\n ".toCharArray();
-        cnSymbol = "、（），。“”：？".toCharArray();
+        cnSymbol = "—、（），。“”：；？".toCharArray();
         Arrays.sort(enSymbol);
         Arrays.sort(cnSymbol);
     }
@@ -31,10 +31,16 @@ public class AppendSpace {
     }
 
     static void fmtFile() throws IOException {
+        System.out.println("\n--------------------------");
+        long st = System.currentTimeMillis();
+
         Path path = Paths.get(filePath);
         String str = Files.readString(path);
         String newStr = fmtStr(str);
         Files.writeString(path, newStr);
+
+        System.out.println("格式完成，用时（ms）：" + (System.currentTimeMillis() - st));
+        System.out.println("--------------------------\n");
     }
 
     static void test() {

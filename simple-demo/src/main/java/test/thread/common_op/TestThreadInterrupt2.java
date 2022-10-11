@@ -22,21 +22,23 @@ public class TestThreadInterrupt2 {
             try {
                 Thread.sleep(1000L);
             } catch (InterruptedException e) {
-                log.info("第 1 次中断！");
+                log.error("第 1 次中断！");
             }
             log.info("run 2 ----");
             try {
                 Thread.sleep(1000L);
             } catch (InterruptedException e) {
-                log.info("第 2 次中断！");
+                log.error("第 2 次中断！");
             }
             log.info("run 3 ----");
         };
         Thread thread = new Thread(run, "interrupt-test-thread");
         thread.start();
+        log.info("--- 1. interrupt()");
         thread.interrupt();
         SleepUtils.millisecond(500L);
         thread.interrupt();
+        log.info("--- 2. interrupt()");
     }
 
 }
