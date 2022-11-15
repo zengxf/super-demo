@@ -12,17 +12,17 @@ public class TestRadixSort {
     }
 
     static void radixSort( int[] array, int maxBase ) {
-        int base = 1; // 代表位数对应的数：1, 10, 100...
+        int base = 1; // 1, 10, 100...
         int length = array.length;
         int[][] bucket = new int[10][length];
-        int[] order = new int[10]; // 用于保存每个桶里有多少个数字
+        int[] order = new int[10]; //
         while ( base < maxBase ) {
-            for ( int num : array ) { // 将数组里的每个数字放在相应的桶里
+            for ( int num : array ) { //
                 int digit = ( num / base ) % 10;
                 int index = order[digit]++;
                 bucket[digit][index] = num;
             }
-            for ( int i = 0, k = 0; i < 10; i++ ) { // 覆盖到原数组中，保存排序结果
+            for ( int i = 0, k = 0; i < 10; i++ ) { //
                 if ( order[i] != 0 ) {
                     for ( int j = 0; j < order[i]; j++ ) {
                         array[k++] = bucket[i][j];

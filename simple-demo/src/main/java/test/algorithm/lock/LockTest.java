@@ -19,14 +19,14 @@ public class LockTest {
 
         Runnable run = () -> {
             for (int i = 1; i <= 5; i++) {
-                log.info("第 [{}] 次进入加锁！", i);
+                log.info("No. [{}] lock", i);
                 lock.lock();
                 try {
-                    log.info("第 [{}] 次-获得-锁！并睡眠 100 ms.", i);
+                    log.info("No. [{}] locked, sleep 100 ms.", i);
                     SleepUtils.millisecond(100L);
                 } finally {
                     lock.unlock();
-                    log.info("第 [{}] 次 释放 锁！", i);
+                    log.info("No. [{}] unlock", i);
                 }
             }
         };

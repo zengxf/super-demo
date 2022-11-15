@@ -6,7 +6,7 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 
 /**
- * 参考：https://www.cnblogs.com/sanzao/p/10567529.html
+ * ref https://www.cnblogs.com/sanzao/p/10567529.html
  * <br/>
  * Created by ZXFeng on 2022/6/14.
  */
@@ -38,22 +38,22 @@ public class CLHLock implements Lock {
 
     @Override
     public void lockInterruptibly() {
-        throw new RuntimeException("未实现！");
+        throw new RuntimeException("todo");
     }
 
     @Override
     public boolean tryLock() {
-        throw new RuntimeException("未实现！");
+        throw new RuntimeException("todo");
     }
 
     @Override
     public boolean tryLock(long time, TimeUnit unit) {
-        throw new RuntimeException("未实现！");
+        throw new RuntimeException("todo");
     }
 
     @Override
     public Condition newCondition() {
-        throw new RuntimeException("未实现！");
+        throw new RuntimeException("todo");
     }
 
 }

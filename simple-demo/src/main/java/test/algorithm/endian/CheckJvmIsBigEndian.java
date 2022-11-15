@@ -4,9 +4,8 @@ import java.io.*;
 import java.nio.ByteOrder;
 
 /**
- * 验证 JVM 使用大端
  * <p>
- * 参考：https://blog.csdn.net/duyiwuer2009/article/details/7455490
+ * ref https://blog.csdn.net/duyiwuer2009/article/details/7455490
  * <br/>
  * Created by ZXFeng on 2022/3/8.
  */
@@ -23,7 +22,6 @@ public class CheckJvmIsBigEndian {
         System.out.println("---------------");
     }
 
-    // 将字节数组（byte[]）转为整形(int)
     static void bytesToInt() throws IOException {
         byte[] byteAr = new byte[4];
         byteAr[0] = 0x78;
@@ -35,7 +33,6 @@ public class CheckJvmIsBigEndian {
         System.out.println(Integer.toHexString(dis.readInt()));
     }
 
-    // 将整形(int)转为字节数组（byte[]）
     static void intToBytes() throws IOException {
         int a = 0x12345678;
         ByteArrayOutputStream bos = new ByteArrayOutputStream();

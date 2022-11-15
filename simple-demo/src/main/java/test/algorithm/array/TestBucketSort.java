@@ -5,7 +5,7 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * 桶排序（Bucket Sort）
+ * Bucket Sort
  * <p>
  * Created by zengxf on 2019-04-08
  */
@@ -30,7 +30,6 @@ public class TestBucketSort {
             if ( min > a )
                 min = a;
         }
-        // 該值也可根據實際情況選擇
         int bucketNum = max / 10 - min / 10 + 1;
         List<List<Integer>> buckList = new ArrayList<>();
         // create bucket
@@ -52,7 +51,6 @@ public class TestBucketSort {
         }
     }
 
-    // 把桶內元素插入排序
     static void insertSort( List<Integer> bucket ) {
         for ( int i = 1; i < bucket.size(); i++ ) {
             int temp = bucket.get( i );
