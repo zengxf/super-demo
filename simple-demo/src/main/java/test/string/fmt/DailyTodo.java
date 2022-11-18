@@ -25,12 +25,12 @@ public class DailyTodo {
     public static void main(String[] args) throws IOException {
         StringBuilder ct = new StringBuilder(); // content
         YearMonth ym = YearMonth.of(2022, 11);
-        ct.append("##### ").append(ym).append(row);
+        ct.append("##### ").append(ym).append(" 日程表").append(row);
 
         for (int i = 1; i <= ym.lengthOfMonth(); i++) {
             DayOfWeek week = ym.atDay(i).getDayOfWeek();
             if (week == DayOfWeek.SATURDAY || week == DayOfWeek.SUNDAY) {
-                String fmt = "- [ ] **%02d** %s 2-%s"; // 双休多一些
+                String fmt = "- [ ] **%02d** %s 2-%s A.复习 □"; // 双休多一些
                 ct.append(String.format(fmt, i, todo, todo, todo));
             } else {
                 String fmt = "- [ ] **%02d** %s";
