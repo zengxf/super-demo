@@ -17,6 +17,7 @@ import java.time.YearMonth;
 @Slf4j
 public class DailyTodo {
 
+    static YearMonth ym = YearMonth.of(2023, 03);
     static String
             filePath = "D:/MyData/note-backup/未整理/temp.md",
             todo = "1.悬吊抬腿 □ 2.看书 □ 3.深蹲 □",
@@ -24,7 +25,6 @@ public class DailyTodo {
 
     public static void main(String[] args) throws IOException {
         StringBuilder ct = new StringBuilder(); // content
-        YearMonth ym = YearMonth.of(2022, 11);
         ct.append("##### ").append(ym).append(" 日程表").append(row);
 
         for (int i = 1; i <= ym.lengthOfMonth(); i++) {
