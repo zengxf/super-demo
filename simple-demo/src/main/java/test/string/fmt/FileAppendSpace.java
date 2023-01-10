@@ -1,9 +1,6 @@
 package test.string.fmt;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Arrays;
 
 /**
@@ -11,12 +8,10 @@ import java.util.Arrays;
  * <br/>
  * Created by ZXFeng on 2022/9/26.
  */
-public class AppendSpace {
+public class FileAppendSpace {
 
     private static final char[] enSymbol;
     private static final char[] cnSymbol;
-
-    static String filePath = "D:\\MyData\\note-backup\\未整理\\temp.md";
 
     static {
         enSymbol = "`~!@#$%^&*()_+{}-=[];'\\:\"|,./<>?`\r\n ".toCharArray();
@@ -26,25 +21,12 @@ public class AppendSpace {
     }
 
     public static void main(String[] args) throws IOException {
-        // test();
-        fmtFile();
-    }
-
-    static void fmtFile() throws IOException {
-        System.out.println("\n--------------------------");
-        long st = System.currentTimeMillis();
-
-        Path path = Paths.get(filePath);
-        String str = Files.readString(path);
-        String newStr = fmtStr(str);
-        Files.writeString(path, newStr);
-
-        System.out.println("格式完成，用时（ms）：" + (System.currentTimeMillis() - st));
-        System.out.println("--------------------------\n");
-    }
-
-    static void test() {
-        String str = content();
+        String str = """
+                - 而无状态的 Handler，作为Context的成员，
+                - 关联在ChannelHandlerContext中。
+                - 一个unsafe（完成）test.
+                - ChannelPipeline流水线，所示：abc dd
+                """;
 
         System.out.println("---------------------");
         System.out.println(str);
@@ -88,14 +70,6 @@ public class AppendSpace {
         return sb.toString();
     }
 
-    static String content() {
-        return """
-                - 而无状态的 Handler，作为Context的成员，
-                - 关联在ChannelHandlerContext中。
-                - 一个unsafe（完成）test.
-                - ChannelPipeline流水线，所示：abc dd
-                """;
-    }
 
     // 判断是不是单字符
     static boolean isSingle(char c) {

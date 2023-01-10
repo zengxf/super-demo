@@ -1,9 +1,6 @@
 package test.string.fmt;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Arrays;
 
 /**
@@ -11,10 +8,9 @@ import java.util.Arrays;
  * <br/>
  * Created by ZXFeng on 2022/9/28.
  */
-public class AutoNewline {
+public class FileAutoNewline {
 
     private static final char[] cnSymbol;
-    static String filePath = "D:\\MyData\\note-backup\\未整理\\temp.md";
 
     static {
         cnSymbol = "，。：；？".toCharArray();
@@ -22,20 +18,19 @@ public class AutoNewline {
     }
 
     public static void main(String[] args) throws IOException {
-        fmtFile();
-    }
+        String str = """
+                - 而无状态的 Handler，作为Context的成员，
+                - 关联在ChannelHandlerContext中。
+                - 一个unsafe（完成）test.
+                - ChannelPipeline流水线，所示：abc dd
+                """;
 
-    static void fmtFile() throws IOException {
-        System.out.println("\n--------------------------");
-        long st = System.currentTimeMillis();
+        System.out.println("---------------------");
+        System.out.println(str);
 
-        Path path = Paths.get(filePath);
-        String str = Files.readString(path);
-        String newStr = fmtStr(str);
-        Files.writeString(path, newStr);
-
-        System.out.println("格式完成，用时（ms）：" + (System.currentTimeMillis() - st));
-        System.out.println("--------------------------\n");
+        System.out.println("---------------------");
+        String fmt = fmtStr(str);
+        System.out.println(fmt);
     }
 
     static String fmtStr(String str) {
