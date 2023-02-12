@@ -16,7 +16,7 @@ public class FileMarkdownFmt {
 
     public static void main(String[] args) throws IOException {
         fmtFile();
-        // testFmt();
+        // fmtTempTest();
     }
 
     private static void fmtFile() throws IOException {
@@ -32,7 +32,7 @@ public class FileMarkdownFmt {
         System.out.println("--------------------------\n");
     }
 
-    static void testFmt() {
+    static void fmtTempTest() {
         String str = """
                 - 而无状态的 Handler，作为Context的成员，
                 - 关联在ChannelHandler
@@ -68,8 +68,8 @@ public class FileMarkdownFmt {
     }
 
     static String fmt(String str) {
-        // str = FileAutoNewline.fmtStr(str);
-        // str = FileDelLine.fmtStr(str);
+        str = FileAutoNewline.fmtStr(str);
+        str = FileDelLine.fmtStr(str);
         str = FileAppendSpace.fmtStr(str);
         return str;
     }
