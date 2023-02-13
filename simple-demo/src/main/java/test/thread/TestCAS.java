@@ -13,8 +13,8 @@ import java.util.concurrent.atomic.AtomicLong;
 @Slf4j
 public class TestCAS {
 
-    // volatile int value = 0; // ok
-    int value = 0; // ok! 失败次数甚至还少些！
+    volatile int value = 0; // ok，失败次数多，是因为屏障太多，相当于 CAS 方法变大，增加失败几率，但能保证非 CAS 线程的可见性
+    // int value = 0; // ok! 失败次数甚至还少些！不能保证非 CAS 线程的可见性
 
     static final long valueOffset;
     static final Unsafe unsafe = JdkUtil.getUnsafe();
