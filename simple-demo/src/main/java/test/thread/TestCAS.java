@@ -13,6 +13,10 @@ import java.util.concurrent.atomic.AtomicLong;
 @Slf4j
 public class TestCAS {
 
+    /**
+     * 下面两项测试，说明 CAS 是拿主存中的数据比较，并更新到主存，CPU 机制也使各缓存失效；
+     * volatile 使可见性更有保证。
+     */
     volatile int value = 0; // ok，失败次数多，是因为屏障太多，相当于 CAS 方法变大，增加失败几率，但能保证非 CAS 线程的可见性
     // int value = 0; // ok! 失败次数甚至还少些！不能保证非 CAS 线程的可见性
 
