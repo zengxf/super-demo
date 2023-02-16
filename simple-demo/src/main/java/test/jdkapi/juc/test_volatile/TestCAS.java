@@ -1,4 +1,4 @@
-package test.thread;
+package test.jdkapi.juc.test_volatile;
 
 import lombok.extern.slf4j.Slf4j;
 import sun.misc.Unsafe;
