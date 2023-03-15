@@ -5,7 +5,7 @@ import java.util.function.Function;
 /**
  * 测试产生的中间类
  * <p>
- * 
+ *
  * <pre>
  * JVM 命令参数：
  *   -Djdk.internal.lambda.dumpProxyClasses // 默认当前目录
@@ -19,12 +19,12 @@ import java.util.function.Function;
  * 查看私有方法：
  *   javap -p TestLambdaDumpClass.class
  * </pre>
- * 
+ *
  * @author zengxf
  */
 public class TestLambdaDumpClass {
-    public static void main( String[] args ) {
-        System.setProperty( "jdk.internal.lambda.dumpProxyClasses", "D:/test/dump/java8" );
+    public static void main(String[] args) {
+        System.setProperty("jdk.internal.lambda.dumpProxyClasses", "D:/Data/test/dump/java8");
         // System.setProperty( "jdk.internal.lambda.dumpProxyClasses", "" );
         a();
         b();
@@ -35,14 +35,14 @@ public class TestLambdaDumpClass {
     static void b() {
         String header = "This is a ";
         Function<Object, String> f = obj -> header + obj.toString();
-        String v = f.apply( 23 );
-        System.out.println( v );
+        String v = f.apply(23);
+        System.out.println(v);
     }
 
     static void a() {
         Runnable run = () -> {
         };
-        System.out.println( run );
+        System.out.println(run);
         run.run();
     }
 }
