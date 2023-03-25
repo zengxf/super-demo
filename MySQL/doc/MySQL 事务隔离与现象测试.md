@@ -1,0 +1,60 @@
+# MySql 事务隔离与现象测试
+
+标签（空格分隔）： DB
+
+---
+
+## 未提交读-脏读
+T1 | T2 | Main
+--- | --- | --- 
+- | - | SET GLOBAL TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
+- | - | truncate table test;
+SELECT @@tx_isolation; | SELECT @@tx_isolation;  | - 
+start transaction; | start transaction;  | - 
+select * from test;  | - | - 
+- | insert into test values(1, 'a');  | - 
+select * from test; // 读取到未提交的数据 | -  | - 
+
+## 提交读-不可重复读
+T1 | T2 | Main
+--- | --- | --- 
+- | - | SET GLOBAL TRANSACTION ISOLATION LEVEL READ COMMITTED;
+- | - | truncate table test;
+SELECT @@tx_isolation; | SELECT @@tx_isolation;  | - 
+start transaction; | start transaction;  | - 
+select * from test;  | - | - 
+- | insert into test values(1, 'a');  | - 
+- | commit;  | - 
+select * from test; // 两次读取不一样  | -  | - 
+
+## 可重复读-幻读
+T1 | T2 | Main
+--- | --- | --- 
+- | - | SET GLOBAL TRANSACTION ISOLATION LEVEL REPEATABLE READ;
+- | - | truncate table test;
+SELECT @@tx_isolation; | SELECT @@tx_isolation;  | - 
+start transaction; | start transaction;  | - 
+select * from test;  | - | - 
+- | insert into test values(1, 'a');  | - 
+- | commit;  | - 
+select * from test; // 读没问题  | -  | - 
+insert into test values(1, 'a'); // 插入报 duplicate key 错，出现了幻觉  | -  | - 
+
+### 可用 Next-Key 锁查看
+- 如`select .. for update;`或`select .. lock in share mode`
+
+## 顺序读
+T1 | T2 | Main
+--- | --- | --- 
+- | - | SET GLOBAL TRANSACTION ISOLATION LEVEL SERIALIZABLE;
+- | - | truncate table test;
+SELECT @@tx_isolation; | SELECT @@tx_isolation;  | - 
+start transaction; | start transaction;  | - 
+select * from test;  | - | - 
+- | insert into test values(1, 'a'); // 等待  | - 
+commit; | 等待  | - 
+- | 插入成功  | -
+
+
+
+
