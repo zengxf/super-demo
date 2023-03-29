@@ -27,5 +27,16 @@ OK
 (nil)
 127.0.0.1:6379> get t1
 "abc"
-127.0.0.1:6379>
+127.0.0.1:6379> EVAL "return struct.pack('HH', 1, 2)" 0
+"\x01\x00\x02\x00"
+127.0.0.1:6379> EVAL "return { struct.unpack('HH', ARGV[1]) }" 0 "\x01\x00\x02\x00"
+1) (integer) 1
+2) (integer) 2
+3) (integer) 5 // Length
+127.0.0.1:6379> EVAL "return struct.pack('dLc0', 0, 4, '168x')" 0
+"\x00\x00\x00\x00\x00\x00\x00\x00\x04\x00\x00\x00168x"
+127.0.0.1:6379> EVAL "return { struct.unpack('dLc0', ARGV[1]) }" 0 "\x00\x00\x00\x00\x00\x00\x00\x00\x04\x00\x00\x00168x"
+1) (integer) 0
+2) "168x"
+3) (integer) 17 // Length
 ```
