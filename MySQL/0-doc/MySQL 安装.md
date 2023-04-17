@@ -5,10 +5,10 @@
 ---
 
 ## Windows 下 MySQL 环境搭建
-- 参考：https://www.iuskye.com/2021/05/18/win10-install-mysql8.html
+- 参考：https://zhuanlan.zhihu.com/p/48531203
 
 ### 同目录下创建 my.ini
-```
+```conf
 # basedir：安装目录； datadir：数据文件存放位置
 
 [mysqld]
