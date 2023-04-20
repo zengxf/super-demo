@@ -1,11 +1,16 @@
 # MySQL 安装
 
-标签（空格分隔）： DB
-
 ---
-
 ## Windows 下 MySQL 环境搭建
 - 参考：https://zhuanlan.zhihu.com/p/48531203
+- zip 下载地址：https://dev.mysql.com/downloads/mysql/
+  - 下载 `mysql-8.0.33-winx64.zip`
+
+### 使用 msi 简单快速安装
+- 谷歌：`mysql download windows msi`
+- https://dev.mysql.com/downloads/installer/
+  - 下载 `mysql-installer-community-8.0.33.0.msi`
+- **zip 下载安装不了，就用此方法**
 
 ### 同目录下创建 my.ini
 ```conf
