@@ -183,6 +183,59 @@ Failed to execute ognl, exception message: ognl.MethodFailedException: Method "g
 ```
 
 ### ...
+### retransform
+- https://arthas.aliyun.com/doc/retransform.html
+- **加载外部的.class文件，retransform jvm 已加载的类**
+- **消除 retransform 的影响**
+  - 删除这个类对应的 retransform entry
+  - 重新触发 retransform
+```js
+// 将 ms 由原来的 5 改成 10
+private int sleep5Ms() throws InterruptedException {
+    int ms = 10;
+    Thread.sleep(ms);
+    return ms;
+}
+
+// 执行 TestBizService 单元测试，IDEA 才会重新编译
+// 访问 http://localhost:9066/api/biz/sleepMs?ms=20
+09:50:14.084 [http-nio-9066-exec-3] INFO  test.biz.BizService - use ms: [48], ms2: [5] 
+// 输出没变
+
+// 重新加载类
+[arthas@18512]$ retransform  build/classes/java/main/test/biz/BizService.class
+retransform success, size: 1, classes:
+test.biz.BizService
+[arthas@18512]$
+
+// 访问 http://localhost:9066/api/biz/sleepMs?ms=20
+09:53:39.697 [http-nio-9066-exec-5] INFO  test.biz.BizService - use ms: [43], ms2: [10] 
+// 输出已改变
+
+
+// 查看 retransform entry
+[arthas@18512]$ retransform -l
+Id              ClassName       TransformCount  LoaderHash      LoaderClassName
+1               test.biz.BizSer 1               null            null
+                vice
+2               test.biz.BizSer 2               null            null
+                vice
+// 删除指定 retransform entry
+[arthas@18512]$ retransform -d 1
+// 删除所有 retransform entry
+[arthas@18512]$ retransform --deleteAll
+// 显式触发 retransform（不触发一次不会还原）
+[arthas@18512]$ retransform --classPattern test.biz.BizService
+retransform success, size: 1, classes:
+test.biz.BizService
+[arthas@18512]$
+
+// 访问 http://localhost:9066/api/biz/sleepMs?ms=20
+10:01:06.780 [http-nio-9066-exec-8] INFO  test.biz.BizService - use ms: [32], ms2: [5] 
+// 输出已还原
+```
+
+### ...
 ### monitor
 - https://arthas.aliyun.com/doc/monitor.html
 - **监控方法执行**
