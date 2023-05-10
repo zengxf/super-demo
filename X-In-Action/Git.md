@@ -46,3 +46,10 @@ PS D:\Work\Code\java-project>
 ### 恢复某个文件到上一个提交版本
 - ref: https://blog.csdn.net/I_recluse/article/details/88105385
 - 但需要重新提交一次
+
+### 恢复删除的文件
+- ref: https://www.cnblogs.com/yangshifu/p/9680993.html
+```js
+git reset HEAD file-or-folder
+git checkout file-or-folder
+```
