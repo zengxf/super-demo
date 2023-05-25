@@ -1,3 +1,7 @@
+## 简介
+- 主要是通过 Java SPI 去获取服务提供者
+  - 所以后面**主要是介绍 Java SPI 原理**
+
 ## 测试
 - 在 `cn.hutool.aop.proxy.ProxyFactory` 加个 `main` 方法
 ```java
