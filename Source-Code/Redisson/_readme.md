@@ -1,5 +1,5 @@
 ## 总说明
-- 源码仓库：https://github.com/redisson/redisson
+- 源码仓库： https://github.com/redisson/redisson
 - 克隆：`git clone git@github.com:redisson/redisson.git`
 - 切分支（tag）：`git checkout redisson-3.19.3`
 
