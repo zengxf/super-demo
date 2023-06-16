@@ -6,3 +6,4 @@
 
 ## UML
 - Context-UML: https://www.processon.com/view/link/648532c4320a4e3425972722
+- BeanFactory-UML: https://www.processon.com/view/link/648b3146516ce3025f4e850d
