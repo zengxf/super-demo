@@ -30,14 +30,14 @@
 				initMessageSource();
 				// 初始化事件组播器
 				initApplicationEventMulticaster();
-
 				// 钩子函数，子类根据需要可重写
 				onRefresh();
-
 				// 注册事件监听器
 				registerListeners();
+
 				// 实例化剩余（非 lazy）单例
 				finishBeanFactoryInitialization(beanFactory);
+				
 				// 刷新完成后处理：清缓存、发送刷新完成事件
 				finishRefresh();
 			}
