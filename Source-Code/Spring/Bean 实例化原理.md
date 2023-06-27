@@ -166,7 +166,7 @@
 					if (singletonObject == null) {
 						singletonObject = this.earlySingletonObjects.get(beanName); // 为空，再从 2 级缓存中取
 						if (singletonObject == null) {
-							ObjectFactory<?> singletonFactory = this.singletonFactories.get(beanName); // 从工厂里面取
+							ObjectFactory<?> singletonFactory = this.singletonFactories.get(beanName); // 从工厂里面取（3 级缓存中取）
 							if (singletonFactory != null) {
 								singletonObject = singletonFactory.getObject(); // 工厂创建并返回
 								this.earlySingletonObjects.put(beanName, singletonObject); // 加入到 2 级缓存
@@ -255,9 +255,9 @@
 			throws BeanCreationException {
 
 		BeanWrapper instanceWrapper = null;
-		...
+		... // 读取缓存
 		if (instanceWrapper == null) {
-			instanceWrapper = createBeanInstance(beanName, mbd, args);
+			instanceWrapper = createBeanInstance(beanName, mbd, args); // 创建实例
 		}
 		Object bean = instanceWrapper.getWrappedInstance();
 		Class<?> beanType = instanceWrapper.getWrappedClass();
@@ -265,26 +265,26 @@
 		synchronized (mbd.postProcessingLock) {
 			if (!mbd.postProcessed) {
 				try {
-					applyMergedBeanDefinitionPostProcessors(mbd, beanType, beanName);
+					applyMergedBeanDefinitionPostProcessors(mbd, beanType, beanName); // Bean 定义的后处理
 				}
 				... // 传递异常
 			}
 		}
 
-		// Eagerly cache singletons to be able to resolve circular references
-		// even when triggered by lifecycle interfaces like BeanFactoryAware.
+		// 解决循环依赖
 		boolean earlySingletonExposure = (mbd.isSingleton() && this.allowCircularReferences &&
 				isSingletonCurrentlyInCreation(beanName));
 		if (earlySingletonExposure) {
-			...
+			... // log
+			// 添加到 3 级缓存
 			addSingletonFactory(beanName, () -> getEarlyBeanReference(beanName, mbd, bean));
 		}
 
-		// Initialize the bean instance.
+		// 初始化处理
 		Object exposedObject = bean;
 		try {
-			populateBean(beanName, mbd, instanceWrapper);
-			exposedObject = initializeBean(beanName, exposedObject, mbd);
+			populateBean(beanName, mbd, instanceWrapper); // 填充属性
+			exposedObject = initializeBean(beanName, exposedObject, mbd); // 初始化（可能会返回新对象）
 		}
 		... // 传递异常
 
@@ -294,25 +294,80 @@
 				if (exposedObject == bean) {
 					exposedObject = earlySingletonReference;
 				}
-				else if (!this.allowRawInjectionDespiteWrapping && hasDependentBean(beanName)) {
-					String[] dependentBeans = getDependentBeans(beanName);
-					Set<String> actualDependentBeans = new LinkedHashSet<>(dependentBeans.length);
-					for (String dependentBean : dependentBeans) {
-						if (!removeSingletonIfCreatedForTypeCheckOnly(dependentBean)) {
-							actualDependentBeans.add(dependentBean);
-						}
-					}
-					... // 校验
-				}
+				... // 校验
 			}
 		}
 
-		// Register bean as disposable.
-		try {
-			registerDisposableBeanIfNecessary(beanName, bean, mbd);
-		}
-		... // 传递异常
+		... // 有销毁的方法则再注册下
 
 		return exposedObject;
+	}
+
+	// 创建实例
+	protected BeanWrapper createBeanInstance(String beanName, RootBeanDefinition mbd, @Nullable Object[] args) {
+		...
+
+		// 获取自动注入的构造器集合
+		Constructor<?>[] ctors = determineConstructorsFromBeanPostProcessors(beanClass, beanName);
+		... // 其他构造器查找处理
+		if (ctors != null) {
+			return autowireConstructor(beanName, mbd, ctors, null); // 使用查找的构造器创建实例：ctor.newInstance(argsWithDefaultValues);
+		}
+
+		// 使用无参构建器创建实例：ctor.newInstance(); ctor.newInstance(argsWithDefaultValues);
+		return instantiateBean(beanName, mbd);
+	}
+
+	// 填充属性
+	protected void populateBean(String beanName, RootBeanDefinition mbd, @Nullable BeanWrapper bw) {
+		...
+
+		PropertyValues pvs = (mbd.hasPropertyValues() ? mbd.getPropertyValues() : null);
+
+		int resolvedAutowireMode = mbd.getResolvedAutowireMode();
+		if (resolvedAutowireMode == AUTOWIRE_BY_NAME || resolvedAutowireMode == AUTOWIRE_BY_TYPE) {
+			MutablePropertyValues newPvs = new MutablePropertyValues(pvs);
+			// 通过名称注入
+			if (resolvedAutowireMode == AUTOWIRE_BY_NAME) {
+				autowireByName(beanName, mbd, bw, newPvs); // 将依赖的属性记录到 newPvs
+			}
+			// 通过类型注入
+			if (resolvedAutowireMode == AUTOWIRE_BY_TYPE) {
+				autowireByType(beanName, mbd, bw, newPvs); // 将依赖的属性记录到 newPvs
+			}
+			pvs = newPvs;
+		}
+		... // 校验等等
+
+		if (pvs != null) {
+			// 设置属性值：
+			//   bw.setPropertyValues(mpvs); -> setPropertyValue(pv); 
+			//     -> nestedPa.setPropertyValue(tokens, new PropertyValue(propertyName, value));
+			//     -> processLocalProperty(tokens, pv);
+			//     -> ph.setValue(valueToApply);
+			//   方法赋值-底层原理：writeMethod.invoke(getWrappedInstance(), value);
+			//   字段赋值-底层原理：field.set(getWrappedInstance(), value);
+			applyPropertyValues(beanName, mbd, bw, pvs);
+		}
+	}
+
+	// 初始化（可能会返回新对象）
+	protected Object initializeBean(String beanName, Object bean, @Nullable RootBeanDefinition mbd) {
+		invokeAwareMethods(beanName, bean); // 调用 aware 方法
+
+		Object wrappedBean = bean;
+		if (mbd == null || !mbd.isSynthetic()) {
+			wrappedBean = applyBeanPostProcessorsBeforeInitialization(wrappedBean, beanName); // Bean 后处理器初始化前处理
+		}
+
+		try {
+			invokeInitMethods(beanName, wrappedBean, mbd);
+		}
+		... // 传递异常
+		if (mbd == null || !mbd.isSynthetic()) {
+			wrappedBean = applyBeanPostProcessorsAfterInitialization(wrappedBean, beanName);  // Bean 后处理器初始化后处理
+		}
+
+		return wrappedBean;
 	}
 ```
