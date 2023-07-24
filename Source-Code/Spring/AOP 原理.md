@@ -234,3 +234,86 @@ class AspectJAutoProxyRegistrar implements ImportBeanDefinitionRegistrar {
 		}
 	}
 ```
+
+
+### AopContext.currentProxy() 原理
+- `org.springframework.aop.framework.JdkDynamicAopProxy`
+```java
+	@Override // 实现 JDK InvocationHandler 方法
+	@Nullable
+	public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+		Object oldProxy = null;
+		boolean setProxyContext = false;
+
+		TargetSource targetSource = this.advised.targetSource;
+		Object target = null;
+
+		try {
+			... // 省略不需代理的方法
+
+			Object retVal;
+
+			if (this.advised.exposeProxy) {
+				// 设置当前代理到线程变量；并记录旧值用于恢复
+				oldProxy = AopContext.setCurrentProxy(proxy);
+				setProxyContext = true;
+			}
+
+			target = targetSource.getTarget();
+			Class<?> targetClass = (target != null ? target.getClass() : null);
+
+			// 获取方法拦截器链路
+			List<Object> chain = this.advised.getInterceptorsAndDynamicInterceptionAdvice(method, targetClass);
+
+			if (chain.isEmpty()) { // 链路为空
+				// 直接方法调用
+				Object[] argsToUse = AopProxyUtils.adaptArgumentsIfNecessary(method, args);
+				retVal = AopUtils.invokeJoinpointUsingReflection(target, method, argsToUse);
+			}
+			else {
+				// 链路调用
+				MethodInvocation invocation =
+						new ReflectiveMethodInvocation(proxy, target, method, args, targetClass, chain);
+				retVal = invocation.proceed();
+			}
+
+			... // 省略 return this 处理
+			return retVal;
+		}
+		finally {
+			...
+			if (setProxyContext) {
+				// 恢复旧值
+				AopContext.setCurrentProxy(oldProxy);
+			}
+		}
+	}
+```
+
+- `org.springframework.aop.framework.CglibAopProxy.DynamicAdvisedInterceptor`
+```java
+		@Override // 实现 CGLib MethodInterceptor 方法
+		@Nullable
+		public Object intercept(Object proxy, Method method, Object[] args, MethodProxy methodProxy) throws Throwable {
+			Object oldProxy = null;
+			boolean setProxyContext = false;
+			Object target = null;
+			TargetSource targetSource = this.advised.getTargetSource();
+			try {
+				if (this.advised.exposeProxy) {
+					// 设置当前代理到线程变量；并记录旧值用于恢复
+					oldProxy = AopContext.setCurrentProxy(proxy); 
+					setProxyContext = true;
+				}
+				... // 省略方法调用
+				return processReturnType(proxy, target, method, retVal);
+			}
+			finally {
+				...
+				if (setProxyContext) {
+					// 设置旧值
+					AopContext.setCurrentProxy(oldProxy);
+				}
+			}
+		}
+```
