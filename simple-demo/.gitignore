@@ -4,6 +4,7 @@ bin
 .classpath
 .project
 *.log
+*.class
 .idea
 gradlew.bat
 gradlew
