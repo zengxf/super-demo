@@ -2,6 +2,7 @@
 - https://blog.51cto.com/u_15127678/4355762
 - https://www.sjkjc.com/mysql-ref/geometry-datatype/
 - https://blog.csdn.net/wisfy_21/article/details/124180133
+- http://mysql.taobao.org/monthly/2021/07/06/
 
 ## 测试
 ### 建表
