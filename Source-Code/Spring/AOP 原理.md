@@ -2,17 +2,28 @@
 - 概念介绍 https://juejin.cn/post/6965732777962668062
 - 原理介绍 https://mrbird.cc/深入理解Spring-AOP原理.html
 
+
 ## 介绍
 - AOP **分为静态 AOP 和动态 AOP**
   - **静态 AOP 是指 AspectJ 实现的 AOP**，其将切面代码直接编译到 Java 类文件中
   - 动态 AOP 是指将切面代码进行动态织入实现的 AOP
     - **Spring 的 AOP 为动态 AOP**，实现的技术为：JDK 动态代理和 CGLib(Code Generate Libary 字节码生成)
 
+
+## 专业词（类）
+- Advisor 通知器
+- Advice 通知、增强
+- Pointcut 切点
+- PointcutAdvisor 切点通知器（切面）
+  - 用来管理`Advice`和`Pointcut`
+
+
 ## 关键类
 - `org.springframework.context.annotation.EnableAspectJAutoProxy` 启用注解
 - `org.springframework.aop.framework.DefaultAopProxyFactory` AOP 代理工厂
 - `org.springframework.aop.framework.ProxyCreatorSupport` 调用工厂创建代理
 - `org.springframework.aop.aspectj.annotation.AnnotationAwareAspectJAutoProxyCreator` 默认的创建者
+
 
 ## 原理
 - Spring-Boot 里面 `AopAutoConfiguration` 会对 `EnableAspectJAutoProxy` 进行启用
@@ -113,7 +124,7 @@ class AspectJAutoProxyRegistrar implements ImportBeanDefinitionRegistrar {
 		TargetSource targetSource = getCustomTargetSource(beanClass, beanName);
 		if (targetSource != null) {
 			...
-			// 获取通知者（相当于拦截器）
+			// 获取通知器（相当于拦截器）
 			Object[] specificInterceptors = getAdvicesAndAdvisorsForBean(beanClass, beanName, targetSource);
 			Object proxy = createProxy(beanClass, beanName, specificInterceptors, targetSource); // 创建代理
 			this.proxyTypes.put(cacheKey, proxy.getClass());
@@ -152,22 +163,22 @@ class AspectJAutoProxyRegistrar implements ImportBeanDefinitionRegistrar {
 
 - `org.springframework.aop.framework.autoproxy.AbstractAdvisorAutoProxyCreator`
 ```java
-	/*** 查找给定 Bean 的通知者 */
+	/*** 查找给定 Bean 的通知器 */
 	@Override
 	@Nullable
 	protected Object[] getAdvicesAndAdvisorsForBean(
 			Class<?> beanClass, String beanName, @Nullable TargetSource targetSource) {
 
-		List<Advisor> advisors = findEligibleAdvisors(beanClass, beanName); // 查看合格的通知者
+		List<Advisor> advisors = findEligibleAdvisors(beanClass, beanName); // 查看合格的通知器
 		if (advisors.isEmpty()) {
 			return DO_NOT_PROXY;
 		}
 		return advisors.toArray();
 	}
 
-	/*** 查看合格的通知者(Advisor) */
+	/*** 查看合格的通知器(Advisor) */
 	protected List<Advisor> findEligibleAdvisors(Class<?> beanClass, String beanName) {
-		List<Advisor> candidateAdvisors = findCandidateAdvisors(); // 查找通知者
+		List<Advisor> candidateAdvisors = findCandidateAdvisors(); // 查找通知器
 		List<Advisor> eligibleAdvisors = findAdvisorsThatCanApply(candidateAdvisors, beanClass, beanName); // 过滤
 		extendAdvisors(eligibleAdvisors);
 		if (!eligibleAdvisors.isEmpty()) {
@@ -179,7 +190,7 @@ class AspectJAutoProxyRegistrar implements ImportBeanDefinitionRegistrar {
 
 - `org.springframework.aop.aspectj.annotation.AnnotationAwareAspectJAutoProxyCreator`
 ```java
-	/*** 查找通知者(Advisor) */
+	/*** 查找通知器(Advisor) */
 	@Override
 	protected List<Advisor> findCandidateAdvisors() {
 		// 添加父类的
