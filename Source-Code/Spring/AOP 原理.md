@@ -328,3 +328,86 @@ class AspectJAutoProxyRegistrar implements ImportBeanDefinitionRegistrar {
 			}
 		}
 ```
+
+### 单元测试
+- 测试`包可见`的方法
+  - `org.springframework.aop.framework.CglibProxyTests #testPackageMethodInvocation`
+- 测试`可继承`的方法
+  - `org.springframework.aop.framework.CglibProxyTests #testProtectedMethodInvocation`
+- **调用链**
+```js
+org.springframework.aop.framework.CglibAopProxy.DynamicAdvisedInterceptor #intercept
+org.springframework.aop.framework.CglibAopProxy.CglibMethodInvocation#proceed
+org.springframework.aop.framework.ReflectiveMethodInvocation #proceed
+
+org.aopalliance.intercept.MethodInterceptor #invoke // unit test -> NopInterceptor #invoke
+org.springframework.aop.framework.CglibAopProxy.CglibMethodInvocation #proceed
+org.springframework.aop.framework.ReflectiveMethodInvocation #proceed
+org.springframework.aop.framework.ReflectiveMethodInvocation #invokeJoinpoint
+org.springframework.aop.support.AopUtils #invokeJoinpointUsingReflection
+java.lang.reflect.Method #invoke
+```
+
+### 测试 AOP 生成类
+- https://github.com/zengxf/spring-demo/tree/master/aop/aop-principle
+- 生成的类如下：
+```java
+package cn.zxf.spring_aop.spring_dump_test; // 与父类同包
+
+// 继承要代理的类
+public class DemoMethodService$$SpringCGLIB$$0 extends DemoMethodService implements SpringProxy, Advised, Factory {
+    static {
+        CGLIB$STATICHOOK4();
+    }
+	// 类初始化时，获取对应的方法
+    static void CGLIB$STATICHOOK4() {
+		...
+        CGLIB$add$0$Proxy = MethodProxy.create(var1, var0, "()V", "add", "CGLIB$add$0");
+        CGLIB$testProtected$1$Proxy = MethodProxy.create(var1, var0, "()V", "testProtected", "CGLIB$testProtected$1");
+        CGLIB$testPackage$2$Proxy = MethodProxy.create(var1, var0, "()V", "testPackage", "CGLIB$testPackage$2");
+        CGLIB$equals$3$Proxy = MethodProxy.create(var1, var0, "(Ljava/lang/Object;)Z", "equals", "CGLIB$equals$3");
+        CGLIB$toString$4$Proxy = MethodProxy.create(var1, var0, "()Ljava/lang/String;", "toString", "CGLIB$toString$4");
+        CGLIB$hashCode$5$Proxy = MethodProxy.create(var1, var0, "()I", "hashCode", "CGLIB$hashCode$5");
+    }
+	// 设置回调
+    public static void CGLIB$SET_THREAD_CALLBACKS(Callback[] var0) {
+        CGLIB$THREAD_CALLBACKS.set(var0);
+    }
+
+    public DemoMethodService$$SpringCGLIB$$0() {
+        CGLIB$BIND_CALLBACKS(this);
+    }
+	// 实例初始化时，设置对应的回调
+    private static final void CGLIB$BIND_CALLBACKS(Object var0) {
+        DemoMethodService$$SpringCGLIB$$0 var1 = (DemoMethodService$$SpringCGLIB$$0)var0;
+        if (!var1.CGLIB$BOUND) {
+            var1.CGLIB$BOUND = true;
+            Object var10000 = CGLIB$THREAD_CALLBACKS.get();
+			...
+            Callback[] var10001 = (Callback[])var10000;
+			...
+            var1.CGLIB$CALLBACK_0 = (MethodInterceptor)var10001[0];
+        }
+    }
+    final void testPackage() {
+        MethodInterceptor var10000 = this.CGLIB$CALLBACK_0;
+		...
+        if (var10000 != null) {
+            var10000.intercept(this, CGLIB$testPackage$2$Method, CGLIB$emptyArgs, CGLIB$testPackage$2$Proxy);
+        } else {
+            super.testPackage(); // 与父类是同一个包，可以直接调用父类
+        }
+    }
+    protected final void testProtected() {
+        MethodInterceptor var10000 = this.CGLIB$CALLBACK_0;
+        ...
+        if (var10000 != null) {
+			// org.springframework.cglib.proxy.MethodInterceptor #intercept
+            var10000.intercept(this, CGLIB$testProtected$1$Method, CGLIB$emptyArgs, CGLIB$testProtected$1$Proxy);
+        } else {
+            super.testProtected(); // 调用父类方法
+        }
+    }
+	// 只能重写 package、protected、publick，不能重写 public final、private
+}
+```
