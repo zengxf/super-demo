@@ -7,3 +7,9 @@
 ## UML
 - Context-UML: https://www.processon.com/view/link/648532c4320a4e3425972722
 - BeanFactory-UML: https://www.processon.com/view/link/648b3146516ce3025f4e850d
+
+## 阅读顺序
+1. [Context-刷新原理](Context-刷新原理.md)
+2. [Bean-实例化原理](Bean-实例化原理.md)
+3. [AOP-原理](AOP-原理.md)
+4. [Cache-原理](Cache-原理.md)

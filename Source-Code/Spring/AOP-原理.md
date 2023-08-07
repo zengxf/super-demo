@@ -26,6 +26,7 @@
 
 
 ## 原理
+### 启用原理
 - Spring-Boot 里面 `AopAutoConfiguration` 会对 `EnableAspectJAutoProxy` 进行启用
 ```java
 // org.springframework.boot.autoconfigure.aop.AopAutoConfiguration
@@ -343,13 +344,13 @@ org.springframework.aop.framework.ReflectiveMethodInvocation #proceed
 org.aopalliance.intercept.MethodInterceptor #invoke // unit test -> NopInterceptor #invoke
 org.springframework.aop.framework.CglibAopProxy.CglibMethodInvocation #proceed
 org.springframework.aop.framework.ReflectiveMethodInvocation #proceed
-org.springframework.aop.framework.ReflectiveMethodInvocation #invokeJoinpoint
+org.springframework.aop.framework.ReflectiveMethodInvocation #invokeJoinpoint // 最后一个连接点才执行
 org.springframework.aop.support.AopUtils #invokeJoinpointUsingReflection
-java.lang.reflect.Method #invoke
+java.lang.reflect.Method #invoke // 反射执行目标类的方法
 ```
 
 ### 测试 AOP 生成类
-- https://github.com/zengxf/spring-demo/tree/master/aop/aop-principle
+- 测试源码： https://github.com/zengxf/spring-demo/tree/master/aop/aop-principle
 - 生成的类如下：
 ```java
 package cn.zxf.spring_aop.spring_dump_test; // 与父类同包
@@ -408,6 +409,11 @@ public class DemoMethodService$$SpringCGLIB$$0 extends DemoMethodService impleme
             super.testProtected(); // 调用父类方法
         }
     }
-	// 只能重写 package、protected、publick，不能重写 public final、private
+	// 只能重写 package、protected、public，不能重写 public final、private
 }
 ```
+
+### 总结
+- 创建代理
+- 调用代理方法时，会调用 AOP 增强链
+- 最后反射调用目标方法
