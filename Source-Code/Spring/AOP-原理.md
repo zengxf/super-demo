@@ -339,7 +339,7 @@ class AspectJAutoProxyRegistrar implements ImportBeanDefinitionRegistrar {
 ```js
 org.springframework.aop.framework.CglibAopProxy.DynamicAdvisedInterceptor #intercept
 org.springframework.aop.framework.CglibAopProxy.CglibMethodInvocation#proceed
-org.springframework.aop.framework.ReflectiveMethodInvocation #proceed
+org.springframework.aop.framework.ReflectiveMethodInvocation #proceed // 测试，只调用一次
 
 org.aopalliance.intercept.MethodInterceptor #invoke // unit test -> NopInterceptor #invoke
 org.springframework.aop.framework.CglibAopProxy.CglibMethodInvocation #proceed
@@ -351,7 +351,7 @@ java.lang.reflect.Method #invoke // 反射执行目标类的方法
 
 ### 测试 AOP 生成类
 - 测试源码： https://github.com/zengxf/spring-demo/tree/master/aop/aop-principle
-- 生成的类如下：
+- (CGLib)生成的类如下：
 ```java
 package cn.zxf.spring_aop.spring_dump_test; // 与父类同包
 
@@ -370,7 +370,8 @@ public class DemoMethodService$$SpringCGLIB$$0 extends DemoMethodService impleme
         CGLIB$toString$4$Proxy = MethodProxy.create(var1, var0, "()Ljava/lang/String;", "toString", "CGLIB$toString$4");
         CGLIB$hashCode$5$Proxy = MethodProxy.create(var1, var0, "()I", "hashCode", "CGLIB$hashCode$5");
     }
-	// 设置回调
+	// 设置回调（可搜索关键字：CGLIB$SET_THREAD_CALLBACKS 查看源码生成）
+	// 在 org.springframework.cglib.proxy.Enhancer.EnhancerFactoryData #setThreadCallbacks() 里调用
     public static void CGLIB$SET_THREAD_CALLBACKS(Callback[] var0) {
         CGLIB$THREAD_CALLBACKS.set(var0);
     }
@@ -387,6 +388,7 @@ public class DemoMethodService$$SpringCGLIB$$0 extends DemoMethodService impleme
 			...
             Callback[] var10001 = (Callback[])var10000;
 			...
+			// 相当于：org.springframework.aop.framework.CglibAopProxy.DynamicAdvisedInterceptor 实例
             var1.CGLIB$CALLBACK_0 = (MethodInterceptor)var10001[0];
         }
     }
@@ -416,4 +418,35 @@ public class DemoMethodService$$SpringCGLIB$$0 extends DemoMethodService impleme
 ### 总结
 - 创建代理
 - 调用代理方法时，会调用 AOP 增强链
-- 最后反射调用目标方法
+  - `CglibAopProxy.DynamicAdvisedInterceptor #intercept` 会调用增强链
+  - `CglibAopProxy.CglibMethodInvocation #proceed` 调用每一个（自定义）增强
+    - 这里的增强，相当于 `org.springframework.cglib.proxy.MethodInterceptor` 拦截器子类
+    - 拦截器子类封装增强操作
+- 调用完增强链后，（相当于最后一步）反射调用目标方法
+
+
+---
+## AOP 注解处理
+- 增强注解对应的拦截器：
+  - `@Before   			MethodBeforeAdviceInterceptor		MethodBeforeAdvice`
+  - `@Around   			AspectJAroundAdvice`
+  - `@After    			AspectJAfterAdvice`
+  - `@AfterThrowing 	AspectJAfterThrowingAdvice`
+  - `@AfterReturning 	AfterReturningAdviceInterceptor 	AspectJAfterReturningAdvice`
+
+### 原理
+- 测试源码： https://github.com/zengxf/spring-demo/tree/master/aop/aop-principle
+- `org.springframework.aop.aspectj.AbstractAspectJAdvice #invokeAdviceMethodWithGivenArgs`
+```java
+	protected Object invokeAdviceMethodWithGivenArgs(Object[] args) throws Throwable {
+		...
+		try {
+			ReflectionUtils.makeAccessible(this.aspectJAdviceMethod);
+			// 其会反射调用增强的方法
+			// aspectJAdviceMethod 相当于是
+			//   => public void cn.zxf.spring_aop.spring_dump_test.AopAspect.before(org.aspectj.lang.JoinPoint)
+			return this.aspectJAdviceMethod.invoke(this.aspectInstanceFactory.getAspectInstance(), actualArgs);
+		}
+		... // 省略 catch
+	}
+```
