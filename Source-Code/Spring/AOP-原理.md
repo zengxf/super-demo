@@ -335,9 +335,10 @@ class AspectJAutoProxyRegistrar implements ImportBeanDefinitionRegistrar {
   - `org.springframework.aop.framework.CglibProxyTests #testPackageMethodInvocation`
 - 测试`可继承`的方法
   - `org.springframework.aop.framework.CglibProxyTests #testProtectedMethodInvocation`
-- **调用链**
+
+#### 调用链
 ```js
-org.springframework.aop.framework.CglibAopProxy.DynamicAdvisedInterceptor #intercept
+org.springframework.aop.framework.CglibAopProxy.DynamicAdvisedInterceptor #intercept // 开始 AOP 链路调用
 org.springframework.aop.framework.CglibAopProxy.CglibMethodInvocation#proceed
 org.springframework.aop.framework.ReflectiveMethodInvocation #proceed // 测试，只调用一次
 
@@ -436,15 +437,18 @@ public class DemoMethodService$$SpringCGLIB$$0 extends DemoMethodService impleme
 
 ### 原理
 - 测试源码： https://github.com/zengxf/spring-demo/tree/master/aop/aop-principle
-- `org.springframework.aop.aspectj.AbstractAspectJAdvice #invokeAdviceMethodWithGivenArgs`
+- 最后调用类 `org.springframework.aop.aspectj.AbstractAspectJAdvice`
 ```java
+	/*** 反射调用自定义的增强方法 */
 	protected Object invokeAdviceMethodWithGivenArgs(Object[] args) throws Throwable {
 		...
 		try {
 			ReflectionUtils.makeAccessible(this.aspectJAdviceMethod);
 			// 其会反射调用增强的方法
 			// aspectJAdviceMethod 相当于是
-			//   => public void cn.zxf.spring_aop.spring_dump_test.AopAspect.before(org.aspectj.lang.JoinPoint)
+			//   => public void cn.zxf.spring_aop.spring_dump_test.AopAspect.methodBefore(JoinPoint)
+			// aspectInstanceFactory.getAspectInstance() 相当于是 
+			//   => cn.zxf.spring_aop.spring_dump_test.AopAspect 实例
 			return this.aspectJAdviceMethod.invoke(this.aspectInstanceFactory.getAspectInstance(), actualArgs);
 		}
 		... // 省略 catch
