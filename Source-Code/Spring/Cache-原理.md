@@ -177,3 +177,79 @@ public class ProxyCachingConfiguration extends AbstractCachingConfiguration {
         return returnValue;
     }
 ```
+
+### AutoProxyRegistrar-说明
+- 在 Cache 和 Transaction 用到
+- `org.springframework.context.annotation.AutoProxyRegistrar`
+```java
+/*** 自动代理注册器 */
+public class AutoProxyRegistrar implements ImportBeanDefinitionRegistrar {
+    @Override
+    public void registerBeanDefinitions(AnnotationMetadata importingClassMetadata, BeanDefinitionRegistry registry) {
+        boolean candidateFound = false;
+        Set<String> annTypes = importingClassMetadata.getAnnotationTypes();
+        for (String annType : annTypes) {
+            AnnotationAttributes candidate = AnnotationConfigUtils.attributesFor(importingClassMetadata, annType);
+            if (candidate == null) {
+                continue;
+            }
+            Object mode = candidate.get("mode");
+            Object proxyTargetClass = candidate.get("proxyTargetClass");
+            // 同时有这两个属性的注解才会进入 if 语句
+            if (mode != null && proxyTargetClass != null 
+                    && AdviceMode.class == mode.getClass() && Boolean.class == proxyTargetClass.getClass()
+            ) {
+                candidateFound = true;
+                if (mode == AdviceMode.PROXY) {
+                    AopConfigUtils.registerAutoProxyCreatorIfNecessary(registry); // 注解代理创建者到当前 Bean 工厂
+                    if ((Boolean) proxyTargetClass) {
+                        AopConfigUtils.forceAutoProxyCreatorToUseClassProxying(registry); // 给代理创建者设置属性
+                        return;
+                    }
+                }
+            }
+        }
+        ... // 省略日志输出
+    }
+}
+```
+
+- `org.springframework.aop.config.AopConfigUtils`
+```java
+/*** AOP 配置帮助类 */
+public abstract class AopConfigUtils {
+    // 注册代理创建者
+    @Nullable
+    public static BeanDefinition registerAutoProxyCreatorIfNecessary(BeanDefinitionRegistry registry) {
+        return registerAutoProxyCreatorIfNecessary(registry, null);
+    }
+
+    // 注册代理创建者
+    @Nullable
+    public static BeanDefinition registerAutoProxyCreatorIfNecessary(
+            BeanDefinitionRegistry registry, @Nullable Object source) {
+
+        return registerOrEscalateApcAsRequired(InfrastructureAdvisorAutoProxyCreator.class, registry, source);
+    }
+
+    // 将 Class 注册到 Bean 工厂
+    @Nullable
+    private static BeanDefinition registerOrEscalateApcAsRequired(
+            Class<?> cls, BeanDefinitionRegistry registry, @Nullable Object source) {
+
+        ... // 省略已存在的处理
+
+        RootBeanDefinition beanDefinition = new RootBeanDefinition(cls); // 创建 Bean 定义
+        beanDefinition.getPropertyValues().add("order", Ordered.HIGHEST_PRECEDENCE);
+        beanDefinition.setRole(BeanDefinition.ROLE_INFRASTRUCTURE);
+        registry.registerBeanDefinition(AUTO_PROXY_CREATOR_BEAN_NAME, beanDefinition); // 注册到目标 Bean 工厂
+        return beanDefinition;
+    }
+}
+```
+
+- `org.springframework.aop.framework.autoproxy.InfrastructureAdvisorAutoProxyCreator`
+  - 可参考 [AOP-原理](AOP-原理.md#调用链路)
+  - 是 `org.springframework.aop.framework.autoproxy.AbstractAdvisorAutoProxyCreator` 子类
+  - 也是 `org.springframework.aop.framework.autoproxy.AbstractAutoProxyCreator` 子类
+    - 实现 `postProcessBeforeInstantiation()` 方法：创建 AOP 代理

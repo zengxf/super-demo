@@ -117,7 +117,7 @@ class AspectJAutoProxyRegistrar implements ImportBeanDefinitionRegistrar {
 - `org.springframework.aop.framework.autoproxy.AbstractAutoProxyCreator`
   - 被 `org.springframework.aop.aspectj.annotation.AnnotationAwareAspectJAutoProxyCreator` 继承
 ```java
-    /*** 后处理：Bean 实例化前处理 */
+    /*** 后处理：Bean 实例化前处理（创建 AOP 代理） */
     @Override
     public Object postProcessBeforeInstantiation(Class<?> beanClass, String beanName) {
         Object cacheKey = getCacheKey(beanClass, beanName);
