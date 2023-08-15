@@ -6,43 +6,43 @@
 - 在 `cn.hutool.aop.proxy.ProxyFactory` 加个 `main` 方法
 ```java
     /*** 获取实现类 */
-	public static ProxyFactory create() {
-		return ServiceLoaderUtil.loadFirstAvailable(ProxyFactory.class);
-	}
+    public static ProxyFactory create() {
+        return ServiceLoaderUtil.loadFirstAvailable(ProxyFactory.class);
+    }
 
     // 测试
-	public static void main(String[] args) {
-		ProxyFactory factory = create();
-		System.out.println(factory);
-	}
+    public static void main(String[] args) {
+        ProxyFactory factory = create();
+        System.out.println(factory);
+    }
 ```
 
 ## 源码说明
 - `cn.hutool.core.util.ServiceLoaderUtil`
 ```java
     /*** 加载第一个可用服务 */
-	public static <T> T loadFirstAvailable(Class<T> clazz) {
-		final Iterator<T> iterator = load(clazz).iterator(); // 获取 ServiceLoader 的迭代器
-		while (iterator.hasNext()) {
-			try {
-				return iterator.next(); // 出错时忽略，继续查找下一个
-			} catch (ServiceConfigurationError ignore) {
-				// ignore
-			}
-		}
-		return null;
-	}
+    public static <T> T loadFirstAvailable(Class<T> clazz) {
+        final Iterator<T> iterator = load(clazz).iterator(); // 获取 ServiceLoader 的迭代器
+        while (iterator.hasNext()) {
+            try {
+                return iterator.next(); // 出错时忽略，继续查找下一个
+            } catch (ServiceConfigurationError ignore) {
+                // ignore
+            }
+        }
+        return null;
+    }
 
     /*** 加载服务 */
-	public static <T> ServiceLoader<T> load(Class<T> clazz) {
-		return load(clazz, null);
-	}
+    public static <T> ServiceLoader<T> load(Class<T> clazz) {
+        return load(clazz, null);
+    }
 
     /*** 加载服务 */
-	public static <T> ServiceLoader<T> load(Class<T> clazz, ClassLoader loader) {
+    public static <T> ServiceLoader<T> load(Class<T> clazz, ClassLoader loader) {
         // 使用 Java SPI。调用 java.util.ServiceLoader 方法
-		return ServiceLoader.load(clazz, ObjectUtil.defaultIfNull(loader, ClassLoaderUtil::getClassLoader));
-	}
+        return ServiceLoader.load(clazz, ObjectUtil.defaultIfNull(loader, ClassLoaderUtil::getClassLoader));
+    }
 ```
 
 ### Java SPI 源码说明
