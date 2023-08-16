@@ -53,3 +53,10 @@ PS D:\Work\Code\java-project>
 git reset HEAD file-or-folder
 git checkout file-or-folder
 ```
+
+### GitHub: Clone succeeded, but checkout failed
+- **文件名太长**
+- ref: https://stackoverflow.com/questions/22041752/github-clone-succeeded-but-checkout-failed
+```js
+git config --system core.longpaths true
+```
