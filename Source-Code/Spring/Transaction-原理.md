@@ -1,5 +1,5 @@
 ## 关键类
-- `org.springframework.transaction.annotation.EnableTransactionManagement`
+- `org.springframework.transaction.annotation.EnableTransactionManagement` **启用注解**
 - `org.springframework.transaction.interceptor.TransactionInterceptor`
 - `org.springframework.transaction.annotation.Transactional`
 
@@ -63,6 +63,7 @@ public class CallCountingTransactionManager extends AbstractPlatformTransactionM
 
 ## 原理
 - `org.springframework.transaction.annotation.EnableTransactionManagement`
+  - 其会在 Spring-Boot 里面 `TransactionAutoConfiguration` 进行启用
 ```java
 /*** 启用事务管理的注解 */
 @Target(ElementType.TYPE)

@@ -19,6 +19,7 @@
 
 ## 原理
 - `org.springframework.cache.annotation.EnableCaching`
+  - Spring-Boot 没有直接启用
 ```java
 ... // 省略其他元注解
 @Import(CachingConfigurationSelector.class) // 导入配置关键类

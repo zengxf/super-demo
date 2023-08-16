@@ -19,10 +19,28 @@
 
 
 ## 关键类
-- `org.springframework.context.annotation.EnableAspectJAutoProxy` 启用注解
+- `org.springframework.context.annotation.EnableAspectJAutoProxy` **启用注解**
 - `org.springframework.aop.framework.DefaultAopProxyFactory` AOP 代理工厂
 - `org.springframework.aop.framework.ProxyCreatorSupport` 调用工厂创建代理
 - `org.springframework.aop.aspectj.annotation.AnnotationAwareAspectJAutoProxyCreator` 默认的创建者
+
+
+## 单元测试
+- `org.springframework.context.annotation.EnableAspectJAutoProxyTests`
+```java
+    /*** JDK 代理配置 */
+	@ComponentScan("example.scannable")
+	@EnableAspectJAutoProxy // 启用 AOP
+	static class ConfigWithJdkProxy {
+	}
+
+	@Test // 测试 JDK 代理
+	void withJdkProxy() {
+		ConfigurableApplicationContext ctx = new AnnotationConfigApplicationContext(ConfigWithJdkProxy.class);
+        aspectIsApplied(ctx); // 断言相关方法
+		assertThat(AopUtils.isJdkDynamicProxy(ctx.getBean(FooService.class))).isTrue();
+	}
+```
 
 
 ## 原理
