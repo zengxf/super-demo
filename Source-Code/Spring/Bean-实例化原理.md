@@ -7,7 +7,7 @@
 - `org.springframework.beans.factory.support.DefaultListableBeanFactory`
 ```java
     /*** 实例化所有的 Bean */
-    @Override
+    @Override // 在 AbstractApplicationContext #finishBeanFactoryInitialization() 被调用
     public void preInstantiateSingletons() throws BeansException {
         ...
         List<String> beanNames = new ArrayList<>(this.beanDefinitionNames);

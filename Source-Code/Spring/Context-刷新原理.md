@@ -22,6 +22,8 @@
                 postProcessBeanFactory(beanFactory);
                 ...
                 // 调用所有的 Bean 工厂后处理器
+                //   -> 注解 @Configuration 的导入就在这里处理
+                //      -> 处理类为：ConfigurationClassParser => ConfigurationClassPostProcessor
                 invokeBeanFactoryPostProcessors(beanFactory);
                 // 添加（注册到 Bean 工厂的） Bean 后处理器
                 registerBeanPostProcessors(beanFactory);
