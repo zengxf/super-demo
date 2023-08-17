@@ -46,6 +46,7 @@
 ## 原理
 ### 启用原理
 - Spring-Boot 里面 `AopAutoConfiguration` 会对 `EnableAspectJAutoProxy` 进行启用
+  - **默认是用 CGLib 创建代理**
 ```java
 // org.springframework.boot.autoconfigure.aop.AopAutoConfiguration
 @Configuration(proxyBeanMethods = false)
@@ -54,16 +55,16 @@ public class AopAutoConfiguration {
     @Configuration(proxyBeanMethods = false)
     @ConditionalOnClass(Advice.class)
     static class AspectJAutoProxyingConfiguration {
-        ... // JDK 代理配置
+        ... // 省略 JDK 代理配置
+
         @Configuration(proxyBeanMethods = false)
         @EnableAspectJAutoProxy(proxyTargetClass = true) // 在此启用
         @ConditionalOnProperty(prefix = "spring.aop", name = "proxy-target-class", havingValue = "true",
-                matchIfMissing = true)
+                matchIfMissing = true) // matchIfMissing 表示没有设置此属性，也算匹配上，也就是说默认是用 CGLib 创建代理
         static class CglibAutoProxyConfiguration {
-
         }
     }
-    ... // 其他代理配置
+    ... // 省略其他代理配置
 }
 ```
 
