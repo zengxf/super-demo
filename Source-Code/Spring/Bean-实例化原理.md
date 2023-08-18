@@ -3,7 +3,32 @@
 - 方法为 `#preInstantiateSingletons()`
   - 其在上下文刷新时，调用
 
-## 源码
+
+## 单元测试
+- `org.springframework.beans.factory.DefaultListableBeanFactoryTests`
+```java
+class DefaultListableBeanFactoryTests {
+    private final DefaultListableBeanFactory lbf = new DefaultListableBeanFactory();
+
+    @Test
+    void getBeanByTypeWithPriority() {
+        lbf.setDependencyComparator(AnnotationAwareOrderComparator.INSTANCE);
+        RootBeanDefinition bd1 = new RootBeanDefinition(HighPriorityTestBean.class);
+        RootBeanDefinition bd2 = new RootBeanDefinition(LowPriorityTestBean.class);
+        RootBeanDefinition bd3 = new RootBeanDefinition(NullTestBeanFactoryBean.class);
+        lbf.registerBeanDefinition("bd1", bd1);
+        lbf.registerBeanDefinition("bd2", bd2);
+        lbf.registerBeanDefinition("bd3", bd3);
+        lbf.preInstantiateSingletons(); // 提前实例化所有 Bean
+
+        TestBean bean = lbf.getBean(TestBean.class);
+        assertThat(bean.getBeanName()).isEqualTo("bd1");
+    }
+}
+```
+
+
+## 原理
 - `org.springframework.beans.factory.support.DefaultListableBeanFactory`
 ```java
     /*** 实例化所有的 Bean */

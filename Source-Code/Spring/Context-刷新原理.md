@@ -4,7 +4,22 @@
 - 作用：
   - **启动容器，实例化 Bean**
 
-## 源码
+
+
+## 单元测试
+- `org.springframework.context.annotation.AnnotationConfigApplicationContextTests`
+```java
+    @Test
+    void registerAndRefresh() {
+        AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext();
+        context.register(Config.class, NameConfig.class);
+        context.refresh(); // 刷新
+        ... // 省略断言
+    }
+```
+
+
+## 原理
 - `org.springframework.context.support.AbstractApplicationContext`
 ```java
     @Override
@@ -66,7 +81,7 @@
 
     // 调用所有的 Bean 工厂后处理器
     protected void invokeBeanFactoryPostProcessors(ConfigurableListableBeanFactory beanFactory) {
-        // 委派调用（看不懂，表面上看没数据）
+        // 委派调用
         PostProcessorRegistrationDelegate.invokeBeanFactoryPostProcessors(beanFactory, getBeanFactoryPostProcessors());
         ...
     }
