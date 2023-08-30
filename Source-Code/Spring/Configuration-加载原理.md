@@ -1,3 +1,7 @@
+## 主要内容
+- `@Configuration` 注解导入
+- `@Conditional` 条件过滤
+
 ## 单元测试
 - `org.springframework.context.annotation.ConfigurationClassWithConditionTests`
 ```java
