@@ -5,6 +5,5 @@
 - `MongoDB` MongoDB 配置测试
 - `MySQL` MySQL 配置测试
 - `Redis` Redis 配置测试
-- `simple-demo` 简单的各种 Java 快速测试
 - `Source-Code` 源码解读
 - `X-In-Action` 各种技术实践
