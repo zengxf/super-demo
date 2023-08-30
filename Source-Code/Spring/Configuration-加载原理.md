@@ -1,6 +1,7 @@
 ## 主要内容
 - `@Configuration` 注解导入
 - `@Conditional` 条件过滤
+- `@Import` 导入处理的引子（非主要内容）
 
 ## 单元测试
 - `org.springframework.context.annotation.ConfigurationClassWithConditionTests`
@@ -53,7 +54,7 @@ public class SimpleConfigurationTests {
 
 
 ## 原理
-- 先看调用栈
+- 先看（条件过滤）调用栈
 ```java
 // ctx.register(Cfg.class);
 
