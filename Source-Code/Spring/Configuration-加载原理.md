@@ -318,7 +318,7 @@ java.lang.RuntimeException: 栈跟踪
                 requiredPhase = configurationCondition.getConfigurationPhase();
             }
             if ((requiredPhase == null || requiredPhase == phase) && !condition.matches(this.context, metadata)) {
-                return true; // 只要用一个条件没匹配（调用 matches 方法）过，就应跳过处理
+                return true; // 只要有一个条件没匹配（调用 matches 方法），就应跳过处理
             }
         }
 
