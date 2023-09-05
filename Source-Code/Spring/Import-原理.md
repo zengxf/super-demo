@@ -1,6 +1,6 @@
 ## 内容
 - 介绍 `@Import` 原理
-- 引子参考：[Configuration-加载原理](Configuration-加载原理.md)
+- 引子参考：[Configuration-加载原理-注解解析](Configuration-加载原理.md#注解解析)
 
 ## 单元测试
 ```java

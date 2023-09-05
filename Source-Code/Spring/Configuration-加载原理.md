@@ -234,6 +234,7 @@ java.lang.RuntimeException: 栈跟踪
     }
 ```
 
+#### 注解解析
 - `org.springframework.context.annotation.ConfigurationClassParser`
 ```java
     /*** 解析配置类 */
@@ -285,6 +286,7 @@ java.lang.RuntimeException: 栈跟踪
     }
 ```
 
+#### 条件解析
 - `org.springframework.context.annotation.ConditionEvaluator`
 ```java
     /*** 判断是不是应该跳过，不加载配置类 */
