@@ -192,3 +192,77 @@ public abstract class SpringBootCondition implements Condition {
   - `@ConditionalOnExpression`
   - `@ConditionalOnResource`
   - `@ConditionalOnWebApplication`
+
+
+### Spring-Boot 加载类
+#### 关键类
+- `org.springframework.boot.autoconfigure.SpringBootApplication`
+- `org.springframework.boot.autoconfigure.EnableAutoConfiguration`
+- `org.springframework.boot.autoconfigure.AutoConfigurationImportSelector`
+- `org.springframework.boot.context.annotation.ImportCandidates`
+
+#### 单元测试
+- 参考：`org.springframework.boot.context.annotation.ImportCandidatesTests`
+
+- 自定义测试：
+```java
+// 创建到 spring-boot-smoke-test-quartz 项目测试包里
+@SpringBootApplication
+public class MyQuartzAppTest {
+    @Test
+    public void test() {
+        SpringApplication app = new SpringApplication(MyQuartzAppTest.class); // App 类会记录在 primarySources 属性里
+        ConfigurableApplicationContext ctx = app.run();
+        System.out.println("fa: " + ctx.containsBean("fa"));
+    }
+
+    @Bean
+    public String fa() {
+        return "fa";
+    }
+}
+```
+
+#### 原理
+- 上下文刷新参考：[Context-刷新原理](Context-刷新原理.md#原理)
+
+- `org.springframework.boot.SpringApplication`
+```java
+    /*** 启动 Spring 应用 */
+    public ConfigurableApplicationContext run(String... args) {
+        ... // 省略其他处理
+        try {
+            ... // 省略其他处理
+            context = createApplicationContext(); // 创建上下文
+            context.setApplicationStartup(this.applicationStartup);
+            prepareContext(bootstrapContext, context, environment, listeners, applicationArguments, printedBanner); // 准备上下文
+            refreshContext(context); // 刷新上下文
+            ... // 省略其他处理
+        }
+        ... // 省略 catch 和其他处理
+        return context;
+    }
+    
+    // 准备上下文（相当于初始化上下文）
+    private void prepareContext(DefaultBootstrapContext bootstrapContext, ConfigurableApplicationContext context,
+            ConfigurableEnvironment environment, SpringApplicationRunListeners listeners,
+            ApplicationArguments applicationArguments, Banner printedBanner) {
+        context.setEnvironment(environment);
+        ... // 省略其他
+        if (!AotDetector.useGeneratedArtifacts()) { // 调试时会进入 if 语句
+            Set<Object> sources = getAllSources();
+            load(context, sources.toArray(new Object[0])); // 相当于将 App 类注册到 context
+        }
+        ...
+    }
+
+    // 获取源
+    public Set<Object> getAllSources() {
+        Set<Object> allSources = new LinkedHashSet<>();
+        if (!CollectionUtils.isEmpty(this.primarySources)) {
+            allSources.addAll(this.primarySources); // 相当于返回 App 类
+        }
+        ...
+        return Collections.unmodifiableSet(allSources);
+    }
+```

@@ -307,7 +307,7 @@ java.lang.RuntimeException: 栈跟踪
         List<Condition> conditions = new ArrayList<>();
         for (String[] conditionClasses : getConditionClasses(metadata)) {
             for (String conditionClass : conditionClasses) {
-                Condition condition = getCondition(conditionClass, this.context.getClassLoader());
+                Condition condition = getCondition(conditionClass, this.context.getClassLoader()); // Class 会缓存，但对象会每次实例化一次
                 conditions.add(condition);
             }
         }
