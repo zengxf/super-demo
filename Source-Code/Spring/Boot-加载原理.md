@@ -186,12 +186,13 @@ public abstract class SpringBootCondition implements Condition {
 }
 ```
 
-- **其他条件注解都是这种逻辑**
-  - `@ConditionalOnBean`
-  - `@ConditionalOnClass`
-  - `@ConditionalOnExpression`
-  - `@ConditionalOnResource`
-  - `@ConditionalOnWebApplication`
+##### 其他条件注解
+- `@ConditionalOnBean`
+- `@ConditionalOnClass`
+- `@ConditionalOnExpression`
+- `@ConditionalOnResource`
+- `@ConditionalOnWebApplication`
+- ... 省略
 
 
 ### Spring-Boot 加载类
