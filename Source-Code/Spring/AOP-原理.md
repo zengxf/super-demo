@@ -44,7 +44,7 @@
 
 
 ## 原理
-### 启用原理
+### 启用-AOP-原理
 - Spring-Boot 里面 `AopAutoConfiguration` 会对 `EnableAspectJAutoProxy` 进行启用
   - **默认是用 CGLib 创建代理**
 ```java
@@ -132,7 +132,7 @@ class AspectJAutoProxyRegistrar implements ImportBeanDefinitionRegistrar {
 
 
 ---
-### 调用链路
+### 创建-Proxy-调用链路
 - `org.springframework.aop.framework.autoproxy.AbstractAutoProxyCreator`
   - 被 `org.springframework.aop.aspectj.annotation.AnnotationAwareAspectJAutoProxyCreator` 继承
 ```java
@@ -349,13 +349,13 @@ class AspectJAutoProxyRegistrar implements ImportBeanDefinitionRegistrar {
         }
 ```
 
-### 单元测试
+### 方法类型单元测试
 - 测试`包可见`的方法
   - `org.springframework.aop.framework.CglibProxyTests #testPackageMethodInvocation`
 - 测试`可继承`的方法
   - `org.springframework.aop.framework.CglibProxyTests #testProtectedMethodInvocation`
 
-#### 调用链
+#### AOP-调用链
 ```js
 org.springframework.aop.framework.CglibAopProxy.DynamicAdvisedInterceptor #intercept // 开始 AOP 链路调用
 org.springframework.aop.framework.CglibAopProxy.CglibMethodInvocation #proceed

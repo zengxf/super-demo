@@ -250,7 +250,7 @@ public abstract class AopConfigUtils {
 ```
 
 - `org.springframework.aop.framework.autoproxy.InfrastructureAdvisorAutoProxyCreator`
-  - 可参考 [AOP-原理](AOP-原理.md#调用链路)
+  - 可参考 [AOP-原理](AOP-原理.md#创建-Proxy-调用链路)
   - 是 `org.springframework.aop.framework.autoproxy.AbstractAdvisorAutoProxyCreator` 子类
   - 也是 `org.springframework.aop.framework.autoproxy.AbstractAutoProxyCreator` 子类（其实现 Bean 后处理器接口）
     - 实现 `postProcessBeforeInstantiation()` 方法：创建 AOP 代理
