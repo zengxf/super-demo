@@ -202,11 +202,13 @@ public abstract class SpringBootCondition implements Condition {
 - `org.springframework.boot.context.annotation.ImportCandidates`
 
 #### 单元测试
-- 参考：`org.springframework.boot.context.annotation.ImportCandidatesTests`
+- 参考：
+  - `org.springframework.boot.context.annotation.ImportCandidatesTests`
+  - `org.springframework.boot.autoconfigure.SpringBootApplicationTests`
 
 - 自定义测试：
 ```java
-// 创建到 spring-boot-smoke-test-quartz 项目测试包里
+// 在 spring-boot-smoke-test-quartz 项目里创建测试类
 @SpringBootApplication
 public class MyQuartzAppTest {
     @Test
@@ -265,4 +267,76 @@ public class MyQuartzAppTest {
         ...
         return Collections.unmodifiableSet(allSources);
     }
+```
+
+- `org.springframework.boot.autoconfigure.SpringBootApplication`
+```java
+/*** Spring 应用关键注解 */
+@Target(ElementType.TYPE)
+@Retention(RetentionPolicy.RUNTIME)
+@Documented
+@Inherited
+@SpringBootConfiguration // 内部有 @Configuration 注解，使其有配置类的功能
+@EnableAutoConfiguration // 关键注解，导入自动配置类
+@ComponentScan(excludeFilters = { @Filter(type = FilterType.CUSTOM, classes = TypeExcludeFilter.class),
+        @Filter(type = FilterType.CUSTOM, classes = AutoConfigurationExcludeFilter.class) })
+public @interface SpringBootApplication {
+    ... // 省略属性定义
+}
+```
+
+- `org.springframework.boot.autoconfigure.EnableAutoConfiguration`
+```java
+/*** 自动配置的注解 */
+@Target(ElementType.TYPE)
+@Retention(RetentionPolicy.RUNTIME)
+@Documented
+@Inherited
+@AutoConfigurationPackage // 略
+@Import(AutoConfigurationImportSelector.class) // 导入自动配置类
+public @interface EnableAutoConfiguration {
+    ... // 省略属性定义
+}
+```
+
+##### 导入原理
+- 调用参考：[Import-原理](Import-原理.md#原理)
+
+- `org.springframework.boot.autoconfigure.AutoConfigurationImportSelector`
+```java
+/*** 自动配置导入选择器 */
+public class AutoConfigurationImportSelector implements DeferredImportSelector, BeanClassLoaderAware,
+        ResourceLoaderAware, BeanFactoryAware, EnvironmentAware, Ordered {
+
+    /*** 实现 ImportSelector 导入方法 */
+    @Override
+    public String[] selectImports(AnnotationMetadata annotationMetadata) {
+        if (!isEnabled(annotationMetadata)) { // 如果未启用，则不导入
+            return NO_IMPORTS;
+        }
+        AutoConfigurationEntry autoConfigurationEntry = getAutoConfigurationEntry(annotationMetadata); // 查找...
+        return StringUtils.toStringArray(autoConfigurationEntry.getConfigurations());
+    }
+
+    // 获取要导入的自动配置类
+    protected AutoConfigurationEntry getAutoConfigurationEntry(AnnotationMetadata annotationMetadata) {
+        ... // 省略未启用判断处理
+        AnnotationAttributes attributes = getAttributes(annotationMetadata); // 获取 @EnableAutoConfiguration 注解属性
+        List<String> configurations = getCandidateConfigurations(annotationMetadata, attributes); // 获取配置类
+        ... // 省略去重、排除、过滤、发送事件的处理
+        return new AutoConfigurationEntry(configurations, exclusions);
+    }
+
+    /**
+     * 获取配置类。
+     * 读取类路径下所有的 META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports 文件
+     *     Spring-Boot 2.7 之后的改动（不再使用 spring.factories 定义自动配置类）
+     */
+    protected List<String> getCandidateConfigurations(AnnotationMetadata metadata, AnnotationAttributes attributes) {
+        List<String> configurations = ImportCandidates.load(AutoConfiguration.class, getBeanClassLoader())
+            .getCandidates();
+        ... // 省略断言
+        return configurations;
+    }
+}
 ```
