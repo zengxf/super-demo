@@ -358,7 +358,7 @@ class AspectJAutoProxyRegistrar implements ImportBeanDefinitionRegistrar {
 #### 调用链
 ```js
 org.springframework.aop.framework.CglibAopProxy.DynamicAdvisedInterceptor #intercept // 开始 AOP 链路调用
-org.springframework.aop.framework.CglibAopProxy.CglibMethodInvocation#proceed
+org.springframework.aop.framework.CglibAopProxy.CglibMethodInvocation #proceed
 org.springframework.aop.framework.ReflectiveMethodInvocation #proceed // 测试，只调用一次
 
 org.aopalliance.intercept.MethodInterceptor #invoke // unit test -> NopInterceptor #invoke
@@ -448,11 +448,11 @@ public class DemoMethodService$$SpringCGLIB$$0 extends DemoMethodService impleme
 ---
 ## AOP 注解处理
 - 增强注解对应的拦截器：
-  - `@Before               MethodBeforeAdviceInterceptor        MethodBeforeAdvice`
-  - `@Around               AspectJAroundAdvice`
-  - `@After                AspectJAfterAdvice`
-  - `@AfterThrowing     AspectJAfterThrowingAdvice`
-  - `@AfterReturning     AfterReturningAdviceInterceptor     AspectJAfterReturningAdvice`
+  - `@Before                MethodBeforeAdviceInterceptor            MethodBeforeAdvice`
+  - `@Around                AspectJAroundAdvice`
+  - `@After                 AspectJAfterAdvice`
+  - `@AfterThrowing         AspectJAfterThrowingAdvice`
+  - `@AfterReturning        AfterReturningAdviceInterceptor         AspectJAfterReturningAdvice`
 
 ### 原理
 - 测试源码： https://github.com/zengxf/spring-demo/tree/master/aop/aop-principle

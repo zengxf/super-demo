@@ -54,7 +54,7 @@ public class SimpleConfigurationTests {
 
 
 ## 原理
-- 先看（条件过滤）调用栈
+- 先看：**条件过滤-调用栈**
 ```java
 // ctx.register(Cfg.class);
 

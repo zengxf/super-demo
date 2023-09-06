@@ -2,6 +2,8 @@
 - 实现类为 `org.springframework.beans.factory.support.DefaultListableBeanFactory`
 - 方法为 `#preInstantiateSingletons()`
   - 其在上下文刷新时，调用
+  - 即 `AbstractApplicationContext #finishBeanFactoryInitialization()` 被调用
+  - 可参考：[Context-刷新原理](Context-刷新原理.md#原理)
 
 
 ## 单元测试
