@@ -192,7 +192,7 @@ public abstract class SpringBootCondition implements Condition {
 - `@ConditionalOnExpression`
 - `@ConditionalOnResource`
 - `@ConditionalOnWebApplication`
-- ... 省略
+- ... 其他省略
 
 
 ### Spring-Boot 加载类
@@ -325,6 +325,7 @@ public class AutoConfigurationImportSelector implements DeferredImportSelector, 
         AnnotationAttributes attributes = getAttributes(annotationMetadata); // 获取 @EnableAutoConfiguration 注解属性
         List<String> configurations = getCandidateConfigurations(annotationMetadata, attributes); // 获取配置类
         ... // 省略去重、排除、过滤、发送事件的处理
+            // 过滤会调用 OnClassCondition、OnBeanCondition、OnWebApplicationCondition 的 #match() 方法匹配
         return new AutoConfigurationEntry(configurations, exclusions);
     }
 

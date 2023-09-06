@@ -23,10 +23,14 @@ public class MyAnnotationTest {
         System.out.println("--------------------");
 
         // Map 测试
-        // getAnnotationAttributes() 是将所有指定类的注解属性合并到 Map
+        // getAnnotationAttributes() 是将所有指定注解类的注解属性合并到 Map
         {
             Map<String, Object> map = ann.getAnnotationAttributes(MyAnn1111.class.getName());
             System.out.println("MyAnn1111: " + map);
+
+			// 将值转成字符串
+			Map<String, Object> strMap = ann.getAnnotationAttributes(MyAnn1111.class.getName(), true);
+			System.out.println("MyAnn1111-str-map: " + strMap);
         }
         {
             Map<String, Object> map = ann.getAnnotationAttributes(MyAlias3333.class.getName());
