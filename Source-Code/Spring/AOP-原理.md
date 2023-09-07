@@ -29,17 +29,17 @@
 - `org.springframework.context.annotation.EnableAspectJAutoProxyTests`
 ```java
     /*** JDK 代理配置 */
-	@ComponentScan("example.scannable")
-	@EnableAspectJAutoProxy // 启用 AOP
-	static class ConfigWithJdkProxy {
-	}
+    @ComponentScan("example.scannable")
+    @EnableAspectJAutoProxy // 启用 AOP
+    static class ConfigWithJdkProxy {
+    }
 
-	@Test // 测试 JDK 代理
-	void withJdkProxy() {
-		ConfigurableApplicationContext ctx = new AnnotationConfigApplicationContext(ConfigWithJdkProxy.class);
+    @Test // 测试 JDK 代理
+    void withJdkProxy() {
+        ConfigurableApplicationContext ctx = new AnnotationConfigApplicationContext(ConfigWithJdkProxy.class);
         aspectIsApplied(ctx); // 断言相关方法
-		assertThat(AopUtils.isJdkDynamicProxy(ctx.getBean(FooService.class))).isTrue();
-	}
+        assertThat(AopUtils.isJdkDynamicProxy(ctx.getBean(FooService.class))).isTrue();
+    }
 ```
 
 
@@ -133,6 +133,7 @@ class AspectJAutoProxyRegistrar implements ImportBeanDefinitionRegistrar {
 
 ---
 ### 创建-Proxy-调用链路
+- 参考：[Bean-实例化原理-创建-Bean-并加工](Bean-实例化原理.md#创建-Bean-并加工)
 - `org.springframework.aop.framework.autoproxy.AbstractAutoProxyCreator`
   - 被 `org.springframework.aop.aspectj.annotation.AnnotationAwareAspectJAutoProxyCreator` 继承
 ```java
@@ -154,9 +155,40 @@ class AspectJAutoProxyRegistrar implements ImportBeanDefinitionRegistrar {
         return null;
     }
 
+    /*** 后处理：Bean 实例化后处理（创建 AOP 代理） */
+    @Override
+    public Object postProcessAfterInitialization(@Nullable Object bean, String beanName) {
+        if (bean != null) {
+            Object cacheKey = getCacheKey(bean.getClass(), beanName);
+            if (this.earlyProxyReferences.remove(cacheKey) != bean) {
+                return wrapIfNecessary(bean, beanName, cacheKey); // 需要包装
+            }
+        }
+        return bean;
+    }
+
+    // Bean 实例后进行包装处理
+    protected Object wrapIfNecessary(Object bean, String beanName, Object cacheKey) {
+        ... // 省略不需要处理的判断
+
+        Object[] specificInterceptors = getAdvicesAndAdvisorsForBean(bean.getClass(), beanName, null);
+        if (specificInterceptors != DO_NOT_PROXY) { // 有增强，则创建代理
+            this.advisedBeans.put(cacheKey, Boolean.TRUE);
+            Object proxy = createProxy( // 创建代理
+                    bean.getClass(), beanName, specificInterceptors, new SingletonTargetSource(bean));
+            this.proxyTypes.put(cacheKey, proxy.getClass());
+            return proxy;
+        }
+
+        this.advisedBeans.put(cacheKey, Boolean.FALSE);
+        return bean;
+    }
+
     /*** 创建代理 */
     protected Object createProxy(Class<?> beanClass, @Nullable String beanName,
             @Nullable Object[] specificInterceptors, TargetSource targetSource) {
+
+        new RuntimeException("栈跟踪").printStackTrace(); // 001
 
         return buildProxy(beanClass, beanName, specificInterceptors, targetSource, false);
     }
@@ -266,8 +298,27 @@ class AspectJAutoProxyRegistrar implements ImportBeanDefinitionRegistrar {
     }
 ```
 
+#### 001-栈跟踪
+- 可参考：[Bean-实例化原理-创建-Bean-并加工](Bean-实例化原理.md#创建-Bean-并加工)
+```js
+java.lang.RuntimeException: 栈跟踪
+    at org.springframework.aop.framework.autoproxy.AbstractAutoProxyCreator.createProxy(AbstractAutoProxyCreator.java:464)
+    at org.springframework.aop.framework.autoproxy.AbstractAutoProxyCreator.wrapIfNecessary(AbstractAutoProxyCreator.java:369)
+    // Bean 初始化后创建代理
+    at org.springframework.aop.framework.autoproxy.AbstractAutoProxyCreator.postProcessAfterInitialization(AbstractAutoProxyCreator.java:318) 
+    // 使用 Bean 后处理器加工
+    at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.applyBeanPostProcessorsAfterInitialization(AbstractAutowireCapableBeanFactory.java:434) 
+    at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.initializeBean(AbstractAutowireCapableBeanFactory.java:1773)
+    at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.doCreateBean(AbstractAutowireCapableBeanFactory.java:598)
+    // 创建 Bean
+    at org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory.createBean(AbstractAutowireCapableBeanFactory.java:520) 
+    at org.springframework.beans.factory.support.AbstractBeanFactory.lambda$doGetBean$0(AbstractBeanFactory.java:326)
+    at org.springframework.beans.factory.support.DefaultSingletonBeanRegistry.getSingleton(DefaultSingletonBeanRegistry.java:234)
+    at org.springframework.beans.factory.support.AbstractBeanFactory.doGetBean(AbstractBeanFactory.java:324)
+    at org.springframework.beans.factory.support.AbstractBeanFactory.getBean(AbstractBeanFactory.java:225)
+```
 
-### AopContext.currentProxy() 原理
+### AopContext.currentProxy()原理
 - `org.springframework.aop.framework.JdkDynamicAopProxy`
 ```java
     @Override // 实现 JDK InvocationHandler 方法
@@ -369,7 +420,7 @@ org.springframework.aop.support.AopUtils #invokeJoinpointUsingReflection
 java.lang.reflect.Method #invoke // 反射执行目标类的方法
 ```
 
-### 测试 AOP 生成类
+### 测试-AOP-生成类
 - 测试源码： https://github.com/zengxf/spring-demo/tree/master/aop/aop-principle
 - (CGLib)生成的类如下：
 ```java
@@ -446,7 +497,7 @@ public class DemoMethodService$$SpringCGLIB$$0 extends DemoMethodService impleme
 
 
 ---
-## AOP 注解处理
+## AOP-注解处理
 - 增强注解对应的拦截器：
   - `@Before                MethodBeforeAdviceInterceptor            MethodBeforeAdvice`
   - `@Around                AspectJAroundAdvice`
