@@ -18,3 +18,10 @@
 
 - 改 IDEA Maven 配置
   - **Maven home path**: 选择 `Bundled (Maven 3)`
+
+
+### 原理分解
+- ServerBootstrap 监听
+- 读写底层原理
+- 处理器链
+- 处理器回调函数逻辑
