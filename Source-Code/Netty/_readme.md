@@ -4,6 +4,7 @@
 - 切分支（tag）：`git checkout 4.1`
 - JDK: `1.8`
 
+
 ### 项目配置
 - 改项目根 `pom.xml` 文件
 ```xml
@@ -20,9 +21,23 @@
   - **Maven home path**: 选择 `Bundled (Maven 3)`
 
 
+### 专业词翻译
+- `Channel` 信道
+- `Pipeline` 流水线
+- `Outbound` 出站
+- `EventLoop` 事件轮循
+
+
+### 阅读顺序
+1. [简单示例](简单示例.md)
+2. [异步回调逻辑](异步回调逻辑.md)
+3. [ServerBootstrap-监听](ServerBootstrap-监听.md)
+
+
 ### 原理分解
-- ServerBootstrap 监听
+- 异步回调逻辑
+- ServerBootstrap-监听
 - 读写底层原理
 - 处理器链
 - 处理器回调函数逻辑
-- @Skip 跳过原理
+- @Skip-原理
