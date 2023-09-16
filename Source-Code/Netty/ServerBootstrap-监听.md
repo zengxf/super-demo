@@ -1,6 +1,21 @@
 ## 使用示例
 - 参考：[简单示例-服务端](简单示例.md#服务端)
+- Java 参考：
+  - https://github.com/zengxf/small-frame-demo/blob/master/jdk-demo/simple-demo/src/main/java/test/socket/nio/MyNioServer.java
 
+
+----
+## 总结
+- 启动顺序：
+  - 先注册事件监听
+  - 再绑定地址启动服务
+- Unsafe:
+  - 底层逻辑处理
+- 说明：
+  - 代码注释中“发送信道激活事件”：实为直接调用钩子函数
+
+
+----
 ## 原理
 ### 启动
 - 使用 `bind()` 方法开启服务
@@ -28,7 +43,7 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
 
     // 启动
     private ChannelFuture doBind(final SocketAddress localAddress) {
-        final ChannelFuture regFuture = initAndRegister(); // 初始化信道并添加到监听器（事件轮循组）
+        final ChannelFuture regFuture = initAndRegister(); // sign_m_010 初始化信道并添加到监听器（事件轮循组）
         final Channel channel = regFuture.channel();
         ... // 省略异常判断处理
 
@@ -61,7 +76,7 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
             @Override
             public void run() {
                 if (regFuture.isSuccess()) {
-                    // sb 设置的是 NioServerSocketChannel（继承 AbstractNioChannel）
+                    // sb 设置的是 NioServerSocketChannel
                     channel.bind(localAddress, promise) // 进入绑定
                         .addListener(ChannelFutureListener.CLOSE_ON_FAILURE);
                 } else {
@@ -74,6 +89,7 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
 ```
 
 - `io.netty.channel.AbstractChannel`
+  - 参考：[基础类介绍-NioServerSocketChannel](基础类介绍.md#NioServerSocketChannel)
 ```java
 /*** 抽象-信道类 */
 public abstract class AbstractChannel extends DefaultAttributeMap implements Channel {
@@ -209,7 +225,7 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
                 invokeLater(new Runnable() {
                     @Override
                     public void run() {
-                        pipeline.fireChannelActive(); // 发送信道激活事件
+                        pipeline.fireChannelActive(); // sign_m_020 发送信道激活事件
                     }
                 });
             }
@@ -245,4 +261,328 @@ public class NioServerSocketChannel extends AbstractNioMessageChannel
         }
     }
 }
+```
+
+### 监听
+- `io.netty.channel.socket.nio.NioServerSocketChannel`
+```java
+/*** 服务端-信道 */
+public class NioServerSocketChannel extends AbstractNioMessageChannel
+                                    implements io.netty.channel.socket.ServerSocketChannel 
+{
+    public NioServerSocketChannel(ServerSocketChannel channel) { // channel 是 Java NIO 的实例
+        super(null, channel, SelectionKey.OP_ACCEPT); // 设置 OP_ACCEPT 类型事件监听
+        config = new NioServerSocketChannelConfig(this, javaChannel().socket());
+    }
+}
+```
+
+- `io.netty.channel.nio.AbstractNioMessageChannel`
+```java
+/*** 抽象 NIO 消息信道 */
+public abstract class AbstractNioMessageChannel extends AbstractNioChannel {
+    protected AbstractNioMessageChannel(Channel parent, SelectableChannel ch, int readInterestOp) {
+        super(parent, ch, readInterestOp); // readInterestOp 要监听的事件类型
+    }
+}
+```
+
+- `io.netty.channel.nio.AbstractNioChannel`
+  - **底层操作在此类实现**
+```java
+/*** 抽象 NIO 信道 */
+public abstract class AbstractNioChannel extends AbstractChannel {
+    private final SelectableChannel ch; // Java 底层信道
+    protected final int readInterestOp; // 要监听的事件类型
+    volatile SelectionKey selectionKey; // Java 底层监听的 key 句柄
+
+    /*** 构造器 */
+    protected AbstractNioChannel(Channel parent, SelectableChannel ch, int readInterestOp) {
+        super(parent);
+        this.ch = ch;
+        this.readInterestOp = readInterestOp;
+        try {
+            ch.configureBlocking(false); // 设置为非阻塞
+        } ... // 省略 catch 处理
+    }
+
+    /*** 获取 Java 底层信道 */
+    protected SelectableChannel javaChannel() {
+        return ch;
+    }
+
+    /*** 获取 Java 底层监听的 key 句柄 */
+    protected SelectionKey selectionKey() {
+        return selectionKey;
+    }
+
+    /*** 注册处理 sign_m_001 */
+    @Override
+    protected void doRegister() throws Exception {
+        ...
+        for (;;) {
+            try {
+                // 向事件轮循里面的选择器进行初步注册，key 的附件为自己
+                selectionKey = javaChannel().register(eventLoop().unwrappedSelector(), 0, this);
+                return;
+            } ... // catch
+        }
+    }
+
+    /*** sign_m_030 开始读处理 */
+    @Override
+    protected void doBeginRead() throws Exception {
+        new RuntimeException("栈跟踪-设置兴趣事件").printStackTrace();
+
+        ... // 省略 selectionKey 校验 
+
+        final int interestOps = selectionKey.interestOps();
+        if ((interestOps & readInterestOp) == 0) {
+            selectionKey.interestOps(interestOps | readInterestOp); // 正式注册要监听的事件类型
+        }
+    }
+}
+```
+
+#### 注册调用点
+- `io.netty.bootstrap.AbstractBootstrap`
+```java
+    /*** sign_m_010 初始化信道并添加到监听器（事件轮循组） */
+    final ChannelFuture initAndRegister() {
+        Channel channel = null;
+        try {
+            channel = channelFactory.newChannel();
+            init(channel); // 初始化：信道流水线添加 ServerBootstrapAcceptor 处理器
+        } ... // catch
+
+        // config().group() 相当于是设置给引导器的 NioEventLoopGroup
+        ChannelFuture regFuture = config().group().register(channel); // 注册处理
+        
+        ... // 省略 regFuture 异常处理
+
+        return regFuture;
+    }
+```
+
+- `io.netty.channel.MultithreadEventLoopGroup`
+```java
+    /*** 注册（相当于将信道绑定到线程，同时又注册到选择器） */
+    @Override
+    public ChannelFuture register(Channel channel) {
+        /**
+         * next(): 通过轮循算法返回下一个事件轮循者（相当于线程）
+         */
+        return next().register(channel); // 调用事件轮循者进行注册
+    }
+```
+
+- `io.netty.channel.SingleThreadEventLoop`
+```java
+    /*** 注册信道 */
+    @Override
+    public ChannelFuture register(Channel channel) {
+        return register(new DefaultChannelPromise(channel, this));
+    }
+
+    /*** 注册信道 */
+    @Override
+    public ChannelFuture register(final ChannelPromise promise) {
+        ObjectUtil.checkNotNull(promise, "promise");
+        /**
+         * promise.channel().unsafe() 返回的是 NioMessageUnsafe 实例
+         */
+        promise.channel().unsafe().register(this, promise); // 通过 unsafe 注册
+        return promise;
+    }
+```
+
+- `io.netty.channel.AbstractChannel.AbstractUnsafe`
+  - 参考：[基础类介绍-NioMessageUnsafe](基础类介绍.md#NioMessageUnsafe)
+```java
+    protected abstract class AbstractUnsafe implements Unsafe {
+        /*** 注册处理 */
+        @Override
+        public final void register(EventLoop eventLoop, final ChannelPromise promise) {
+            ... // 省略校验等
+
+            AbstractChannel.this.eventLoop = eventLoop;
+
+            if (eventLoop.inEventLoop()) {
+                register0(promise);
+            } else { // 不是当前线程，则异步调用
+                try {
+                    eventLoop.execute(new Runnable() {
+                        @Override
+                        public void run() {
+                            register0(promise); // 注册处理
+                        }
+                    });
+                } ... // catch
+            }
+        }
+
+        // 注册处理
+        private void register0(ChannelPromise promise) {
+            try {
+                ... // 省略校验等
+
+                doRegister(); // 注册处理 sign_m_001: 调用 AbstractNioChannel #doRegister()
+
+                pipeline.invokeHandlerAddedIfNeeded(); // 回调 ChannelHandler #handlerAdded()
+
+                safeSetSuccess(promise); // 设置 promise 为成功
+                pipeline.fireChannelRegistered(); // 发射已注册事件
+                if (isActive()) { // 调试时：还未激活，不进入此分支
+                    if (firstRegistration) {
+                        pipeline.fireChannelActive();
+                    } else if (config().isAutoRead()) {
+                        beginRead();
+                    }
+                }
+            } ... // catch 
+        }
+    }
+```
+
+#### 设置兴趣事件
+- **栈跟踪**
+```js
+java.lang.RuntimeException: 栈跟踪-设置兴趣事件
+	at io.netty.channel.nio.AbstractNioChannel.doBeginRead(AbstractNioChannel.java:413)
+	at io.netty.channel.nio.AbstractNioMessageChannel.doBeginRead(AbstractNioMessageChannel.java:55)
+	at io.netty.channel.AbstractChannel$AbstractUnsafe.beginRead(AbstractChannel.java:834)
+	at io.netty.channel.DefaultChannelPipeline$HeadContext.read(DefaultChannelPipeline.java:1362)
+	at io.netty.channel.AbstractChannelHandlerContext.invokeRead(AbstractChannelHandlerContext.java:835)
+	at io.netty.channel.AbstractChannelHandlerContext.read(AbstractChannelHandlerContext.java:814)
+	at io.netty.channel.DefaultChannelPipeline.read(DefaultChannelPipeline.java:1004)
+	at io.netty.channel.AbstractChannel.read(AbstractChannel.java:290)
+	at io.netty.channel.DefaultChannelPipeline$HeadContext.readIfIsAutoRead(DefaultChannelPipeline.java:1422)
+	at io.netty.channel.DefaultChannelPipeline$HeadContext.channelActive(DefaultChannelPipeline.java:1400)
+	at io.netty.channel.AbstractChannelHandlerContext.invokeChannelActive(AbstractChannelHandlerContext.java:258) // sign_c_001
+	at io.netty.channel.AbstractChannelHandlerContext.invokeChannelActive(AbstractChannelHandlerContext.java:238) // sign_c_0_1
+	at io.netty.channel.DefaultChannelPipeline.fireChannelActive(DefaultChannelPipeline.java:895) // sign_m_021 发送信道激活事件
+	at io.netty.channel.AbstractChannel$AbstractUnsafe$2.run(AbstractChannel.java:573) // sign_m_020 发送信道激活事件
+```
+
+- 在绑定后，发送信道激活事件
+  - 自动进行读处理
+
+- `io.netty.channel.DefaultChannelPipeline`
+```java
+    /*** sign_m_021 发送信道激活事件 */
+    @Override
+    public final ChannelPipeline fireChannelActive() {
+        AbstractChannelHandlerContext.invokeChannelActive(head); // sign_c_0_1 从头节点开始
+        return this;
+    }
+
+    // 头节点
+    final class HeadContext extends AbstractChannelHandlerContext
+            implements ChannelOutboundHandler, ChannelInboundHandler 
+    {
+        /*** sign_c_002 信道激活事件处理 */
+        @Override
+        public void channelActive(ChannelHandlerContext ctx) {
+            ctx.fireChannelActive();
+
+            readIfIsAutoRead();
+        }
+
+        private void readIfIsAutoRead() {
+            /**
+             * io.netty.channel.ChannelConfig #isAutoRead():
+             *   默认只在 io.netty.channel.DefaultChannelConfig 实现，
+             *   其实现相当于直接返回 true，
+             *   所以会进入 read() 方法。
+             */
+            if (channel.config().isAutoRead()) {
+                channel.read(); // sign_c_003
+            }
+        }
+
+        // sign_c_007
+        @Override
+        public void read(ChannelHandlerContext ctx) {
+            unsafe.beginRead(); // sign_c_008
+        }
+    }
+
+    // sign_c_004
+    @Override
+    public final ChannelPipeline read() {
+        tail.read(); // sign_c_005
+        return this;
+    }
+```
+
+- `io.netty.channel.AbstractChannelHandlerContext`
+```java
+    // sign_c_0_1
+    static void invokeChannelActive(final AbstractChannelHandlerContext next) {
+        EventExecutor executor = next.executor();
+        if (executor.inEventLoop()) {
+            // next => head
+            next.invokeChannelActive(); // sign_c_001
+        } ... // else 
+    }
+
+    // sign_c_001
+    private void invokeChannelActive() {
+        if (invokeHandler()) {
+            try {
+                final ChannelHandler handler = handler();
+                final DefaultChannelPipeline.HeadContext headContext = pipeline.head;
+                if (handler == headContext) {
+                    headContext.channelActive(this); // sign_c_002 从头节点开始
+                } ... // else
+            } ... // catch
+        } ... // else
+    }
+
+    // sign_c_005
+    @Override
+    public ChannelHandlerContext read() {
+        final AbstractChannelHandlerContext next = findContextOutbound(MASK_READ);
+        EventExecutor executor = next.executor();
+        if (executor.inEventLoop()) {
+            next.invokeRead(); // sign_c_006
+        } ... // else
+
+        return this;
+    }
+
+    // sign_c_006
+    private void invokeRead() {
+        if (invokeHandler()) {
+            try {
+                final ChannelHandler handler = handler();
+                final DefaultChannelPipeline.HeadContext headContext = pipeline.head;
+                if (handler == headContext) {
+                    headContext.read(this); // sign_c_007
+                } ... // else
+            } ... // catch 
+        } ... // else
+    }
+```
+
+- `io.netty.channel.AbstractChannel`
+```java
+    // sign_c_003
+    @Override
+    public Channel read() {
+        pipeline.read(); // sign_c_004
+        return this;
+    }
+
+    protected abstract class AbstractUnsafe implements Unsafe {
+        // sign_c_008
+        @Override
+        public final void beginRead() {
+            ...
+
+            try {
+                doBeginRead(); // sign_m_030 开始读
+            } ... // catch 
+        }
+    }
 ```
