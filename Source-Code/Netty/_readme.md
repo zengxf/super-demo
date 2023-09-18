@@ -28,18 +28,18 @@
 - `Pipeline` 流水线
 - `Outbound` 出站
 - `EventLoop` 事件轮循 (事件轮循者)
+- `Future` 异步结果
 
 
 ### 阅读顺序
 1. [简单示例](简单示例.md)
 2. [基础类介绍](基础类介绍.md)
-3. [异步回调逻辑](异步回调逻辑.md)
-4. [ServerBootstrap-监听](ServerBootstrap-监听.md)
+    1. [异步工具类](异步工具类.md)
+3. [ServerBootstrap-监听](ServerBootstrap-监听.md)
     1. [选择器-监听](选择器-监听.md)
 
 
 ### 原理分解
-- 异步回调逻辑
 - 读写底层原理
 - 处理器链
 - 处理器回调函数逻辑

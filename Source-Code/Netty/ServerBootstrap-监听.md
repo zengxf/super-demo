@@ -365,6 +365,7 @@ public abstract class AbstractNioChannel extends AbstractChannel {
 ```
 
 - `io.netty.channel.MultithreadEventLoopGroup`
+  - 参考：[基础类介绍-NioEventLoopGroup](基础类介绍.md#NioEventLoopGroup)
 ```java
     /*** 注册（相当于将信道绑定到线程，同时又注册到选择器） */
     @Override
@@ -377,6 +378,9 @@ public abstract class AbstractNioChannel extends AbstractChannel {
 ```
 
 - `io.netty.channel.SingleThreadEventLoop`
+  - DefaultChannelPromise 可参考：
+    - [基础类介绍-DefaultChannelPromise](基础类介绍.md#DefaultChannelPromise)
+    - [异步工具类-DefaultChannelPromise](异步工具类.md#DefaultChannelPromise)
 ```java
     /*** 注册信道 */
     @Override
@@ -390,7 +394,7 @@ public abstract class AbstractNioChannel extends AbstractChannel {
         ObjectUtil.checkNotNull(promise, "promise");
         /**
          * promise.channel().unsafe() 返回的是 NioMessageUnsafe 实例
-         */
+            */
         promise.channel().unsafe().register(this, promise); // 通过 unsafe 注册
         return promise;
     }
