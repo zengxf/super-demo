@@ -23,12 +23,13 @@
 
 ### 专业词翻译
 - `Bootstrap` 引导器
-- `Selector` 选择器
-- `Channel` 信道
-- `Pipeline` 流水线
-- `Outbound` 出站
+- `Selector`  选择器
+- `Channel`   信道
+- `Pipeline`  流水线
+- `Outbound`  出站
+- `Inbound`   入站
 - `EventLoop` 事件轮循 (事件轮循者)
-- `Future` 异步结果
+- `Future`    异步结果
 
 
 ### 阅读顺序
