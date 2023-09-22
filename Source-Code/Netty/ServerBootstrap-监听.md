@@ -418,14 +418,14 @@ public abstract class AbstractNioChannel extends AbstractChannel {
                     eventLoop.execute(new Runnable() {
                         @Override
                         public void run() {
-                            register0(promise); // 注册处理
+                            register0(promise); // sign_m_201 注册处理
                         }
                     });
                 } ... // catch
             }
         }
 
-        // 注册处理
+        // sign_m_201 注册处理
         private void register0(ChannelPromise promise) {
             try {
                 ... // 省略校验等
