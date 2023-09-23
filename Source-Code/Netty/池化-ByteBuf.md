@@ -1,0 +1,11 @@
+## ByteBuf
+- 测试时默认情况下：
+  - 客户端：
+    - alloc: `PooledByteBufAllocator(directByDefault: true)`
+    - buf: `PooledUnsafeDirectByteBuf`
+  - 服务端：
+    - alloc: `PooledByteBufAllocator(directByDefault: true)`
+    - buf: `PooledUnsafeDirectByteBuf`
+- 类结构参考：
+  - [基础类介绍-PooledByteBufAllocator](基础类介绍.md#PooledByteBufAllocator)
+  - [基础类介绍-PooledUnsafeDirectByteBuf](基础类介绍.md#PooledUnsafeDirectByteBuf)
