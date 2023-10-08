@@ -6,6 +6,7 @@
 - [ByteBuf 泄漏检测原理](https://github.com/doocs/source-code-hunter/blob/main/docs/Netty/Netty技术细节源码分析/ByteBuf的内存泄漏原因与检测原理.md)
 - [Netty 高性能内存管理](https://www.51cto.com/article/608695.html)
 - [jemalloc 基本原理](https://blog.csdn.net/weixin_41402069/article/details/125744994)
+- [Netty 内存管理源码分析 jemalloc](https://www.jianshu.com/p/550704d5a628)
 
 
 ---
@@ -57,19 +58,3 @@ public class PoolBufTest {
 ### 基础类
 - 内存分配和回收管理主要由 `PoolChunk` 实现，其内部维护一棵平衡二叉树 `MemoryMap`，所有子节点管理的内存也属于其父节点。
   - 每当申请超过 `8KB` 内存时，就会从 `PoolChunk` 获取。
-
-### jemalloc-原理
-- https://blog.csdn.net/weixin_41402069/article/details/125744994
-- **内存分配粒度分为 `Small, Large, Huge` 三类**，并记录很多 meta 数据，
-  - 所以在空间占用上要略多于 tcmalloc，
-    - 不过在大内存分配的场景，jemalloc 的内存碎片要少于 tcmalloc。
-  - jemalloc 内部采用红黑树管理内存块和分页，
-    - Huge 对象通过红黑树查找索引数据可以控制在指数级时间。
-- **核心目标是**：
-  - **高效的内存分配和回收**，提升单线程或者多线程常见下的性能
-  - **减少内存碎片**，包括内部碎片和外部碎片
-- 碎片
-  - 内部碎片
-    - 内存是按 Page 进行分配的，即便我们只需要很小的内存，操作系统至少也会分配 4K 大小的 Page，单个 Page 内只有一部分字节都被使用，剩余的字节形成了内部碎片。
-  - 外部碎片
-    - 与内部碎片相反，外部碎片是在分配较大内存块时产生的。当需要分配大内存块的时候，操作系统只能通过分配连续的 Page 才能满足要求，在程序不断运行的过程中，这些 Page 被频繁的回收并重新分配，Page 之间就会出现小的空闲内存块，这样就形成了外部碎片。
