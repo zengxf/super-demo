@@ -55,6 +55,66 @@ public class PoolBufTest {
 
 ---
 ## 内存池原理
-### 基础类
-- 内存分配和回收管理主要由 `PoolChunk` 实现，其内部维护一棵平衡二叉树 `MemoryMap`，所有子节点管理的内存也属于其父节点。
-  - 每当申请超过 `8KB` 内存时，就会从 `PoolChunk` 获取。
+- **jemalloc 内存结构**：
+  - `Arena -> Chunk (1:n) -> Page (1:n)`
+
+- **类结构**：
+  - `PooledByteBufAllocator`
+    ```java
+        // heap 类型的 arena 数组
+        private final PoolArena<byte[]>[] heapArenas;
+        // direct memory 类型的 arena 数组
+        private final PoolArena<ByteBuffer>[] directArenas;
+    ```
+
+  - `PoolArena`
+    ```java
+    final PooledByteBufAllocator parent; // 所属分配器
+
+    private final PoolSubpage<T>[] smallSubpagePools;
+    // private final PoolSubpage<T>[] tinySubpagePools; // 2020 年优化掉了
+
+    // 根据内存使用率分配的 Chunk
+    private final PoolChunkList<T> q050;  // 50~100%
+    private final PoolChunkList<T> q025;  // 25~75%
+    private final PoolChunkList<T> q000;  // 1~50%
+    private final PoolChunkList<T> qInit; // 0~25%
+    private final PoolChunkList<T> q075;  // 75~100%
+    private final PoolChunkList<T> q100;  // 100~100%
+    ```
+
+  - `PoolChunkList`
+    ```java
+    private final PoolArena<T> arena;         // 所属的 Arena
+    private final PoolChunkList<T> nextList;  // 与 prevList 组成双向链表
+    private PoolChunkList<T> prevList;
+    private PoolChunk<T> head;                // PoolChunk 的挂载点
+    ```
+
+  - `PoolChunk`
+    ```java
+    final PoolArena<T> arena; // 所属的 Arena
+    final T memory;           // 相当于 byte[] 数组
+    private final PoolSubpage<T>[] subpages;  // (使用伙伴算法)管理的内存块
+    int freeBytes;            // 剩余的内存大小
+    PoolChunkList<T> parent;  // 所属的 PoolChunkList
+    PoolChunk<T> prev;        // 与 next 组成双向链表
+    PoolChunk<T> next;
+    ```
+
+  - `PoolSubpage`
+    ```java
+    final PoolChunk<T> chunk;     // 所属的 PoolChunk
+    private final long[] bitmap;  // 记录每个小内存块的使用状态(即是否已使用)
+    PoolSubpage<T> prev;          // 与 next 组成双向链表
+    PoolSubpage<T> next;
+    final int elemSize;           // 每个小内存块的大小
+    private final int runOffset;  // 当前 PoolSubpage 在 PoolChunk 中 memory 的偏移量
+    private final int runSize;    // 总内存大小
+    private int maxNumElems;      // 最多可以存放多少小内存块： runSize(8K) / elemSize
+    private int numAvail;         // 可用于分配的内存块个数
+    ```
+
+- **总结说明**：
+  - 算法有改进，没有使用`二叉树`，去掉了`tiny`类型
+  - `PoolSubpage`只是对`PoolChunk`做使用记录，没有记录具体的内存数据
