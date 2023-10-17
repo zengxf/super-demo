@@ -43,3 +43,7 @@
 4. [处理器链](处理器链.md)
 5. [池化-ByteBuf](池化-ByteBuf.md)
     1. [对象池原理](对象池原理.md)
+
+
+### 其他
+- **空闲检查**：`IdleStateHandler`
