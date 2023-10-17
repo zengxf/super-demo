@@ -47,3 +47,7 @@
 
 ### 其他
 - **空闲检查**：`IdleStateHandler`
+  - 逻辑比较简单
+- **心跳**：
+  - 客户端添加个 `ChannelInboundHandlerAdapter`
+  - 重写 `channelActive()` 启用延时心跳任务
