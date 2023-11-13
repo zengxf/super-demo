@@ -18,9 +18,9 @@
 ## 原理
 - `demo-webmvc` 依赖模块：
   - `sentinel-spring-webmvc-adapter`
-    - 用于链路控制适配
+    - 用于**链路控制适配**
   - `sentinel-transport-simple-http` (相同的有 `sentinel-transport-netty-http`)
-    - 用于心跳检测
+    - 用于**控制台交互和心跳检测**
 
 ### 链路控制适配
 - `com.alibaba.csp.sentinel.adapter.spring.webmvc.SentinelWebInterceptor`
@@ -130,10 +130,10 @@ public class InterceptorConfig implements WebMvcConfigurer {
 }
 ```
 
-### 心跳检测
+### 控制台交互和心跳检测
 - 以 `sentinel-transport-netty-http` 模块做示例
 
-#### 服务启动
+#### 交互服务启动
 - SPI 设置 `CommandCenter` 的实现为 `NettyHttpCommandCenter`
 
 - 启动栈示例：
@@ -297,7 +297,7 @@ public class HttpHeartbeatSender implements HeartbeatSender {
         }
         URIBuilder uriBuilder = new URIBuilder();
         uriBuilder.setScheme(consoleProtocol.getProtocol()).setHost(consoleHost).setPort(consolePort)
-            .setPath(TransportConfig.getHeartbeatApiPath())
+            .setPath(TransportConfig.getHeartbeatApiPath()) // 默认用 "/registry/machine" (相当于注册，这也是为什么要请求后控制台才显示)
             .setParameter("app", AppNameUtil.getAppName())
             .setParameter("app_type", String.valueOf(SentinelConfig.getAppType()))
             .setParameter("v", Constants.SENTINEL_VERSION)
@@ -317,3 +317,7 @@ public class HttpHeartbeatSender implements HeartbeatSender {
 
 }
 ```
+
+#### 总结
+- 要有请求，才会去注册
+- 控制台才会显示服务
