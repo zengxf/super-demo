@@ -129,3 +129,191 @@ public class InterceptorConfig implements WebMvcConfigurer {
     }
 }
 ```
+
+### 心跳检测
+- 以 `sentinel-transport-netty-http` 模块做示例
+
+#### 服务启动
+- SPI 设置 `CommandCenter` 的实现为 `NettyHttpCommandCenter`
+
+- 启动栈示例：
+```js
+java.lang.RuntimeException: 栈跟踪
+    at com.alibaba.csp.sentinel.transport.command.NettyHttpCommandCenter.start(NettyHttpCommandCenter.java:46)    // sign_m_204
+    at com.alibaba.csp.sentinel.transport.init.CommandCenterInitFunc.init(CommandCenterInitFunc.java:40)
+    at com.alibaba.csp.sentinel.init.InitExecutor.doInit(InitExecutor.java:53)
+    at com.alibaba.csp.sentinel.Env.<clinit>(Env.java:36)
+    at com.alibaba.csp.sentinel.SphU.entry(SphU.java:294)
+    at com.alibaba.csp.sentinel.adapter.spring.webmvc.AbstractSentinelInterceptor.preHandle(AbstractSentinelInterceptor.java:105)
+    ... // 来自 HTTP 处理链
+```
+
+- `com.alibaba.csp.sentinel.transport.command.NettyHttpCommandCenter`
+```java
+@Spi(order = Spi.ORDER_LOWEST - 100)
+public class NettyHttpCommandCenter implements CommandCenter {
+
+    private final HttpServer server = new HttpServer();
+
+    @Override
+    public void beforeStart() throws Exception {
+        Map<String, CommandHandler> handlers = CommandHandlerProvider.getInstance().namedHandlers();
+        server.registerCommands(handlers);  // 注册命令处理器
+    }
+
+    // sign_m_204
+    @Override
+    public void start() throws Exception {
+        new RuntimeException("栈跟踪").printStackTrace();
+        pool.submit(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    server.start(); // sign_m_205
+                } ... // catch
+            }
+        });
+    }
+}
+```
+
+- `com.alibaba.csp.sentinel.transport.command.netty.HttpServer`
+```java
+public final class HttpServer {
+
+    private static final int DEFAULT_PORT = 8719;
+
+    // sign_m_205
+    public void start() throws Exception {
+        ... // EventLoopGroup
+        try {
+            ServerBootstrap b = new ServerBootstrap();
+            b.group(bossGroup, workerGroup)
+                .channel(NioServerSocketChannel.class)
+                .childHandler(new HttpServerInitializer()); // 增加 HttpServerHandler 到双向处理链，ref: sign_c_205
+            int port;
+            ... // 读取 port
+            
+            int retryCount = 0;
+            ChannelFuture channelFuture = null;
+            while (true) {
+                int newPort = getNewPort(port, retryCount); // 尝试 3 次才端口递增 1
+                try {
+                    channelFuture = b.bind(newPort).sync();
+                    ... // log
+                    break;
+                } catch (Exception e) {
+                    TimeUnit.MILLISECONDS.sleep(30);
+                    ... // log
+                    retryCount ++;
+                }
+            }
+            ... // channel 赋值
+        } ...   // finally
+    }
+
+}
+```
+
+- `com.alibaba.csp.sentinel.transport.command.netty.HttpServerHandler`
+```java
+// sign_c_205 Netty 入站处理器
+public class HttpServerHandler extends SimpleChannelInboundHandler<Object> {
+    @Override
+    protected void channelRead0(ChannelHandlerContext ctx, Object msg) throws Exception {
+        FullHttpRequest httpRequest = (FullHttpRequest)msg;
+        try {
+            CommandRequest request = parseRequest(httpRequest);             // 组装消息
+            if (StringUtil.isBlank(HttpCommandUtils.getTarget(request))) {
+                writeErrorResponse(BAD_REQUEST.code(), "Invalid command", ctx);
+                return;
+            }
+            handleRequest(request, ctx, HttpUtil.isKeepAlive(httpRequest)); // 处理请求 sign_m_210
+        } ... // catch
+    }
+
+    // sign_m_210 处理请求
+    private void handleRequest(CommandRequest request, ChannelHandlerContext ctx, boolean keepAlive)
+        throws Exception 
+    {
+        String commandName = HttpCommandUtils.getTarget(request);
+        CommandHandler<?> commandHandler = getHandler(commandName);         // 查找处理器
+        if (commandHandler != null) {
+            CommandResponse<?> response = commandHandler.handle(request);   // 处理请求
+            writeResponse(response, ctx, keepAlive);
+        } else {
+            writeErrorResponse(BAD_REQUEST.code(), String.format("Unknown command \"%s\"", commandName), ctx);
+        }
+    }
+}
+```
+
+#### 发送心跳
+- SPI 设置 `HeartbeatSender` 的实现为 `HttpHeartbeatSender`
+
+- 启动栈示例：
+```js
+java.lang.RuntimeException: 心跳启动栈跟踪
+	at com.alibaba.csp.sentinel.transport.init.HeartbeatSenderInitFunc.scheduleHeartbeatTask(HeartbeatSenderInitFunc.java:87)   // sign_m_310
+	at com.alibaba.csp.sentinel.transport.init.HeartbeatSenderInitFunc.init(HeartbeatSenderInitFunc.java:61)
+	at com.alibaba.csp.sentinel.init.InitExecutor.doInit(InitExecutor.java:53)
+	at com.alibaba.csp.sentinel.Env.<clinit>(Env.java:36)
+	at com.alibaba.csp.sentinel.SphU.entry(SphU.java:294)
+	at com.alibaba.csp.sentinel.adapter.spring.webmvc.AbstractSentinelInterceptor.preHandle(AbstractSentinelInterceptor.java:105)
+    ... // 来自 HTTP 处理链
+```
+
+- `com.alibaba.csp.sentinel.transport.init.HeartbeatSenderInitFunc`
+```java
+    // sign_m_310 开启心跳定时任务
+    private void scheduleHeartbeatTask(final HeartbeatSender sender, long interval) {
+        new RuntimeException("心跳启动栈跟踪").printStackTrace();
+        pool.scheduleAtFixedRate(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    sender.sendHeartbeat(); // 发心跳 sign_m_320
+                } ... // catch
+            }
+        }, 5000, interval, TimeUnit.MILLISECONDS);
+        ... // log
+    }
+```
+
+- `com.alibaba.csp.sentinel.transport.heartbeat.HttpHeartbeatSender`
+```java
+@Spi(order = Spi.ORDER_LOWEST - 100)
+public class HttpHeartbeatSender implements HeartbeatSender {
+
+    private final Protocol consoleProtocol; // 控制台通信协议
+    private final String consoleHost;       // 控制台 IP
+    private final int consolePort;          // 控制台端口
+
+    // sign_m_320 发心跳
+    @Override
+    public boolean sendHeartbeat() throws Exception {
+        if (StringUtil.isEmpty(consoleHost)) {
+            return false;
+        }
+        URIBuilder uriBuilder = new URIBuilder();
+        uriBuilder.setScheme(consoleProtocol.getProtocol()).setHost(consoleHost).setPort(consolePort)
+            .setPath(TransportConfig.getHeartbeatApiPath())
+            .setParameter("app", AppNameUtil.getAppName())
+            .setParameter("app_type", String.valueOf(SentinelConfig.getAppType()))
+            .setParameter("v", Constants.SENTINEL_VERSION)
+            .setParameter("version", String.valueOf(System.currentTimeMillis()))
+            .setParameter("hostname", HostNameUtil.getHostName())
+            .setParameter("ip", TransportConfig.getHeartbeatClientIp())
+            .setParameter("port", TransportConfig.getPort())
+            .setParameter("pid", String.valueOf(PidUtil.getPid()));
+
+        HttpGet request = new HttpGet(uriBuilder.build());
+        request.setConfig(requestConfig);
+        // Send heartbeat request.
+        CloseableHttpResponse response = client.execute(request);
+        response.close();
+        ... // 省略状态判断
+    }
+
+}
+```
