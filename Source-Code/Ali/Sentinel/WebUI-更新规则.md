@@ -174,7 +174,14 @@ public class ModifyRulesCommandHandler implements CommandHandler<String> {
         if (FLOW_RULE_TYPE.equalsIgnoreCase(type)) {
             List<FlowRule> flowRules = JSONArray.parseArray(data, FlowRule.class);
             FlowRuleManager.loadRules(flowRules);   // 更新规则到内存  ref: sign_demo_020
-            ... // 省略写入数据源
+            /**
+             * 写入数据源 (可参考 FileWritableDataSource，自己实现)，
+             * 官方只实现从其他数据源 (Redis, Nacos 等) 的读，没有实现写，
+             * 因此需要自己实现写。
+             */
+            if (!writeToDataSource(getFlowDataSource(), flowRules)) {
+                result = WRITE_DS_FAILURE_MSG;
+            }
             return CommandResponse.ofSuccess(result);
         }
         ... // 省略其他类型处理
@@ -184,3 +191,6 @@ public class ModifyRulesCommandHandler implements CommandHandler<String> {
 
 }
 ```
+
+### 总结
+- 官方只实现从其他数据源 (Redis, Nacos 等) 的读，没有实现写，因此需要自己实现写。
