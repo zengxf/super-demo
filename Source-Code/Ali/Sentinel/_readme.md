@@ -9,4 +9,5 @@
   - [上下文](上下文.md)
   - [节点与度量](节点与度量.md)
   - [链路控制](链路控制.md)
-- [WebMVC-控制](WebMVC-控制.md)
+- [Spring WebMVC 流控](WebMVC-控制.md)
+  - [Web 控制台 - 更新规则](WebUI-更新规则.md)
