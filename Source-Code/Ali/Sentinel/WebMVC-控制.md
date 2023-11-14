@@ -297,7 +297,9 @@ public class HttpHeartbeatSender implements HeartbeatSender {
         }
         URIBuilder uriBuilder = new URIBuilder();
         uriBuilder.setScheme(consoleProtocol.getProtocol()).setHost(consoleHost).setPort(consolePort)
-            .setPath(TransportConfig.getHeartbeatApiPath()) // 默认用 "/registry/machine" (相当于注册，这也是为什么要请求后控制台才显示)
+            // setPath() 默认用 "/registry/machine" (相当于注册，这也是为什么要请求后控制台才显示)
+            // 处理方法为 MachineRegistryController #receiveHeartBeat()
+            .setPath(TransportConfig.getHeartbeatApiPath())
             .setParameter("app", AppNameUtil.getAppName())
             .setParameter("app_type", String.valueOf(SentinelConfig.getAppType()))
             .setParameter("v", Constants.SENTINEL_VERSION)
