@@ -10,6 +10,12 @@ git remote -v
 - 强制删除本地分支 `git branch -D xxxname`
 - 删除远程分支 `git push origin -d xxxname`
 
+### 从 Tag 创建分支
+- ref: https://blog.csdn.net/lhcxwjh/article/details/51083249
+- 命令格式: `git branch <new-branch-name> <tag-name>`
+- 创建分支: `git branch my-2.2.3 2.2.3`
+- 切换分支: `git checkout my-2.2.3`
+
 ### 设置提交用户
 ```js
 git config user.name ZXF
