@@ -20,5 +20,15 @@ mvn compile
 ```
 
 
+### 启动出错
+- ref: https://github.com/alibaba/nacos/issues/2902
+```java
+// 代码设置
+System.setProperty("nacos.standalone", "true");
+
+// JVM: -Dnacos.standalone=true
+```
+
+
 ### 内容
 - [xx](xx.md)
