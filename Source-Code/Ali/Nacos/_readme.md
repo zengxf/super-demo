@@ -10,25 +10,5 @@
 - JDK: `17`
 
 
-### 编译报错
-- ref: https://blog.csdn.net/ibigboy/article/details/119413998
-```js
-// 执行 MVN 编译，生成 protobuf 类
-mvn compile
-
-// 然后可以再重新启动，编译就没问题了
-```
-
-
-### 启动出错
-- ref: https://github.com/alibaba/nacos/issues/2902
-```java
-// 代码设置
-System.setProperty("nacos.standalone", "true");
-
-// JVM: -Dnacos.standalone=true
-```
-
-
 ### 内容
-- [xx](xx.md)
+- [控制台启动](控制台启动.md)
