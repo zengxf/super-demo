@@ -1,4 +1,8 @@
 ## 测试
+- 先启动 `DashboardApplication`
+  - 访问 http://localhost:8080/#/dashboard
+    - 登录：`sentinel / sentinel`
+
 - 在 `WebMvcDemoApplication` 类的 `main()` 方法改成如下：
 ```java
     public static void main(String[] args) {
@@ -7,9 +11,7 @@
         SpringApplication.run(WebMvcDemoApplication.class);
     }
 ```
-- 先启动 `DashboardApplication`
-  - 访问 http://localhost:8080/#/dashboard
-    - 登录：`sentinel / sentinel`
+
 - 再启动 `WebMvcDemoApplication`
   - 访问 http://localhost:10000/hello
     - dashboard 才会显示

@@ -13,6 +13,7 @@
 ### 控制台
 - Web 请求：
 ```js
+// 新增
 POST /v1/flow/rule
 
 {
@@ -30,6 +31,21 @@ POST /v1/flow/rule
   "resource": "GET:/hello", // 资源名
   "count": 2
 }
+
+// 修改 (集群模式改不了)
+PUT /v1/flow/save.json
+?controlBehavior=0&count=33&grade=1&id=27&limitApp=default&maxQueueingTimeMs=500&resource=test11&strategy=0&warmUpPeriodSec=10
+
+// Param:
+controlBehavior=0
+count=33
+grade=1
+id=27
+limitApp=default
+maxQueueingTimeMs=500
+resource=test11
+strategy=0
+warmUpPeriodSec=10
 ```
 
 - `com.alibaba.csp.sentinel.dashboard.controller.FlowControllerV1`
