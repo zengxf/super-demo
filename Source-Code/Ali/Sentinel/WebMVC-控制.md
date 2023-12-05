@@ -159,6 +159,7 @@ public class NettyHttpCommandCenter implements CommandCenter {
 
     @Override
     public void beforeStart() throws Exception {
+        // sign_use_010  SPI 加载实例
         Map<String, CommandHandler> handlers = CommandHandlerProvider.getInstance().namedHandlers();
         server.registerCommands(handlers);  // 注册命令处理器
     }
@@ -241,7 +242,7 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<Object> {
         String commandName = HttpCommandUtils.getTarget(request);
         CommandHandler<?> commandHandler = getHandler(commandName);         // 查找处理器
         if (commandHandler != null) {
-            CommandResponse<?> response = commandHandler.handle(request);   // 处理请求
+            CommandResponse<?> response = commandHandler.handle(request);   // sign_use_100  处理命令
             writeResponse(response, ctx, keepAlive);
         } else {
             writeErrorResponse(BAD_REQUEST.code(), String.format("Unknown command \"%s\"", commandName), ctx);
@@ -249,6 +250,12 @@ public class HttpServerHandler extends SimpleChannelInboundHandler<Object> {
     }
 }
 ```
+
+#### 命令处理器
+- 接口为 `com.alibaba.csp.sentinel.command.CommandHandler`
+- SPI 加载参考：[交互服务启动 sign_use_010](#交互服务启动)
+  - 具体实现为：`com.alibaba.csp.sentinel.command.CommandHandlerProvider #namedHandlers`
+- 使用者参考：[交互服务启动 sign_use_100](#交互服务启动)
 
 #### 发送心跳
 - SPI 设置 `HeartbeatSender` 的实现为 `HttpHeartbeatSender`
