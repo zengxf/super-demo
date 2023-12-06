@@ -1,19 +1,21 @@
 ## 测试
-- 先启动 `DashboardApplication`
+- 模块：`sentinel-dashboard`
+  - 先启动 `DashboardApplication`
   - 访问 http://localhost:8080/#/dashboard
     - 登录：`sentinel / sentinel`
 
-- 在 `WebMvcDemoApplication` 类的 `main()` 方法改成如下：
-```java
-    public static void main(String[] args) {
-        System.setProperty("csp.sentinel.dashboard.server", "127.0.0.1:8080");
-        System.setProperty("project.name", "My-Test-8866");
-        SpringApplication.run(WebMvcDemoApplication.class);
-    }
-```
+- 模块：`sentinel-demo-spring-webmvc`
+  - 在 `WebMvcDemoApplication` 类的 `main()` 方法改成如下：
+  ```java
+      public static void main(String[] args) {
+          System.setProperty("csp.sentinel.dashboard.server", "127.0.0.1:8080");
+          System.setProperty("project.name", "My-Test-8866");
+          SpringApplication.run(WebMvcDemoApplication.class);
+      }
+  ```
 
-- 再启动 `WebMvcDemoApplication`
-  - 访问 http://localhost:10000/hello
+  - 再启动 `WebMvcDemoApplication`
+    - 访问 http://localhost:10000/hello
     - dashboard 才会显示
 
 
