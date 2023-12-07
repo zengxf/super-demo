@@ -11,42 +11,49 @@
 
 ## 原理
 ### 控制台
+- 模块：`sentinel-dashboard`
+
+- **不启动权限**设置
+  - 改 `application.properties`
+    - 添加一行 `auth.enabled=false`
+  - 然后再启动 `DashboardApplication`，就不用经常登录了
+
 - Web 请求：
-```js
-// 新增
-POST /v1/flow/rule
-
-{
-  "grade": 1,
-  "strategy": 0,
-  "controlBehavior": 0,
-  "app": "My-Test-8866",
-  "ip": "10.32.51.130",
-  "port": "8720",
-  "limitApp": "default",
-  "clusterMode": false,
-  "clusterConfig": {
-    "thresholdType": 0
-  },
-  "resource": "GET:/hello", // 资源名
-  "count": 2
-}
-
-// 修改 (集群模式改不了)
-PUT /v1/flow/save.json
-?controlBehavior=0&count=33&grade=1&id=27&limitApp=default&maxQueueingTimeMs=500&resource=test11&strategy=0&warmUpPeriodSec=10
-
-// Param:
-controlBehavior=0
-count=33
-grade=1
-id=27
-limitApp=default
-maxQueueingTimeMs=500
-resource=test11
-strategy=0
-warmUpPeriodSec=10
-```
+  ```js
+  // 新增
+  POST /v1/flow/rule
+  
+  {
+    "grade": 1,
+    "strategy": 0,
+    "controlBehavior": 0,
+    "app": "My-Test-8866",
+    "ip": "10.32.51.130",
+    "port": "8720",
+    "limitApp": "default",
+    "clusterMode": false,
+    "clusterConfig": {
+      "thresholdType": 0
+    },
+    "resource": "GET:/hello", // 资源名
+    "count": 2
+  }
+  
+  // 修改 (集群模式改不了)
+  PUT /v1/flow/save.json
+  ?controlBehavior=0&count=33&grade=1&id=27&limitApp=default&maxQueueingTimeMs=500&resource=test11&strategy=0&warmUpPeriodSec=10
+  
+  // Param:
+  controlBehavior=0
+  count=33
+  grade=1
+  id=27
+  limitApp=default
+  maxQueueingTimeMs=500
+  resource=test11
+  strategy=0
+  warmUpPeriodSec=10
+  ```
 
 - `com.alibaba.csp.sentinel.dashboard.controller.FlowControllerV1`
 ```java
