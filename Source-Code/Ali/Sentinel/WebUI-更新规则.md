@@ -1,7 +1,7 @@
 ## 说明
 - 更新规则分为两步：
-  - 控制台修改并通知给客户端
-  - 客户端监听并修改到内存
+  - 控制台修改并通知给应用端
+  - 应用端监听并修改到内存
 
 
 ## 参考
@@ -108,7 +108,8 @@ public class FlowControllerV1 {
             Map<String, String> params = new HashMap<>(2);  // sign_param_110 参数规则
             params.put("type", type);
             params.put("data", data);
-            // SET_RULES_PATH = "setRules";
+            // SET_RULES_PATH = "setRules"; 
+            // 相当于命令为 setRules，命令处理者为 ModifyRulesCommandHandler, ref: sign_c_200
             return executeCommand(app, ip, port, SET_RULES_PATH, params, true)  // sign_m_122
                 .thenCompose(r -> {
                     if ("success".equalsIgnoreCase(r.trim())) {
@@ -170,7 +171,7 @@ public class FlowControllerV1 {
     }
 ```
 
-### 客户端
+### 应用端
 - 参考：
   - [WebMVC-控制-交互服务启动 sign_m_210](WebMVC-控制.md#交互服务启动)
   - [入口控制-设置规则 sign_demo_020](入口控制.md#设置规则)
@@ -181,6 +182,7 @@ public class FlowControllerV1 {
     name = "setRules",  // 相当于命令名
     desc = "modify the rules, accept param: type={ruleType}&data={ruleJson}"
 )
+// sign_c_200 更改规则 (setRules) 命令处理者
 public class ModifyRulesCommandHandler implements CommandHandler<String> {
 
     @Override
