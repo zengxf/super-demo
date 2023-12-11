@@ -171,6 +171,15 @@ public class FlowControllerV1 {
     }
 ```
 
+#### 使用-V2
+- 使用 V1 只同步单个应用端
+  - 使用 V2 可实现应用维度推送 (其底层逻辑是控制台向每个应用端都推送规则)
+- 将 `FlowControllerV2` 更改下：
+  - `@RequestMapping(value = "/v1/flow")`
+- 将 `FlowControllerV1` 注释掉：
+  - `@RestController`
+  - `@RequestMapping(value = "/v1/flow")`
+
 ### 应用端
 - 参考：
   - [WebMVC-控制-交互服务启动 sign_m_210](WebMVC-控制.md#交互服务启动)
