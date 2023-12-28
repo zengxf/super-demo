@@ -38,7 +38,73 @@ service BiRequestStream {
 
 
 ## gRPC-服务-启动
+- 参考：
+  - [模块介绍-Maven-依赖关系](模块介绍.md#Maven-依赖关系)
+  - [控制台启动-入口](控制台启动.md#入口)
 
-com.alibaba.nacos.core.remote.grpc.BaseGrpcServer
-com.alibaba.nacos.core.remote.grpc.BaseGrpcServer#startServer
-com.alibaba.nacos.core.remote.grpc.GrpcSdkServer
+### 启动服务
+- `com.alibaba.nacos.core.remote.grpc.GrpcSdkServer`
+```java
+// sign_c_010
+@Service    // 跟随 Nacos 控制台启动
+public class GrpcSdkServer extends BaseGrpcServer {         // ref: sign_c_020
+}
+```
+
+- `com.alibaba.nacos.core.remote.grpc.BaseGrpcServer`
+```java
+// sign_c_020
+public abstract class BaseGrpcServer extends BaseRpcServer {    // ref: sign_c_030
+
+    private Server server;  // gRPC 服务类：io.grpc.Server
+
+    // sign_m_021 重写服务启动的钩子函数, ref: sign_m_032
+    @Override
+    public void startServer() throws Exception {
+        ...
+        NettyServerBuilder builder = NettyServerBuilder.forPort(getServicePort()).executor(getRpcExecutor());
+
+        ...
+
+        server = builder.maxInboundMessageSize(getMaxInboundMessageSize()).fallbackHandlerRegistry(handlerRegistry)
+                ... // KeepAliveTime / KeepAliveTimeout / PermitKeepAliveTime
+                .build();
+
+        server.start(); // 启动 gRPC 服务监听
+    }
+
+}
+```
+
+- `com.alibaba.nacos.core.remote.BaseRpcServer`
+```java
+// sign_c_030
+public abstract class BaseRpcServer {
+
+    // sign_m_031
+    @PostConstruct
+    public void start() throws Exception {
+        ...
+
+        startServer();  // 子类实现, ref: sign_m_032
+    
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            try {
+                BaseRpcServer.this.stopServer();    // ref: sign_m_033
+            } ... // catch
+        }));
+    }
+
+    // sign_m_032 服务启动的钩子函数
+    public abstract void startServer() throws Exception;
+
+    // sign_m_033
+    public final void stopServer() throws Exception {
+        shutdownServer();   // 子类实现, ref: sign_m_034
+    }
+
+    // sign_m_034 停服务的钩子函数
+    @PreDestroy
+    public abstract void shutdownServer();
+}
+```
