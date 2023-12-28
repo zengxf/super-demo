@@ -1,3 +1,9 @@
+## 关联参考
+- 参考：[模块介绍](模块介绍.md)
+- 参考：[客户端同步-gRPC-通信](客户端同步.md#grpc-通信)
+- 参考：[服务端推送-gRPC-连接](服务端推送.md#gRPC-连接)
+
+
 ## Proto-定义
 - `nacos_grpc_service.proto`
 ```js
@@ -31,11 +37,8 @@ service BiRequestStream {
 - 实现类为 `com.alibaba.nacos.core.remote.grpc.GrpcBiStreamRequestAcceptor`
 
 
-## 客户端
-- 参考：[客户端更新-gRPC-通信](客户端更新.md#grpc-通信)
-
-
 ## gRPC-服务-启动
+
 com.alibaba.nacos.core.remote.grpc.BaseGrpcServer
 com.alibaba.nacos.core.remote.grpc.BaseGrpcServer#startServer
 com.alibaba.nacos.core.remote.grpc.GrpcSdkServer
