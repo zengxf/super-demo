@@ -180,11 +180,12 @@ public class GrpcBiStreamRequestAcceptor extends BiRequestStreamGrpc.BiRequestSt
 
                     // 创建 gRPC 连接
                     // 类全称： com.alibaba.nacos.core.remote.grpc.GrpcConnection
+                    // ref: sign_c_310 | sign_cm_310
                     Connection connection = new GrpcConnection(metaInfo, responseObserver, GrpcServerConstants.CONTEXT_KEY_CHANNEL.get());
                     connection.setAbilities(setUpRequest.getAbilities());
                     boolean rejectSdkOnStarting = metaInfo.isSdkSource() && !ApplicationUtils.isStarted();
                     
-                    // connectionManager.register -> 注册连接，ref: [服务端推送-gRPC-通知器 sign_m_301]
+                    // sign_cb_301  connectionManager.register -> 注册连接，ref: [服务端推送-gRPC-通知器 sign_m_301]
                     if (rejectSdkOnStarting || !connectionManager.register(connectionId, connection)) {
                         // 如果当前服务器正在启动或注册失败，则关闭。
                         try {
@@ -194,27 +195,73 @@ public class GrpcBiStreamRequestAcceptor extends BiRequestStreamGrpc.BiRequestSt
                     }
                 } else if (parseObj instanceof Response) {
                     ...
-                } else {
-                    ...
-                }
+                } ... // else 仅日志打印
             }
             
             @Override
             public void onError(Throwable t) {
                 ...
-                serverCallStreamObserver.onCompleted();
+                responseObserver.onCompleted();
                 ...
             }
             
             @Override
             public void onCompleted() {
                 ...
-                serverCallStreamObserver.onCompleted();
+                responseObserver.onCompleted();
                 ...
             }
         };
         
         return streamObserver;
+    }
+}
+```
+
+## gRPC-连接
+- `com.alibaba.nacos.core.remote.grpc.GrpcConnection`
+  - 异步请求-调用方参考：[服务端推送-gRPC-通知器 sign_m_290](服务端推送.md#gRPC-通知器)
+```java
+// sign_c_310  gRPC-连接
+public class GrpcConnection extends Connection {
+
+    private StreamObserver streamObserver;  // 相当于响应流
+    private Channel channel;                // 相当于连接通道
+    
+    // sign_cm_310
+    public GrpcConnection(ConnectionMeta metaInfo, StreamObserver streamObserver, Channel channel) {
+        super(metaInfo);
+        this.streamObserver = streamObserver;
+        this.channel = channel;
+    }
+
+    // sign_m_310 异步请求。调用方参考：[服务端推送-gRPC-通知器 sign_m_290](服务端推送.md#gRPC-通知器)
+    @Override
+    public void asyncRequest(Request request, RequestCallBack requestCallBack) throws NacosException {
+        sendRequestInner(request, requestCallBack); // 发送请求, ref: sign_m_311
+    }
+
+    // sign_m_311 发送请求
+    private DefaultRequestFuture sendRequestInner(Request request, RequestCallBack callBack) throws NacosException {
+        final String requestId = String.valueOf(PushAckIdGenerator.getNextId());
+        request.setRequestId(requestId);
+        
+        DefaultRequestFuture defaultPushFuture = ... // 设置回调
+
+        sendRequestNoAck(request);  // gRPC 发送请求, ref: sign_m_312
+        return defaultPushFuture;
+    }
+
+    // sign_m_312 gRPC 发送请求
+    private void sendRequestNoAck(Request request) throws NacosException {
+        try {
+            // StreamObserver #onNext() 不是线程安全的，需要同步以避免直接内存泄漏
+            synchronized (streamObserver) {
+                Payload payload = GrpcUtils.convert(request);
+                traceIfNecessary(payload);
+                streamObserver.onNext(payload); // gRPC 响应 client，接口定义参考： sign_rm_120
+            }
+        } ... // catch
     }
 }
 ```
