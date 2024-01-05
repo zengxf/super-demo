@@ -36,6 +36,8 @@ service BiRequestStream {
 
 - `BiRequestStream` 实现类为 `com.alibaba.nacos.core.remote.grpc.GrpcBiStreamRequestAcceptor`
   - ref: `sign_c_210`
+- `Request` 实现类为 `com.alibaba.nacos.core.remote.grpc.GrpcRequestAcceptor`
+  - ref: `sign_c_220`
 
 
 ## gRPC-服务-启动
@@ -60,7 +62,7 @@ public abstract class BaseGrpcServer extends BaseRpcServer {    // ref: sign_c_0
     private Server server;  // gRPC 服务类：io.grpc.Server
     
     @Autowired
-    private GrpcRequestAcceptor grpcCommonRequestAcceptor;  // gRPC 服务接口实现, ref: sign_rm_110
+    private GrpcRequestAcceptor grpcCommonRequestAcceptor;              // gRPC 服务接口实现, ref: sign_rm_110
     @Autowired
     private GrpcBiStreamRequestAcceptor grpcBiStreamRequestAcceptor;    // gRPC 服务接口实现, ref: sign_rm_120
 
@@ -217,6 +219,60 @@ public class GrpcBiStreamRequestAcceptor extends BiRequestStreamGrpc.BiRequestSt
     }
 }
 ```
+
+- `com.alibaba.nacos.core.remote.grpc.GrpcRequestAcceptor`
+```java
+// sign_c_220 服务实现类
+@Service
+public class GrpcRequestAcceptor extends RequestGrpc.RequestImplBase {
+
+    // sign_m_220  gRPC-服务接口实现。接口定义参考： sign_rm_110
+    @Override
+    public void request(Payload grpcRequest, StreamObserver<Payload> responseObserver) {
+        traceIfNecessary(grpcRequest, true);
+        String type = grpcRequest.getMetadata().getType();  // 相当于请求实体类简名
+        
+        ... // 服务启动校验
+        ... // 服务检验
+        
+        RequestHandler requestHandler = requestHandlerRegistry.getByRequestType(type);
+
+        ... // 处理器未找到，回发错误响应
+        
+        // check connection status.
+        String connectionId = GrpcServerConstants.CONTEXT_KEY_CONN_ID.get();
+        boolean requestValid = connectionManager.checkValid(connectionId);
+        
+        ... // if (!requestValid) return;
+        
+        Object parseObj = null;
+        try {
+            parseObj = GrpcUtils.parse(grpcRequest);
+        } ... // catch
+        
+        ... // if (parseObj == null) return;
+        ... // if (!(parseObj instanceof Request)) return;
+        
+        Request request = (Request) parseObj;
+        try {
+            Connection connection = connectionManager.getConnection(GrpcServerConstants.CONTEXT_KEY_CONN_ID.get());
+            RequestMeta requestMeta = new RequestMeta();
+            requestMeta.setClientIp(connection.getMetaInfo().getClientIp());
+            requestMeta.setConnectionId(GrpcServerConstants.CONTEXT_KEY_CONN_ID.get());
+            requestMeta.setClientVersion(connection.getMetaInfo().getVersion());
+            requestMeta.setLabels(connection.getMetaInfo().getLabels());
+            connectionManager.refreshActiveTime(requestMeta.getConnectionId());
+            Response response = requestHandler.handleRequest(request, requestMeta);
+            Payload payloadResponse = GrpcUtils.convert(response);
+            traceIfNecessary(payloadResponse, false);
+            responseObserver.onNext(payloadResponse);
+            responseObserver.onCompleted();
+        } ... // catch
+        
+    }
+}
+```
+
 
 ## gRPC-连接
 - `com.alibaba.nacos.core.remote.grpc.GrpcConnection`
