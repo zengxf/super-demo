@@ -257,15 +257,12 @@ public class GrpcRequestAcceptor extends RequestGrpc.RequestImplBase {
         try {
             Connection connection = connectionManager.getConnection(GrpcServerConstants.CONTEXT_KEY_CONN_ID.get());
             RequestMeta requestMeta = new RequestMeta();
-            requestMeta.setClientIp(connection.getMetaInfo().getClientIp());
-            requestMeta.setConnectionId(GrpcServerConstants.CONTEXT_KEY_CONN_ID.get());
-            requestMeta.setClientVersion(connection.getMetaInfo().getVersion());
-            requestMeta.setLabels(connection.getMetaInfo().getLabels());
+            ... // 填充 requestMeta
             connectionManager.refreshActiveTime(requestMeta.getConnectionId());
-            Response response = requestHandler.handleRequest(request, requestMeta);
+            Response response = requestHandler.handleRequest(request, requestMeta); // sign_cb_220  处理请求
             Payload payloadResponse = GrpcUtils.convert(response);
             traceIfNecessary(payloadResponse, false);
-            responseObserver.onNext(payloadResponse);
+            responseObserver.onNext(payloadResponse);   // gRPC 响应返回
             responseObserver.onCompleted();
         } ... // catch
         
