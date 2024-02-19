@@ -421,6 +421,8 @@ subscriber =>
 ```
 
 #### 订阅
+- 参考链：`sign_ch_001`
+
 - `reactor.core.publisher.FluxRange`
 ```java
     // sign_m_710 订阅
@@ -588,8 +590,20 @@ subscriber =>
             }
             else {
                 // 进入此逻辑块
-                s.request(Long.MAX_VALUE);
+                s.request(Long.MAX_VALUE);  // 拉数据请求，ref: sign_m_810
             }
         }
     }
+```
+
+#### 请求和消费
+- 参考链：`sign_ch_001`
+
+- `reactor.core.publisher.FluxMapFuseable.MapFuseableSubscriber`
+```java
+        // sign_m_810 拉数据请求
+        @Override
+        public void request(long n) {
+            s.request(n);
+        }
 ```
