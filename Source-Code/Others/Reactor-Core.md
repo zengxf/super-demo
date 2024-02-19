@@ -446,17 +446,150 @@ subscriber =>
         // sign_m_720
         @Override
         public void onSubscribe(Subscription s) {
-            // s:       RangeSubscriptionConditional
-            // actual:  FilterFuseableSubscriber
+            // s:       RangeSubscriptionConditional 实例
+            // actual:  FilterFuseableSubscriber 实例
             if(Operators.validate(this.s, s)) {
+                // parent:  SignalLogger 实例
                 final Consumer<? super Subscription> subscribeHook = parent.onSubscribeCall();
                 if (subscribeHook != null) {
                     try {
-                        subscribeHook.accept(s); 
+                        subscribeHook.accept(s); // 打印 log
                     } ... // catch 
                 }
                 this.s = (QueueSubscription<T>) s;
-                actual.onSubscribe(this);
+                actual.onSubscribe(this);   // ref: sign_m_730
             }
         }
+```
+
+- `reactor.core.publisher.FluxFilterFuseable.FilterFuseableSubscriber`
+```java
+        // sign_m_730
+        @Override
+        public void onSubscribe(Subscription s) {
+            // s:       PeekFuseableConditionalSubscriber 实例
+            // actual:  SkipSubscriber 实例
+            if (Operators.validate(this.s, s)) {
+                this.s = (QueueSubscription<T>) s;
+                actual.onSubscribe(this);   // ref: sign_m_740
+            }
+        }
+```
+
+- `reactor.core.publisher.FluxSkip.SkipSubscriber`
+```java
+        // sign_m_740
+        @Override
+        public void onSubscribe(Subscription s) {
+            // s:       FilterFuseableSubscriber 实例
+            // actual:  MonoCollectListSubscriber 实例
+            if (Operators.validate(this.s, s)) {
+                this.s = s;
+                long n = remaining;         // demo: remaining = 1
+                actual.onSubscribe(this);   // ref: sign_m_750
+                s.request(n);
+            }
+        }
+```
+
+- `reactor.core.publisher.MonoCollectList.MonoCollectListSubscriber`
+```java
+    static final class MonoCollectListSubscriber<T> extends Operators.BaseFluxToMonoOperator<T, List<T>> {
+    }
+
+    static abstract class BaseFluxToMonoOperator<I, O> implements InnerOperator<I, O>, Fuseable, QueueSubscription<I> {
+        // sign_m_750
+        @Override
+        public void onSubscribe(Subscription s) {
+            // s:       SkipSubscriber 实例
+            // actual:  PeekFuseableSubscriber 实例
+            if (Operators.validate(this.s, s)) {
+                this.s = s;
+                actual.onSubscribe(this);   // ref: sign_m_760
+            }
+        }
+    }
+```
+
+- `reactor.core.publisher.FluxPeekFuseable.PeekFuseableSubscriber`
+```java
+        // sign_m_760
+        @Override
+        public void onSubscribe(Subscription s) {
+            // s:       MonoCollectListSubscriber 实例
+            // actual:  FlattenIterableSubscriber 实例
+            if(Operators.validate(this.s, s)) {
+                final Consumer<? super Subscription> subscribeHook = parent.onSubscribeCall();
+                if (subscribeHook != null) {
+                    ... // subscribeHook 为 null，不进入此逻辑块
+                }
+                this.s = (QueueSubscription<T>) s;
+                actual.onSubscribe(this);   // ref: sign_m_770
+            }
+        }
+```
+
+- `reactor.core.publisher.FluxFlattenIterable.FlattenIterableSubscriber`
+```java
+        // sign_m_770
+        @Override
+        public void onSubscribe(Subscription s) {
+            // s:       PeekFuseableSubscriber 实例
+            // actual:  MapFuseableSubscriber 实例
+            if (Operators.validate(this.s, s)) {
+                this.s = s;
+
+                if (s instanceof QueueSubscription) {
+                    QueueSubscription<T> qs = (QueueSubscription<T>) s;
+                    int m = qs.requestFusion(Fuseable.ANY); // m 为 0
+
+                    if (m == Fuseable.SYNC) {       // SYNC = 1
+                    else if (m == Fuseable.ASYNC)   // ASYNC = 2
+                        ... // 不进入此逻辑块
+                        return;
+                    }
+                }
+
+                queue = queueSupplier.get();    // 返回 OneQueue
+                actual.onSubscribe(this);       // ref: sign_m_780
+                /**
+                 * prefetch 为 Integer.MAX_VALUE
+                 * unboundedOrPrefetch(i) 返回 Long.MAX_VALUE
+                 */
+                s.request(Operators.unboundedOrPrefetch(prefetch));
+            }
+        }
+```
+
+- `reactor.core.publisher.FluxMapFuseable.MapFuseableSubscriber`
+```java
+        // sign_m_780
+        @Override
+        public void onSubscribe(Subscription s) {
+            // s:       FlattenIterableSubscriber 实例
+            // actual:  LambdaSubscriber 实例
+            if (Operators.validate(this.s, s)) {
+                this.s = (QueueSubscription<T>) s;
+                actual.onSubscribe(this);   // sign_m_790
+            }
+        }
+```
+
+- `reactor.core.publisher.LambdaSubscriber`
+```java
+    // sign_m_790
+    @Override
+    public final void onSubscribe(Subscription s) {
+        // s:       MapFuseableSubscriber 实例
+        if (Operators.validate(subscription, s)) {
+            this.subscription = s;
+            if (subscriptionConsumer != null) {
+                ... // subscriptionConsumer 为 null，不进入此逻辑块
+            }
+            else {
+                // 进入此逻辑块
+                s.request(Long.MAX_VALUE);
+            }
+        }
+    }
 ```
