@@ -604,6 +604,50 @@ subscriber =>
         // sign_m_810 拉数据请求
         @Override
         public void request(long n) {
+            // s:  FlattenIterableSubscriber
             s.request(n);
         }
+```
+
+- `reactor.core.publisher.FluxFlattenIterable.FlattenIterableSubscriber`
+```java
+        @Override
+        public void request(long n) {
+            if (Operators.validate(n)) {
+                ...
+                drain(null);
+            }
+        }
+
+        void drain(@Nullable T dataSignal) {
+            ...
+            if (fusionMode == SYNC) { ... } 
+            else {
+                // 进入此逻辑
+                drainAsync();
+            }
+        }
+
+        void drainAsync() {
+            // s:       PeekFuseableSubscriber 实例
+            // actual:  MapFuseableSubscriber 实例
+            final Subscriber<? super R> a = actual;
+            final Queue<T> q = queue;
+
+            int missed = 1;
+            Spliterator<? extends R> sp = current;
+
+            for (; ; ) {
+                ... // 很多 if 逻辑都没进入
+
+                missed = WIP.addAndGet(this, -missed);
+                if (missed == 0) {
+                    break; // 会进入此逻辑，中断循环
+                }
+            }
+        }
+```
+
+- `xxx`
+```java
 ```
