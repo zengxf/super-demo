@@ -19,18 +19,18 @@
 // sign_c_001 流式发布者 (类似 JDK 的 Flow.Publisher 实现)
 public abstract class Flux<T> implements CorePublisher<T> {
 
-	// 创建一个指定范围的反应流，入口 ref: sign_demo_001
-	public static Flux<Integer> range(int start, int count) {
-		... // 0、1 判断
-		return onAssembly(new FluxRange(start, count));	// ref: sign_c_010 | sign_m_010
-	}
+    // sign_m_001 创建一个指定范围的反应流，入口 ref: sign_demo_001
+    public static Flux<Integer> range(int start, int count) {
+        ... // 0、1 判断
+        return onAssembly(new FluxRange(start, count));    // ref: sign_c_010 | sign_m_010
+    }
 
-	// sign_m_010 组装钩子
-	protected static <T> Flux<T> onAssembly(Flux<T> source) {
-		Function<Publisher, Publisher> hook = Hooks.onEachOperatorHook;
-		... // 组装钩子函数
-		return source;
-	}
+    // sign_m_010 组装钩子
+    protected static <T> Flux<T> onAssembly(Flux<T> source) {
+        Function<Publisher, Publisher> hook = Hooks.onEachOperatorHook;
+        ... // 组装钩子函数
+        return source;
+    }
 
 }
 ```
@@ -40,8 +40,8 @@ public abstract class Flux<T> implements CorePublisher<T> {
 // sign_c_010 范围流
 final class FluxRange extends Flux<Integer> implements Fuseable, SourceProducer<Integer> {
 
-	final long start;
-	final long end;
+    final long start;
+    final long end;
 
 }
 ```
@@ -49,40 +49,40 @@ final class FluxRange extends Flux<Integer> implements Fuseable, SourceProducer<
 ### 打印日志
 - `reactor.core.publisher.Flux`
 ```java
-	// 使用 ref: sign_demo_101
-	public final Flux<T> log(String category) {
-		return log(category, Level.INFO);
-	}
+    // 使用 ref: sign_demo_101
+    public final Flux<T> log(String category) {
+        return log(category, Level.INFO);
+    }
 
-	public final Flux<T> log(@Nullable String category, Level level, SignalType... options) {
-		return log(category, level, false, options);
-	}
+    public final Flux<T> log(@Nullable String category, Level level, SignalType... options) {
+        return log(category, level, false, options);
+    }
 
-	public final Flux<T> log(@Nullable String category,
-			Level level,
-			boolean showOperatorLine,
-			SignalType... options
-	) {
-		// 用来记录日志的
-		SignalLogger<T> log = new SignalLogger<>(this, category, level, showOperatorLine, options);
-		if (this instanceof Fuseable) {
-			return onAssembly(new FluxLogFuseable<>(this, log));
-		}
-		return onAssembly(new FluxLog<>(this, log));	// 创建新的 Flux, ref: sign_c_101
-	}
+    public final Flux<T> log(@Nullable String category,
+            Level level,
+            boolean showOperatorLine,
+            SignalType... options
+    ) {
+        // 用来记录日志的
+        SignalLogger<T> log = new SignalLogger<>(this, category, level, showOperatorLine, options);
+        if (this instanceof Fuseable) {
+            return onAssembly(new FluxLogFuseable<>(this, log)); // 创建新的 Flux, ref: sign_c_101
+        }
+        ...
+    }
 ```
 
-- `reactor.core.publisher.FluxLog`
+- `reactor.core.publisher.FluxLogFuseable`
 ```java
 // sign_c_101
-final class FluxLog<T> extends InternalFluxOperator<T, T> { // 继承 ref: sign_c_110
+final class FluxLogFuseable<T> extends InternalFluxOperator<T, T> implements Fuseable { // 继承 ref: sign_c_110
 
-	final SignalPeek<T> log;
+    final SignalPeek<T> log;
 
-	FluxLog(Flux<? extends T> source, SignalPeek<T> log) {
-		super(source);
-		this.log = log;
-	}
+    FluxLogFuseable(Flux<? extends T> source, SignalPeek<T> log) {
+        super(source);
+        this.log = log;
+    }
 
 }
 ```
@@ -91,21 +91,21 @@ final class FluxLog<T> extends InternalFluxOperator<T, T> { // 继承 ref: sign_
 ```java
 // sign_c_110
 abstract class InternalFluxOperator<I, O> 
-	extends FluxOperator<I, O> 
-	implements Scannable, OptimizableOperator<O, I> 
+    extends FluxOperator<I, O> 
+    implements Scannable, OptimizableOperator<O, I> 
 { // 继承 ref: sign_c_120
-	
-	@Nullable
-	final OptimizableOperator<?, I> optimizableOperator;
+    
+    @Nullable
+    final OptimizableOperator<?, I> optimizableOperator;    // sign_f_120 用于组装调用链 (相当于上个节点)
 
-	protected InternalFluxOperator(Flux<? extends I> source) {
-		super(source);
-		if (source instanceof OptimizableOperator) {
-			OptimizableOperator<?, I> optimSource = (OptimizableOperator<?, I>) source;
-			this.optimizableOperator = optimSource;
-		}
-		...
-	}
+    protected InternalFluxOperator(Flux<? extends I> source) {
+        super(source);
+        if (source instanceof OptimizableOperator) {
+            OptimizableOperator<?, I> optimSource = (OptimizableOperator<?, I>) source;
+            this.optimizableOperator = optimSource;         // 记录链, ref: sign_f_120
+        }
+        ...
+    }
 
 }
 ```
@@ -115,11 +115,11 @@ abstract class InternalFluxOperator<I, O>
 // sign_c_120
 public abstract class FluxOperator<I, O> extends Flux<O> implements Scannable {
 
-	protected final Flux<? extends I> source;
+    protected final Flux<? extends I> source;
 
-	protected FluxOperator(Flux<? extends I> source) {
-		this.source = Objects.requireNonNull(source);
-	}
+    protected FluxOperator(Flux<? extends I> source) {
+        this.source = Objects.requireNonNull(source);
+    }
 
 }
 ```
@@ -127,24 +127,26 @@ public abstract class FluxOperator<I, O> extends Flux<O> implements Scannable {
 ### 过滤
 - `reactor.core.publisher.Flux`
 ```java
-	// 使用 ref: sign_demo_201
-	public final Flux<T> filter(Predicate<? super T> p) {
-		...
-		return onAssembly(new FluxFilter<>(this, p));	// 创建新的 Flux, ref: sign_c_201
-	}
+    // 使用 ref: sign_demo_201
+    public final Flux<T> filter(Predicate<? super T> p) {
+		if (this instanceof Fuseable) {
+			return onAssembly(new FluxFilterFuseable<>(this, p));   // 创建新的 Flux, ref: sign_c_201
+		}
+        ...
+    }
 ```
 
-- `reactor.core.publisher.FluxFilter`
+- `reactor.core.publisher.FluxFilterFuseable`
 ```java
 // sign_c_201
-final class FluxFilter<T> extends InternalFluxOperator<T, T> { // 继承 ref: sign_c_110
+final class FluxFilterFuseable<T> extends InternalFluxOperator<T, T> implements Fuseable { // 继承 ref: sign_c_110
 
-	final Predicate<? super T> predicate;
+    final Predicate<? super T> predicate;
 
-	FluxFilter(Flux<? extends T> source, Predicate<? super T> predicate) {
-		super(source);
-		this.predicate = Objects.requireNonNull(predicate, "predicate");
-	}
+    FluxFilterFuseable(Flux<? extends T> source, Predicate<? super T> predicate) {
+        super(source);
+        this.predicate = Objects.requireNonNull(predicate, "predicate");
+    }
 
 }
 ```
@@ -152,13 +154,13 @@ final class FluxFilter<T> extends InternalFluxOperator<T, T> { // 继承 ref: si
 ### 跳过
 - `reactor.core.publisher.Flux`
 ```java
-	// 使用 ref: sign_demo_301
-	public final Flux<T> skip(long skipped) {
-		...
-		else {
-			return onAssembly(new FluxSkip<>(this, skipped));	// 创建新的 Flux, ref: sign_c_301
-		}
-	}
+    // 使用 ref: sign_demo_301
+    public final Flux<T> skip(long skipped) {
+        ...
+        else {
+            return onAssembly(new FluxSkip<>(this, skipped));    // 创建新的 Flux, ref: sign_c_301
+        }
+    }
 ```
 
 - `reactor.core.publisher.FluxSkip`
@@ -166,13 +168,13 @@ final class FluxFilter<T> extends InternalFluxOperator<T, T> { // 继承 ref: si
 // sign_c_301
 final class FluxSkip<T> extends InternalFluxOperator<T, T> {
 
-	final long n;
+    final long n;
 
-	FluxSkip(Flux<? extends T> source, long n) {
-		super(source);
-		...
-		this.n = n;
-	}
+    FluxSkip(Flux<? extends T> source, long n) {
+        super(source);
+        ...
+        this.n = n;
+    }
 
 }
 ```
@@ -180,31 +182,31 @@ final class FluxSkip<T> extends InternalFluxOperator<T, T> {
 ### 排序
 - `reactor.core.publisher.Flux`
 ```java
-	// 使用 ref: sign_demo_401
-	public final Flux<T> sort() {
-		return collectSortedList() // ref: sign_m_401
-			.flatMapIterable(identityFunction());	// 对排完序的 List 进行遍历，ref: sign_m_421
-	}
+    // 使用 ref: sign_demo_401
+    public final Flux<T> sort() {
+        return collectSortedList() // ref: sign_m_401
+            .flatMapIterable(identityFunction());    // 对排完序的 List 进行遍历，ref: sign_m_421
+    }
 
-	// sign_m_401
-	public final Mono<List<T>> collectSortedList() {
-		return collectSortedList(null); // ref: sign_m_402
-	}
+    // sign_m_401
+    public final Mono<List<T>> collectSortedList() {
+        return collectSortedList(null); // ref: sign_m_402
+    }
 
-	// sign_m_402
-	public final Mono<List<T>> collectSortedList(Comparator<? super T> comparator) {
-		// 组装成 List，然后对 List 进行排序
-		return collectList()	// ref: sign_m_403
-				.doOnNext(list -> {
-					list.sort(comparator);
-				});
-	}
+    // sign_m_402
+    public final Mono<List<T>> collectSortedList(Comparator<? super T> comparator) {
+        // 组装成 List，然后对 List 进行排序
+        return collectList()    // ref: sign_m_403
+                .doOnNext(list -> {
+                    list.sort(comparator);
+                });
+    }
 
-	// sign_m_403
-	public final Mono<List<T>> collectList() {
-		...
-		return Mono.onAssembly(new MonoCollectList<>(this));	// ref: sign_c_411
-	}
+    // sign_m_403
+    public final Mono<List<T>> collectList() {
+        ...
+        return Mono.onAssembly(new MonoCollectList<>(this));    // ref: sign_c_411
+    }
 ```
 
 - `reactor.core.publisher.MonoCollectList`
@@ -212,9 +214,9 @@ final class FluxSkip<T> extends InternalFluxOperator<T, T> {
 // sign_c_411
 final class MonoCollectList<T> extends MonoFromFluxOperator<T, List<T>> implements Fuseable {
 
-	MonoCollectList(Flux<? extends T> source) {
-		super(source);
-	}
+    MonoCollectList(Flux<? extends T> source) {
+        super(source);
+    }
 
 }
 ```
@@ -224,10 +226,13 @@ final class MonoCollectList<T> extends MonoFromFluxOperator<T, List<T>> implemen
 // sign_c_421
 public abstract class Mono<T> implements CorePublisher<T> {
 
-	// sign_m_421 组装成 Flux
-	public final <R> Flux<R> flatMapIterable(Function<? super T, ? extends Iterable<? extends R>> mapper) {
-		return Flux.onAssembly(new MonoFlattenIterable<>(this, mapper, Integer.MAX_VALUE, Queues.one()));
-	}
+    // sign_m_421 组装成 Flux
+    public final <R> Flux<R> flatMapIterable(Function<? super T, ? extends Iterable<? extends R>> mapper) {
+        return Flux.onAssembly(
+
+            new MonoFlattenIterable<>(this, mapper, Integer.MAX_VALUE, Queues.one())
+        );
+    }
 
 }
 ```
@@ -235,11 +240,11 @@ public abstract class Mono<T> implements CorePublisher<T> {
 ### 转换
 - `reactor.core.publisher.Flux`
 ```java
-	// 使用 ref: sign_demo_501
-	public final <V> Flux<V> map(Function<? super T, ? extends V> mapper) {
-		...
-		return onAssembly(new FluxMap<>(this, mapper));	// 创建新的 Flux, ref: sign_c_501
-	}
+    // 使用 ref: sign_demo_501
+    public final <V> Flux<V> map(Function<? super T, ? extends V> mapper) {
+        ...
+        return onAssembly(new FluxMap<>(this, mapper));    // 创建新的 Flux, ref: sign_c_501
+    }
 ```
 
 - `reactor.core.publisher.FluxMap`
@@ -247,12 +252,12 @@ public abstract class Mono<T> implements CorePublisher<T> {
 // sign_c_501
 final class FluxMap<T, R> extends InternalFluxOperator<T, R> {
 
-	final Function<? super T, ? extends R> mapper;
+    final Function<? super T, ? extends R> mapper;
 
-	FluxMap(Flux<? extends T> source, Function<? super T, ? extends R> mapper) {
-		super(source);
-		this.mapper = Objects.requireNonNull(mapper, "mapper");
-	}
+    FluxMap(Flux<? extends T> source, Function<? super T, ? extends R> mapper) {
+        super(source);
+        this.mapper = Objects.requireNonNull(mapper, "mapper");
+    }
 
 }
 ```
@@ -260,33 +265,96 @@ final class FluxMap<T, R> extends InternalFluxOperator<T, R> {
 ### 订阅并消费
 - `reactor.core.publisher.Flux`
 ```java
-	// 使用 ref: sign_demo_601
-	public final Disposable subscribe(Consumer<? super T> consumer) {
-		...
-		return subscribe(consumer, null, null);
-	}
+    // 使用 ref: sign_demo_601
+    public final Disposable subscribe(Consumer<? super T> consumer) {
+        ...
+        return subscribe(consumer, null, null);
+    }
 
-	public final Disposable subscribe(
-			@Nullable Consumer<? super T> consumer,
-			@Nullable Consumer<? super Throwable> errorConsumer,
-			@Nullable Runnable completeConsumer
-	) {
-		return subscribe(consumer, errorConsumer, completeConsumer, (Context) null);
-	}
+    public final Disposable subscribe(
+            @Nullable Consumer<? super T> consumer,
+            @Nullable Consumer<? super Throwable> errorConsumer,
+            @Nullable Runnable completeConsumer
+    ) {
+        return subscribe(consumer, errorConsumer, completeConsumer, (Context) null);
+    }
 
-	public final Disposable subscribe(
-			@Nullable Consumer<? super T> consumer,
-			@Nullable Consumer<? super Throwable> errorConsumer,
-			@Nullable Runnable completeConsumer,
-			@Nullable Context initialContext
-	) {
-		return subscribeWith(
-			new LambdaSubscriber<>(consumer, errorConsumer, completeConsumer, null, initialContext)
-		);
-	}
+    public final Disposable subscribe(
+            @Nullable Consumer<? super T> consumer,
+            @Nullable Consumer<? super Throwable> errorConsumer,
+            @Nullable Runnable completeConsumer,
+            @Nullable Context initialContext
+    ) {
+        return subscribeWith(
+            // 包装成 Lambda 订阅者，用于订阅
+            new LambdaSubscriber<>(consumer, errorConsumer, completeConsumer, null, initialContext)
+        );
+    }
 
-	public final <E extends Subscriber<? super T>> E subscribeWith(E subscriber) {
-		subscribe(subscriber);
-		return subscriber;
-	}
+    public final <E extends Subscriber<? super T>> E subscribeWith(E subscriber) {
+        subscribe(subscriber);
+        return subscriber;
+    }
+
+    @Override
+    public final void subscribe(Subscriber<? super T> actual) {
+        CorePublisher publisher = Operators.onLastAssembly(this);       // 组装发布源
+        CoreSubscriber subscriber = Operators.toCoreSubscriber(actual); // 组装订阅者
+
+        ...
+
+        try {
+            if (publisher instanceof OptimizableOperator) {
+                OptimizableOperator operator = (OptimizableOperator) publisher;
+                while (true) {
+                    subscriber = operator.subscribeOrReturn(subscriber);
+                    if (subscriber == null) {
+                        return;
+                    }
+                    OptimizableOperator newSource = operator.nextOptimizableSource();
+                    if (newSource == null) {
+						// 最后一步会进入此，读取到 FluxRange 实例，此实例组装参考： sign_m_001
+                        publisher = operator.source();
+                        break;
+                    }
+                    operator = newSource;
+                }
+            }
+
+			// subscriber 为 FilterFuseableSubscriber 实例。
+            //   调用顺序参考： sign_ord_001
+            //   组装的链参考： sign_ch_001
+			// publisher  为 FluxRange 实例
+            subscriber = Operators.restoreContextOnSubscriberIfPublisherNonInternal(publisher, subscriber);
+            publisher.subscribe(subscriber);
+        } ... // catch
+    }
+```
+
+- 调用顺序如下(`sign_ord_001`)：
+```java
+1. reactor.core.publisher.FluxMapFuseable #subscribeOrReturn
+    -> MapFuseableSubscriber
+2. reactor.core.publisher.MonoFlattenIterable #subscribeOrReturn
+    -> FlattenIterableSubscriber
+3. reactor.core.publisher.MonoPeekFuseable #subscribeOrReturn
+    -> PeekFuseableSubscriber
+4. reactor.core.publisher.MonoCollectList #subscribeOrReturn
+    -> MonoCollectListSubscriber
+5. reactor.core.publisher.FluxSkip #subscribeOrReturn
+    -> SkipSubscriber
+6. reactor.core.publisher.FluxFilterFuseable #subscribeOrReturn
+    -> FilterFuseableSubscriber
+```
+
+- 组装成链如下(`sign_ch_001`)：
+```java
+0
+  -> FilterFuseableSubscriber(actual) 
+  -> SkipSubscriber(actual) 
+  -> MonoCollectListSubscriber(actual) 
+  -> PeekFuseableSubscriber(actual) 
+  -> FlattenIterableSubscriber(actual) 
+  -> MapFuseableSubscriber(actual) 
+  -> subscriber
 ```
