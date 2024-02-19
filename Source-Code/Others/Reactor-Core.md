@@ -129,9 +129,9 @@ public abstract class FluxOperator<I, O> extends Flux<O> implements Scannable {
 ```java
     // 使用 ref: sign_demo_201
     public final Flux<T> filter(Predicate<? super T> p) {
-		if (this instanceof Fuseable) {
-			return onAssembly(new FluxFilterFuseable<>(this, p));   // 创建新的 Flux, ref: sign_c_201
-		}
+        if (this instanceof Fuseable) {
+            return onAssembly(new FluxFilterFuseable<>(this, p));   // 创建新的 Flux, ref: sign_c_201
+        }
         ...
     }
 ```
@@ -156,7 +156,7 @@ final class FluxFilterFuseable<T> extends InternalFluxOperator<T, T> implements 
 ```java
     // 使用 ref: sign_demo_301
     public final Flux<T> skip(long skipped) {
-        ...
+        ... // skipped 为 0
         else {
             return onAssembly(new FluxSkip<>(this, skipped));    // 创建新的 Flux, ref: sign_c_301
         }
@@ -184,8 +184,10 @@ final class FluxSkip<T> extends InternalFluxOperator<T, T> {
 ```java
     // 使用 ref: sign_demo_401
     public final Flux<T> sort() {
-        return collectSortedList() // ref: sign_m_401
-            .flatMapIterable(identityFunction());    // 对排完序的 List 进行遍历，ref: sign_m_421
+        return collectSortedList()  // ref: sign_m_401
+            .flatMapIterable(       // 对排完序的 List 进行遍历，ref: sign_m_421
+                identityFunction()
+            );
     }
 
     // sign_m_401
@@ -197,9 +199,11 @@ final class FluxSkip<T> extends InternalFluxOperator<T, T> {
     public final Mono<List<T>> collectSortedList(Comparator<? super T> comparator) {
         // 组装成 List，然后对 List 进行排序
         return collectList()    // ref: sign_m_403
-                .doOnNext(list -> {
-                    list.sort(comparator);
-                });
+                .doOnNext(      // ref: sign_m_422
+                    list -> {
+                        list.sort(comparator);
+                    }
+                );
     }
 
     // sign_m_403
@@ -229,11 +233,62 @@ public abstract class Mono<T> implements CorePublisher<T> {
     // sign_m_421 组装成 Flux
     public final <R> Flux<R> flatMapIterable(Function<? super T, ? extends Iterable<? extends R>> mapper) {
         return Flux.onAssembly(
-
+            // 创建一个迭代器，ref: sign_c_422 | sign_cm_422
             new MonoFlattenIterable<>(this, mapper, Integer.MAX_VALUE, Queues.one())
         );
     }
 
+    // sign_m_422
+    public final Mono<T> doOnNext(Consumer<? super T> onNext) {
+        Objects.requireNonNull(onNext, "onNext");
+        return doOnSignal(this, null, onNext, null, null);  // ref: sign_m_423
+    }
+
+    // sign_m_423
+    static <T> Mono<T> doOnSignal(
+        Mono<T> source,
+        @Nullable Consumer<? super Subscription> onSubscribe,
+        @Nullable Consumer<? super T> onNext,
+        @Nullable LongConsumer onRequest,
+        @Nullable Runnable onCancel
+    ) {
+        if (source instanceof Fuseable) {
+            return onAssembly(
+                // ref: sign_c_423 | sign_cm_423
+                new MonoPeekFuseable<>(source, onSubscribe, onNext, onRequest, onCancel)
+            );
+        }
+        ...
+    }
+
+}
+```
+
+- `reactor.core.publisher.MonoFlattenIterable`
+```java
+// sign_c_422 迭代器
+final class MonoFlattenIterable<T, R> extends FluxFromMonoOperator<T, R> implements Fuseable {
+    ...
+
+    // sign_cm_422
+    MonoFlattenIterable(Mono<? extends T> source, ... ) {
+        super(source);
+        ...
+    }
+}
+```
+
+- `reactor.core.publisher.MonoPeekFuseable`
+```java
+// sign_c_423
+final class MonoPeekFuseable<T> extends InternalMonoOperator<T, T> implements Fuseable, SignalPeek<T> {
+    ...
+
+    // sign_cm_423
+    MonoPeekFuseable(Mono<? extends T> source, ... ) {
+        super(source);
+        ...
+    }
 }
 ```
 
@@ -242,19 +297,21 @@ public abstract class Mono<T> implements CorePublisher<T> {
 ```java
     // 使用 ref: sign_demo_501
     public final <V> Flux<V> map(Function<? super T, ? extends V> mapper) {
+        if (this instanceof Fuseable) {
+            return onAssembly(new FluxMapFuseable<>(this, mapper)); // 创建新的 Flux, ref: sign_c_501
+        }
         ...
-        return onAssembly(new FluxMap<>(this, mapper));    // 创建新的 Flux, ref: sign_c_501
     }
 ```
 
-- `reactor.core.publisher.FluxMap`
+- `reactor.core.publisher.FluxMapFuseable`
 ```java
 // sign_c_501
-final class FluxMap<T, R> extends InternalFluxOperator<T, R> {
+final class FluxMapFuseable<T, R> extends InternalFluxOperator<T, R> implements Fuseable {
 
     final Function<? super T, ? extends R> mapper;
 
-    FluxMap(Flux<? extends T> source, Function<? super T, ? extends R> mapper) {
+    FluxMapFuseable(Flux<? extends T> source, Function<? super T, ? extends R> mapper) {
         super(source);
         this.mapper = Objects.requireNonNull(mapper, "mapper");
     }
@@ -313,7 +370,7 @@ final class FluxMap<T, R> extends InternalFluxOperator<T, R> {
                     }
                     OptimizableOperator newSource = operator.nextOptimizableSource();
                     if (newSource == null) {
-						// 最后一步会进入此，读取到 FluxRange 实例，此实例组装参考： sign_m_001
+                        // 最后一步会进入此，读取到 FluxRange 实例，此实例组装参考： sign_m_001
                         publisher = operator.source();
                         break;
                     }
@@ -321,40 +378,85 @@ final class FluxMap<T, R> extends InternalFluxOperator<T, R> {
                 }
             }
 
-			// subscriber 为 FilterFuseableSubscriber 实例。
+            // subscriber 为 PeekFuseableConditionalSubscriber 实例。
             //   调用顺序参考： sign_ord_001
             //   组装的链参考： sign_ch_001
-			// publisher  为 FluxRange 实例
+            // publisher  为 FluxRange 实例
             subscriber = Operators.restoreContextOnSubscriberIfPublisherNonInternal(publisher, subscriber);
-            publisher.subscribe(subscriber);
+            publisher.subscribe(subscriber);    // 订阅，ref: sign_m_710
         } ... // catch
     }
 ```
 
+#### 处理链
 - 调用顺序如下(`sign_ord_001`)：
 ```java
-1. reactor.core.publisher.FluxMapFuseable #subscribeOrReturn
+1. reactor.core.publisher.FluxMapFuseable #subscribeOrReturn        // 转换
     -> MapFuseableSubscriber
-2. reactor.core.publisher.MonoFlattenIterable #subscribeOrReturn
+2. reactor.core.publisher.MonoFlattenIterable #subscribeOrReturn    // 排序
     -> FlattenIterableSubscriber
-3. reactor.core.publisher.MonoPeekFuseable #subscribeOrReturn
+3. reactor.core.publisher.MonoPeekFuseable #subscribeOrReturn       // 排序
     -> PeekFuseableSubscriber
-4. reactor.core.publisher.MonoCollectList #subscribeOrReturn
+4. reactor.core.publisher.MonoCollectList #subscribeOrReturn        // 排序
     -> MonoCollectListSubscriber
-5. reactor.core.publisher.FluxSkip #subscribeOrReturn
+5. reactor.core.publisher.FluxSkip #subscribeOrReturn               // 跳过
     -> SkipSubscriber
-6. reactor.core.publisher.FluxFilterFuseable #subscribeOrReturn
+6. reactor.core.publisher.FluxFilterFuseable #subscribeOrReturn     // 过滤
     -> FilterFuseableSubscriber
+7. reactor.core.publisher.FluxLogFuseable #subscribeOrReturn        // 日志
+    -> PeekFuseableConditionalSubscriber
 ```
 
 - 组装成链如下(`sign_ch_001`)：
 ```java
-0
+subscriber =>
+  -> PeekFuseableConditionalSubscriber(actual) 
   -> FilterFuseableSubscriber(actual) 
   -> SkipSubscriber(actual) 
   -> MonoCollectListSubscriber(actual) 
   -> PeekFuseableSubscriber(actual) 
   -> FlattenIterableSubscriber(actual) 
   -> MapFuseableSubscriber(actual) 
-  -> subscriber
+  -> LambdaSubscriber(consumer)     // 自己的业务逻辑
+```
+
+#### 订阅
+- `reactor.core.publisher.FluxRange`
+```java
+    // sign_m_710 订阅
+    @Override
+    public void subscribe(CoreSubscriber<? super Integer> actual) {
+        long st = start;
+        long en = end;
+
+        ...
+        
+        if (actual instanceof ConditionalSubscriber) {
+            // actual 为 PeekFuseableConditionalSubscriber 实例，会进入此逻辑块
+            // 订阅传递，ref: sign_m_720
+            actual.onSubscribe(new RangeSubscriptionConditional((ConditionalSubscriber<? super Integer>) actual, st, en));
+            return;
+        }
+        ...
+    }
+```
+
+- `reactor.core.publisher.FluxPeekFuseable.PeekFuseableConditionalSubscriber`
+```java
+        // sign_m_720
+        @Override
+        public void onSubscribe(Subscription s) {
+            // s:       RangeSubscriptionConditional
+            // actual:  FilterFuseableSubscriber
+            if(Operators.validate(this.s, s)) {
+                final Consumer<? super Subscription> subscribeHook = parent.onSubscribeCall();
+                if (subscribeHook != null) {
+                    try {
+                        subscribeHook.accept(s); 
+                    } ... // catch 
+                }
+                this.s = (QueueSubscription<T>) s;
+                actual.onSubscribe(this);
+            }
+        }
 ```
