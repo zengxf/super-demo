@@ -31,7 +31,6 @@ public abstract class Flux<T> implements CorePublisher<T> {
         ... // 组装钩子函数
         return source;
     }
-
 }
 ```
 
@@ -39,10 +38,8 @@ public abstract class Flux<T> implements CorePublisher<T> {
 ```java
 // sign_c_010 范围流
 final class FluxRange extends Flux<Integer> implements Fuseable, SourceProducer<Integer> {
-
     final long start;
     final long end;
-
 }
 ```
 
@@ -76,14 +73,12 @@ final class FluxRange extends Flux<Integer> implements Fuseable, SourceProducer<
 ```java
 // sign_c_101
 final class FluxLogFuseable<T> extends InternalFluxOperator<T, T> implements Fuseable { // 继承 ref: sign_c_110
-
     final SignalPeek<T> log;
 
     FluxLogFuseable(Flux<? extends T> source, SignalPeek<T> log) {
         super(source);
         this.log = log;
     }
-
 }
 ```
 
@@ -91,11 +86,9 @@ final class FluxLogFuseable<T> extends InternalFluxOperator<T, T> implements Fus
 ```java
 // sign_c_110
 abstract class InternalFluxOperator<I, O> 
-    extends FluxOperator<I, O> 
+    extends FluxOperator<I, O>  // 继承 ref: sign_c_120
     implements Scannable, OptimizableOperator<O, I> 
-{ // 继承 ref: sign_c_120
-    
-    @Nullable
+{
     final OptimizableOperator<?, I> optimizableOperator;    // sign_f_120 用于组装调用链 (相当于上个节点)
 
     protected InternalFluxOperator(Flux<? extends I> source) {
@@ -106,7 +99,6 @@ abstract class InternalFluxOperator<I, O>
         }
         ...
     }
-
 }
 ```
 
@@ -114,13 +106,11 @@ abstract class InternalFluxOperator<I, O>
 ```java
 // sign_c_120
 public abstract class FluxOperator<I, O> extends Flux<O> implements Scannable {
-
     protected final Flux<? extends I> source;
 
     protected FluxOperator(Flux<? extends I> source) {
         this.source = Objects.requireNonNull(source);
     }
-
 }
 ```
 
@@ -140,14 +130,12 @@ public abstract class FluxOperator<I, O> extends Flux<O> implements Scannable {
 ```java
 // sign_c_201
 final class FluxFilterFuseable<T> extends InternalFluxOperator<T, T> implements Fuseable { // 继承 ref: sign_c_110
-
     final Predicate<? super T> predicate;
 
     FluxFilterFuseable(Flux<? extends T> source, Predicate<? super T> predicate) {
         super(source);
         this.predicate = Objects.requireNonNull(predicate, "predicate");
     }
-
 }
 ```
 
@@ -167,7 +155,6 @@ final class FluxFilterFuseable<T> extends InternalFluxOperator<T, T> implements 
 ```java
 // sign_c_301
 final class FluxSkip<T> extends InternalFluxOperator<T, T> {
-
     final long n;
 
     FluxSkip(Flux<? extends T> source, long n) {
@@ -175,7 +162,6 @@ final class FluxSkip<T> extends InternalFluxOperator<T, T> {
         ...
         this.n = n;
     }
-
 }
 ```
 
@@ -217,11 +203,9 @@ final class FluxSkip<T> extends InternalFluxOperator<T, T> {
 ```java
 // sign_c_411
 final class MonoCollectList<T> extends MonoFromFluxOperator<T, List<T>> implements Fuseable {
-
     MonoCollectList(Flux<? extends T> source) {
         super(source);
     }
-
 }
 ```
 
@@ -229,7 +213,6 @@ final class MonoCollectList<T> extends MonoFromFluxOperator<T, List<T>> implemen
 ```java
 // sign_c_421
 public abstract class Mono<T> implements CorePublisher<T> {
-
     // sign_m_421 组装成 Flux
     public final <R> Flux<R> flatMapIterable(Function<? super T, ? extends Iterable<? extends R>> mapper) {
         return Flux.onAssembly(
@@ -260,7 +243,6 @@ public abstract class Mono<T> implements CorePublisher<T> {
         }
         ...
     }
-
 }
 ```
 
@@ -308,14 +290,12 @@ final class MonoPeekFuseable<T> extends InternalMonoOperator<T, T> implements Fu
 ```java
 // sign_c_501
 final class FluxMapFuseable<T, R> extends InternalFluxOperator<T, R> implements Fuseable {
-
     final Function<? super T, ? extends R> mapper;
 
     FluxMapFuseable(Flux<? extends T> source, Function<? super T, ? extends R> mapper) {
         super(source);
         this.mapper = Objects.requireNonNull(mapper, "mapper");
     }
-
 }
 ```
 
@@ -489,7 +469,7 @@ subscriber =>
                 this.s = s;
                 long n = remaining;         // demo: remaining = 1
                 actual.onSubscribe(this);   // ref: sign_m_750
-                s.request(n);
+                s.request(n);   // 后续已无实际操作
             }
         }
 ```
@@ -611,41 +591,14 @@ subscriber =>
 ```
 
 - `reactor.core.publisher.FluxFlattenIterable.FlattenIterableSubscriber`
+  - **链中断**
 ```java
         // sign_m_820
         @Override
         public void request(long n) {
             if (Operators.validate(n)) {
-                ... // 没有实质性的处理
+                ... // 没有实质性的处理 (可以理解为链中断，后续由上游发起调用)
                 drain(null);
-            }
-        }
-
-        void drain(@Nullable T dataSignal) {
-            ...
-            if (fusionMode == SYNC) { ... } 
-            else {
-                // 进入此逻辑
-                drainAsync();
-            }
-        }
-
-        void drainAsync() {
-            // s:       PeekFuseableSubscriber 实例
-            // actual:  MapFuseableSubscriber 实例
-            final Subscriber<? super R> a = actual;
-            final Queue<T> q = queue;
-
-            int missed = 1;
-            Spliterator<? extends R> sp = current;
-
-            for (; ; ) {
-                ... // 很多 if 逻辑都没进入
-
-                missed = WIP.addAndGet(this, -missed);
-                if (missed == 0) {
-                    break; // 会进入此逻辑，中断循环
-                }
             }
         }
 ```
@@ -749,7 +702,8 @@ subscriber =>
             }
 
             ... // 取消判断处理
-            a.onComplete();
+            // sign_cb_880
+            a.onComplete(); // ref: sign_m_950
         }
 ```
 
@@ -810,6 +764,7 @@ subscriber =>
 ```
 
 - `reactor.core.publisher.MonoCollectList.MonoCollectListSubscriber`
+  - **链中断**
 ```java
         // sign_m_940
         @Override
@@ -822,7 +777,12 @@ subscriber =>
             synchronized (this) {
                 l = list;
                 if (l != null) {
-                    l.add(t);   // list 不会为空，进入此逻辑，缓存元素
+                    /**
+                     * list 不为空，进入此逻辑，缓存元素 (链中断，后续由上游传递)。
+                     * 集合排序会在上游 onComplete() 时处理，ref: sign_cb_880
+                     *     并将元素传递给下游，ref: sign_m_950
+                     */
+                    l.add(t);
                     return;
                 }
             }
@@ -830,3 +790,197 @@ subscriber =>
             Operators.onDiscard(t, actual.currentContext());
         }
 ```
+
+- `reactor.core.publisher.FluxPeekFuseable.PeekFuseableConditionalSubscriber#onComplete`
+```java
+        // sign_m_950
+        @Override
+        public void onComplete() {
+            // actual:  FilterFuseableSubscriber
+            if (done) { return; }
+
+            if (sourceMode == ASYNC) { ... }
+            else { // 进入此逻辑
+                final Runnable completeHook = parent.onCompleteCall();
+                ... // parent 是 SignalLogger 实例，进行日志打印
+
+                done = true;
+                actual.onComplete();    // ref: sign_m_960
+
+                ... // 完成后的钩子处理
+            }
+        }
+```
+
+- `reactor.core.publisher.FluxFilterFuseable.FilterFuseableSubscriber`
+```java
+        // sign_m_960
+        @Override
+        public void onComplete() {
+            // actual:  SkipSubscriber
+            if (done) { return; }
+
+            done = true;
+            actual.onComplete();    // ref: sign_m_970
+        }
+```
+
+- `reactor.core.publisher.FluxSkip.SkipSubscriber`
+```java
+        // sign_m_970
+        @Override
+        public void onComplete() {
+            // actual:  MonoCollectListSubscriber
+            actual.onComplete();    // ref: sign_m_980
+        }
+```
+
+- `reactor.core.publisher.MonoCollectList.MonoCollectListSubscriber`
+```java
+        // sign_m_980
+        @Override
+        public void onComplete() {
+            // actual:  PeekFuseableSubscriber
+            if (done) { return; }
+
+            done = true;
+            completePossiblyEmpty();    // ref: sign_m_981
+        }
+
+        // sign_m_981
+        final void completePossiblyEmpty() {
+            if (hasRequest) { // 进入此逻辑
+                final O value = accumulatedValue(); // 获取上面组装的 List
+                if (value == null) { return; }
+
+                this.actual.onNext(value);  // 传给下游消费，ref: sign_m_990
+                this.actual.onComplete();   // 后续已无实际操作
+                return;
+            }
+            ...
+        }
+```
+
+- `reactor.core.publisher.FluxPeekFuseable.PeekFuseableSubscriber`
+```java
+        // sign_m_990 消费
+        @Override
+        public void onNext(T t) {
+            // actual:  FlattenIterableSubscriber
+            if (sourceMode == ASYNC) { ... }
+            else { // 进入此逻辑
+                if (done) { ... return; }
+
+                final Consumer<? super T> nextHook = parent.onNextCall();
+                ... // 处理排序 *.Flux #collectSortedList(Comparator<T>)
+
+                actual.onNext(t);   // ref: sign_m_9A0
+            }
+        }
+```
+
+- `reactor.core.publisher.FluxFlattenIterable.FlattenIterableSubscriber`
+```java
+        // sign_m_9A0
+        @Override
+        public void onNext(T t) {
+            if (fusionMode != Fuseable.ASYNC) {
+                if (!queue.offer(t)) {
+                    ... // queue 能添加 t (即上面的 List)，不进入此逻辑
+                    return;
+                }
+            }
+            drain(t);   // ref: sign_m_9A1
+        }
+
+        // sign_m_9A1
+        void drain(@Nullable T dataSignal) {
+            ...
+            if (fusionMode == SYNC) { drainSync(); }
+            else { // 进入此逻辑
+                drainAsync();   // ref: sign_m_9A2
+            }
+        }
+
+        // sign_m_9A2
+        void drainAsync() {
+            // actual:  MapFuseableSubscriber
+            final Subscriber<? super R> a = actual;
+            final Queue<T> q = queue;
+            Spliterator<? extends R> sp = current;
+
+            for (; ; ) {
+                if (sp == null) {   // 进入此逻辑
+                    ...
+
+                    T t = q.poll();   // 获取上面添加的 list
+                    ...
+
+                    Iterable<? extends R> iterable = mapper.apply(t); // 获取迭代器
+                    sp = iterable.spliterator();
+                    ...
+                }
+
+                if (sp != null) {   // 上面填充 sp 之后，进入此逻辑
+                    ...
+                    while (e != r) {    // e != r 为 true
+                        ...
+                        R   v = Objects.requireNonNull(
+                                    next(sp),   // 获取元素
+                                    "iterator returned null"
+                                );
+                        ...
+
+                        a.onNext(v);    // 给下游消费，ref: sign_m_9B0
+                        ...
+
+                        boolean b = hasNext(sp);    // 判断是否还有元素
+                        ... // 没有元素时中断 while 循环
+                    }
+                    ...
+                }
+                ... // 遍历完后，退出 for 循环
+            }
+        }
+```
+
+- `reactor.core.publisher.FluxMapFuseable.MapFuseableSubscriber`
+```java
+        // sign_m_9B0
+        @Override
+        public void onNext(T t) {
+            if (sourceMode == ASYNC) { actual.onNext(null); }
+            else { // 进入此逻辑
+                if (done) { ... return; }
+                
+                R v;
+                try {
+                    v = mapper.apply(t);    // map 转换，ref: sign_demo_501
+                    ... // v 不能为 null 校验
+                } ... // catch 
+
+                actual.onNext(v);   // ref: sign_m_9C0
+            }
+        }
+```
+
+- `reactor.core.publisher.LambdaSubscriber`
+```java
+    // sign_m_9C0
+    @Override
+    public final void onNext(T x) {
+        try {
+            if (consumer != null) {
+                consumer.accept(x);         // 消费，ref: sign_demo_601
+            }
+        } ... // catch 
+    }
+```
+
+### 总结
+- **处理链关键点**
+  - 在 `sign_m_881` 生成"序列"数据给下游消费
+  - 在 `sign_m_940` 收集元素到 List
+  - 在 `sign_cb_880` 调用 onComplete() 将 List 传给下游
+  - 在 `sign_m_990` 进入 List 排序
+  - 排序完后，在 `sign_m_9A2` 遍历元素，并传给下游
