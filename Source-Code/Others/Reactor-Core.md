@@ -379,7 +379,7 @@ final class FluxMapFuseable<T, R> extends InternalFluxOperator<T, R> implements 
             }
 
             // subscriber 为 PeekFuseableConditionalSubscriber 实例。
-            //   调用顺序参考： sign_ord_001
+            //   调用顺序参考： sign_inv_001
             //   组装的链参考： sign_ch_001
             // publisher  为 FluxRange 实例
             subscriber = Operators.restoreContextOnSubscriberIfPublisherNonInternal(publisher, subscriber);
@@ -389,7 +389,7 @@ final class FluxMapFuseable<T, R> extends InternalFluxOperator<T, R> implements 
 ```
 
 #### 处理链
-- 调用顺序如下(`sign_ord_001`)：
+- 调用顺序(`sign_inv_001`)：
 ```java
 1. reactor.core.publisher.FluxMapFuseable #subscribeOrReturn        // 转换
     -> MapFuseableSubscriber
@@ -407,7 +407,7 @@ final class FluxMapFuseable<T, R> extends InternalFluxOperator<T, R> implements 
     -> PeekFuseableConditionalSubscriber
 ```
 
-- 组装成链如下(`sign_ch_001`)：
+- 组装成链(`sign_ch_001`)：
 ```java
 subscriber =>
   -> PeekFuseableConditionalSubscriber(actual) 
@@ -557,6 +557,7 @@ subscriber =>
                 /**
                  * prefetch 为 Integer.MAX_VALUE
                  * unboundedOrPrefetch(i) 返回 Long.MAX_VALUE
+                 * 请求，参考： sign_m_830
                  */
                 s.request(Operators.unboundedOrPrefetch(prefetch));
             }
@@ -596,7 +597,7 @@ subscriber =>
     }
 ```
 
-#### 请求和消费
+#### 请求
 - 参考链：`sign_ch_001`
 
 - `reactor.core.publisher.FluxMapFuseable.MapFuseableSubscriber`
@@ -605,16 +606,17 @@ subscriber =>
         @Override
         public void request(long n) {
             // s:  FlattenIterableSubscriber
-            s.request(n);
+            s.request(n);   // ref: sign_m_820
         }
 ```
 
 - `reactor.core.publisher.FluxFlattenIterable.FlattenIterableSubscriber`
 ```java
+        // sign_m_820
         @Override
         public void request(long n) {
             if (Operators.validate(n)) {
-                ...
+                ... // 没有实质性的处理
                 drain(null);
             }
         }
@@ -648,6 +650,183 @@ subscriber =>
         }
 ```
 
-- `xxx`
+- `reactor.core.publisher.FluxPeekFuseable.PeekFuseableSubscriber`
 ```java
+        // sign_m_830
+        @Override
+        public void request(long n) {
+            // s:  MonoCollectListSubscriber
+            final LongConsumer requestHook = parent.onRequestCall();
+            if (requestHook != null) {
+                ... // requestHook 为 null，不进入此逻辑
+            }
+            s.request(n);   // ref: sign_m_840
+        }
+```
+
+- `reactor.core.publisher.MonoCollectList.MonoCollectListSubscriber`
+```java
+        // sign_m_840
+        // 父类方法 reactor.core.publisher.Operators.BaseFluxToMonoOperator #request
+        @Override
+        public void request(long n) {
+            // s:  SkipSubscriber
+            if (!hasRequest) {
+                hasRequest = true;
+
+                final int state = this.state;
+                ...
+
+                if (STATE.compareAndSet(this, state, state | 1)) {
+                    if (state == 0) {
+                        // 进入此逻辑
+                        s.request(Long.MAX_VALUE);  // ref: sign_m_850
+                    }
+                    else { ... }
+                }
+            }
+        }
+```
+
+- `reactor.core.publisher.FluxSkip.SkipSubscriber`
+```java
+        // sign_m_850
+        @Override
+        public void request(long n) {
+            // s:  FilterFuseableSubscriber
+            s.request(n);   // ref: sign_m_860
+        }
+```
+
+- `reactor.core.publisher.FluxFilterFuseable.FilterFuseableSubscriber`
+```java
+        // sign_m_860
+        @Override
+        public void request(long n) {
+            // s:  PeekFuseableConditionalSubscriber
+            s.request(n);   // ref: sign_m_870
+        }
+```
+
+- `reactor.core.publisher.FluxPeekFuseable.PeekFuseableConditionalSubscriber`
+```java
+        // sign_m_870
+        @Override
+        public void request(long n) {
+            // s:  RangeSubscriptionConditional
+
+            final LongConsumer requestHook = parent.onRequestCall();
+            ... // parent 是 SignalLogger 实例，进行日志打印
+
+            s.request(n);   // ref: sign_m_880
+        }
+```
+
+- `reactor.core.publisher.FluxRange.RangeSubscriptionConditional`
+```java
+        // sign_m_880
+        @Override
+        public void request(long n) {
+            if (Operators.validate(n)) {
+                if (Operators.addCap(REQUESTED, this, n) == 0) {
+                    if (n == Long.MAX_VALUE) {
+                        // 进入此逻辑
+                        fastPath(); // 生成"序列"数据给下游消费，ref: sign_m_881
+                    } ... // else
+                }
+            }
+        }
+
+        // sign_m_881 生成"序列"数据给下游消费
+        void fastPath() {
+            // actual:  PeekFuseableConditionalSubscriber
+            final long e = end;                 // end 为 11
+            final ConditionalSubscriber<? super Integer> a = actual;
+
+            for (long i = index; i != e; i++) { // index 为 1
+                ... // 取消判断处理
+                a.tryOnNext((int) i);   // 给下游消费，ref: sign_m_910 
+            }
+
+            ... // 取消判断处理
+            a.onComplete();
+        }
+```
+
+#### 消费
+- `reactor.core.publisher.FluxPeekFuseable.PeekFuseableConditionalSubscriber`
+```java
+        // sign_m_910 消费
+        @Override
+        public boolean tryOnNext(T t) {
+            // actual:  FilterFuseableSubscriber
+
+            ... // done 判断并返回
+
+            final Consumer<? super T> nextHook = parent.onNextCall();
+            ... // parent 是 SignalLogger 实例，进行日志打印
+
+            return actual.tryOnNext(t); // ref: sign_m_920
+        }
+```
+
+- `reactor.core.publisher.FluxFilterFuseable.FilterFuseableSubscriber`
+```java
+        // sign_m_920
+        @Override
+        public boolean tryOnNext(T t) {
+            // actual:  SkipSubscriber
+
+            ... // done 判断并返回
+
+            boolean b;
+            try {
+                b = predicate.test(t);
+            } ... // catch
+            if (b) {
+                actual.onNext(t);   // 判断通过，传给下游消费，ref: sign_m_930
+                return true;
+            }
+            
+            ... // 判断不通过，丢弃处理
+        }
+```
+
+- `reactor.core.publisher.FluxSkip.SkipSubscriber`
+```java
+        // sign_m_930
+        @Override
+        public void onNext(T t) {
+            // actual:  SkipSubscriber
+            long r = remaining;     // demo 设置 remaining 为 1
+            if (r == 0L) {
+                actual.onNext(t);   // 跳过 n 个之后，传给下游消费，ref: sign_m_940
+            }
+            else {
+                Operators.onDiscard(t, ctx);    // 丢弃处理
+                remaining = r - 1;  // 对跳过数进行计数处理
+            }
+        }
+```
+
+- `reactor.core.publisher.MonoCollectList.MonoCollectListSubscriber`
+```java
+        // sign_m_940
+        @Override
+        public void onNext(T t) {
+            // actual:  SkipSubscriber
+
+            ... // done 判断并返回
+
+            final List<T> l;
+            synchronized (this) {
+                l = list;
+                if (l != null) {
+                    l.add(t);   // list 不会为空，进入此逻辑，缓存元素
+                    return;
+                }
+            }
+
+            Operators.onDiscard(t, actual.currentContext());
+        }
 ```
