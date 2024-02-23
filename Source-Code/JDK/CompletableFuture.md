@@ -254,10 +254,10 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
 // dep (new CF)
 
 // (dep.stack)
-AsyncSupply1 -> UniApply2 -> UniApply3 -> UniAccept -> UniRun
+AsyncSupply-1 -> UniApply-2 -> UniApply-3 -> UniAccept -> UniRun
 
-// (next)
-UniRun -> UniAccept -> UniApply3 -> UniApply2 -> AsyncSupply1
+// (next & src)
+UniRun -> UniAccept -> UniApply-3 -> UniApply-2 -> AsyncSupply-1
 ```
 
 ### 调用链
