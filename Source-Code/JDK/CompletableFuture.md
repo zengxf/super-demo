@@ -253,10 +253,10 @@ public class CompletableFuture<T> implements Future<T>, CompletionStage<T> {
 ```js
 // dep (new CF)
 
-// (dep.stack)
+// CompletableFuture (dep.stack)
 AsyncSupply-1 -> UniApply-2 -> UniApply-3 -> UniAccept -> UniRun
 
-// (next & src)
+// UniCompletion(next & src)
 UniRun -> UniAccept -> UniApply-3 -> UniApply-2 -> AsyncSupply-1
 ```
 
