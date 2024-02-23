@@ -398,6 +398,8 @@ subscriber =>
   -> FlattenIterableSubscriber(actual) 
   -> MapFuseableSubscriber(actual) 
   -> LambdaSubscriber(consumer)     // 自己的业务逻辑
+
+// 生成数据之后调用下游的 onNext(t) 进行传递
 ```
 
 #### 订阅
