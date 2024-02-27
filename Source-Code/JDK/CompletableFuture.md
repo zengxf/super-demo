@@ -357,3 +357,70 @@ UniRun -> UniAccept -> UniApply-3 -> UniApply-2 -> AsyncSupply-1
             ...
         }
 ```
+
+### 两者组合
+#### acceptEither()
+- 两个只要有一个完成，就传递给下游
+
+- `java.util.concurrent.CompletableFuture.OrAccept`
+```java
+    static final class OrAccept<T, U extends T> extends BiCompletion<T, U, Void> {
+        
+        final CompletableFuture<Void> tryFire(int mode) {
+            CompletableFuture<Void> d; CompletableFuture<? extends T> a, b;
+            Object r; Throwable x; Consumer<? super T> f;
+            if ((a = src) == null || (b = snd) == null
+                || ((r = a.result) == null && (r = b.result) == null)   // 只要有一个不为 null，就算完成
+                || (d = dep) == null || (f = fn) == null)
+                return null;
+            ... // 类似 UniAccept 处理
+                    f.accept(t);        // 调用 Consumer 消费上游结果
+                    d.completeNull();
+            ...
+        }
+    }
+```
+
+#### thenAcceptBoth()
+- 两个必须都完成，才传递给下游
+
+- `java.util.concurrent.CompletableFuture.BiAccept`
+```java
+    static final class BiAccept<T, U> extends BiCompletion<T, U, Void> {
+
+        final CompletableFuture<Void> tryFire(int mode) {
+            CompletableFuture<Void> d;  CompletableFuture<T> a;  CompletableFuture<U> b;
+            Object r, s; BiConsumer<? super T,? super U> f;
+            if (   (a = src) == null || (r = a.result) == null
+                || (b = snd) == null || (s = b.result) == null
+                || (d = dep) == null || (f = fn) == null
+                || !d.biAccept(r, s, f, mode > 0 ? null : this)) // r, s 都不为空，才进入此，ref: sign_m_510
+                return null;
+            ...
+        }
+    }
+```
+
+- `java.util.concurrent.CompletableFuture`
+```java
+    // sign_m_510
+    final <R, S> boolean biAccept(
+        Object r, Object s,
+        BiConsumer<? super R, ? super S> f,
+        BiAccept<R, S> c
+    ) {
+        ...
+        if (result == null) {
+            ... // 源异常处理
+            try {
+                if (c != null && !c.claim())
+                    return false;
+                R rr = (R) r;
+                S ss = (S) s;
+                f.accept(rr, ss);       // 调用 BiConsumer 消费上游结果
+                completeNull();
+            } ... // catch
+        }
+        return true;
+    }
+```
