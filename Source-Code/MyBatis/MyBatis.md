@@ -371,15 +371,10 @@ public class MapperMethod {
       case UPDATE: // sqlSession.update
       case DELETE: // sqlSession.delete
       case SELECT:
-        if (method.returnsVoid() && method.hasResultHandler()) {
-          executeWithResultHandler(sqlSession, args); // sqlSession.select
-          result = null;
-        } else if (method.returnsMany()) {
-          result = executeForMany(sqlSession, args);  // sqlSession.selectList
-        } else if (method.returnsMap()) {
-          result = executeForMap(sqlSession, args);   // sqlSession.selectMap
-        } else if (method.returnsCursor()) {
-          result = executeForCursor(sqlSession, args);// sqlSession.selectCursor
+        if (method.returnsVoid() && method.hasResultHandler()) {  // sqlSession.select
+        } else if (method.returnsMany()) {    // sqlSession.selectList
+        } else if (method.returnsMap()) {     // sqlSession.selectMap
+        } else if (method.returnsCursor()) {  // sqlSession.selectCursor
         } else {
           Object param = method.convertArgsToSqlCommandParam(args);
           result = sqlSession.selectOne(command.getName(), param);  // ref: sign_m_430
@@ -403,21 +398,24 @@ public class MapperMethod {
     // 0 个结果上返回 null，多个结果抛出异常。
     List<T> list = this.selectList(statement, parameter);
     if (list.size() == 1) {
-      return list.get(0);
+      return list.get(0); // ref: sign_m_431
     }
     ...
   }
   
+  // sign_m_431
   @Override
   public <E> List<E> selectList(String statement, Object parameter) {
-    return this.selectList(statement, parameter, RowBounds.DEFAULT);
+    return this.selectList(statement, parameter, RowBounds.DEFAULT);  // ref: sign_m_432
   }  
   
+  // sign_m_432
   @Override
   public <E> List<E> selectList(String statement, Object parameter, RowBounds rowBounds) {
-    return selectList(statement, parameter, rowBounds, Executor.NO_RESULT_HANDLER);
+    return selectList(statement, parameter, rowBounds, Executor.NO_RESULT_HANDLER); // ref: sign_m_433
   }
 
+  // sign_m_433
   private <E> List<E> selectList(String statement, Object parameter, RowBounds rowBounds, ResultHandler handler) {
     try {
       MappedStatement ms = configuration.getMappedStatement(statement);
@@ -440,9 +438,10 @@ public class CachingExecutor implements Executor {
   ) throws SQLException {
     BoundSql boundSql = ms.getBoundSql(parameterObject);
     CacheKey key = createCacheKey(ms, parameterObject, rowBounds, boundSql);
-    return query(ms, parameterObject, rowBounds, resultHandler, key, boundSql);
+    return query(ms, parameterObject, rowBounds, resultHandler, key, boundSql);           // ref: sign_m_441
   }
 
+  // sign_m_441
   @Override
   public <E> List<E> query(
     MappedStatement ms, Object parameterObject, RowBounds rowBounds, ResultHandler resultHandler,
@@ -452,7 +451,183 @@ public class CachingExecutor implements Executor {
     if (cache != null) {
       ... // 有缓存，则处理缓存，未过期则返回
     }
-    return delegate.query(ms, parameterObject, rowBounds, resultHandler, key, boundSql);
+    // delegate 为 SimpleExecutor 实例 (继承 BaseExecutor)
+    return delegate.query(ms, parameterObject, rowBounds, resultHandler, key, boundSql);  // ref: sign_m_510
   }
 }
+```
+
+#### 底层查询
+- `org.apache.ibatis.executor.BaseExecutor`
+```java
+  // sign_m_510
+  @Override
+  public <E> List<E> query(
+    MappedStatement ms, Object parameter, RowBounds rowBounds, ResultHandler resultHandler,
+    CacheKey key, BoundSql boundSql
+  ) throws SQLException {
+    ...
+    List<E> list;
+    try {
+      queryStack++;
+      list = resultHandler == null ? (List<E>) localCache.getObject(key) : null;
+      if (list != null) {
+        handleLocallyCachedOutputParameters(ms, key, parameter, boundSql);
+      } else {  // 没有缓存进入此逻辑
+        list = queryFromDatabase(ms, parameter, rowBounds, resultHandler, key, boundSql); // ref: sign_m_511
+      }
+    } finally {
+      queryStack--;
+    }
+    ...
+    return list;
+  }
+  
+  // sign_m_511
+  private <E> List<E> queryFromDatabase(
+    MappedStatement ms, Object parameter, RowBounds rowBounds,
+    ResultHandler resultHandler, CacheKey key, BoundSql boundSql
+  ) throws SQLException {
+    List<E> list;
+    localCache.putObject(key, EXECUTION_PLACEHOLDER);
+    try {
+      list = doQuery(ms, parameter, rowBounds, resultHandler, boundSql);  // ref: sign_m_520
+    } finally {
+      localCache.removeObject(key);
+    }
+    localCache.putObject(key, list);
+    if (ms.getStatementType() == StatementType.CALLABLE) {
+      localOutputParameterCache.putObject(key, parameter);
+    }
+    return list;
+  }
+```
+
+- `org.apache.ibatis.executor.SimpleExecutor`
+```java
+  // sign_m_520
+  @Override
+  public <E> List<E> doQuery(
+    MappedStatement ms, Object parameter, RowBounds rowBounds, ResultHandler resultHandler,
+    BoundSql boundSql
+  ) throws SQLException {
+    Statement stmt = null;
+    try {
+      Configuration configuration = ms.getConfiguration();
+      StatementHandler handler = configuration.newStatementHandler( // 创建处理器并设置‘拦截链’，ref: sign_m_530
+        wrapper, ms, parameter, rowBounds, resultHandler, boundSql
+      );
+      stmt = prepareStatement(handler, ms.getStatementLog()); // ref: sign_m_521
+      return handler.query(stmt, resultHandler);              // ref: sign_m_541
+    } finally {
+      closeStatement(stmt);
+    }
+  }
+
+  // sign_m_521
+  private Statement prepareStatement(StatementHandler handler, Log statementLog) throws SQLException {
+    Statement stmt;
+    Connection connection = getConnection(statementLog); // 获取 JDBC 连接
+    stmt = handler.prepare(connection, transaction.getTimeout()); // 获取 JDBC Statement, ref: sign_m_540
+    handler.parameterize(stmt); // 处理参数
+    return stmt;
+  }
+```
+
+- `org.apache.ibatis.session.Configuration`
+```java
+  // sign_m_530 创建处理器并设置‘拦截链’
+  public StatementHandler newStatementHandler(
+    Executor executor, MappedStatement mappedStatement,
+    Object parameterObject, RowBounds rowBounds, ResultHandler resultHandler, BoundSql boundSql
+  ) {
+    StatementHandler statementHandler = new RoutingStatementHandler(executor, mappedStatement, parameterObject,
+        rowBounds, resultHandler, boundSql);  // ref: sign_cm_540
+    return (StatementHandler) interceptorChain.pluginAll(statementHandler); // 设置‘拦截链’
+  }
+```
+
+- `org.apache.ibatis.executor.statement.RoutingStatementHandler`
+```java
+public class RoutingStatementHandler implements StatementHandler {
+
+  private final StatementHandler delegate;
+
+  // sign_cm_540
+  public RoutingStatementHandler(
+    Executor executor, MappedStatement ms, Object parameter, RowBounds rowBounds,
+    ResultHandler resultHandler, BoundSql boundSql
+  ) {
+    switch (ms.getStatementType()) {
+      case STATEMENT:
+        delegate = new SimpleStatementHandler(executor, ms, parameter, rowBounds, resultHandler, boundSql);
+      case PREPARED:  // 进入此逻辑，ref: sign_cm_550
+        delegate = new PreparedStatementHandler(executor, ms, parameter, rowBounds, resultHandler, boundSql);
+      case CALLABLE:
+        delegate = new CallableStatementHandler(executor, ms, parameter, rowBounds, resultHandler, boundSql);
+      ... // default Exception
+    }
+  }
+  
+  // sign_m_540  获取 JDBC Statement
+  @Override
+  public Statement prepare(Connection connection, Integer transactionTimeout) throws SQLException {
+    return delegate.prepare(connection, transactionTimeout);  // ref: sign_m_550
+  }
+  
+  // sign_m_541 查询
+  @Override
+  public <E> List<E> query(Statement statement, ResultHandler resultHandler) throws SQLException {
+    return delegate.query(statement, resultHandler);  // ref: sign_m_561
+  }
+}
+```
+
+- `org.apache.ibatis.executor.statement.BaseStatementHandler`
+```java
+  // sign_cm_550
+  protected BaseStatementHandler(Executor executor, MappedStatement mappedStatement, ..., BoundSql boundSql) {
+    this.configuration = mappedStatement.getConfiguration();
+    this.executor = executor;
+    ....
+    this.boundSql = boundSql;
+    this.parameterHandler = configuration.newParameterHandler(...); // 创建参数处理器，并设置‘拦截链’
+    this.resultSetHandler = configuration.newResultSetHandler(...); // 创建结果处理器，并设置‘拦截链’
+  }
+
+  // sign_m_550
+  @Override
+  public Statement prepare(Connection connection, Integer transactionTimeout) throws SQLException {
+    ...
+    Statement statement = null;
+    try {
+      statement = instantiateStatement(connection); // ref: sign_m_560
+      setStatementTimeout(statement, transactionTimeout); // 设置超时
+      setFetchSize(statement);  // 设置拉取行数
+      return statement;
+    } ... // catch
+  }
+```
+
+- `org.apache.ibatis.executor.statement.PreparedStatementHandler`
+```java
+  // sign_m_560  底层 JDBC 创建 Statement
+  @Override
+  protected Statement instantiateStatement(Connection connection) throws SQLException {
+    String sql = boundSql.getSql();
+    ...
+    if (mappedStatement.getResultSetType() == ResultSetType.DEFAULT) {  // 进入此逻辑
+      return connection.prepareStatement(sql);  // JDBC 接口
+    } else {
+      return connection.prepareStatement(...);  // JDBC 接口
+    }
+  }
+  
+  // sign_m_561  底层 JDBC 执行查询
+  @Override
+  public <E> List<E> query(Statement statement, ResultHandler resultHandler) throws SQLException {
+    PreparedStatement ps = (PreparedStatement) statement;
+    ps.execute(); // 执行 SQL 查询
+    return resultSetHandler.handleResultSets(ps); // 处理查询结果(封装返回)
+  }
 ```
