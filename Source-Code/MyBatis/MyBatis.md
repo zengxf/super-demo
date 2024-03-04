@@ -21,8 +21,33 @@
     try (SqlSession sqlSession = sqlSessionFactory.openSession()) {     // ref: sign_m_210
       ExtendMapper mapper = sqlSession.getMapper(ExtendMapper.class);   // ref: sign_m_310
       Child answer = mapper.selectChild();                              // ref: sign_m_410
+      answer = mapper.selectChild();        // 测试：一级缓存关闭
+    } // sign_demo_010 需要第一次 SqlSession 提交，二级缓存才有数据。ref: sign_m_621
+
+    try (SqlSession sqlSession = sqlSessionFactory.openSession()) {
+      ExtendMapper mapper = sqlSession.getMapper(ExtendMapper.class);
+      Child answer = mapper.selectChild();  // 测试：二级缓存开启
     }
   }
+```
+
+- `extend\ExtendConfig.xml`
+```xml
+<configuration>
+  <settings>
+    <setting name="localCacheScope" value="STATEMENT"/> <!-- sign_demo_110 关闭一级缓存 -->
+    <setting name="cacheEnabled" value="true"/>         <!-- sign_demo_120 开启二级缓存 -->
+  </settings>
+  ...
+</configuration>
+```
+
+- `extend\Extend.xml`
+```xml
+<mapper namespace="org.apache.ibatis.submitted.extend.ExtendMapper">
+  <cache/>  <!-- sign_demo_210 配合开启二级缓存 -->
+  ...
+</mapper>
 ```
 
 
@@ -447,12 +472,21 @@ public class CachingExecutor implements Executor {
     MappedStatement ms, Object parameterObject, RowBounds rowBounds, ResultHandler resultHandler,
     CacheKey key, BoundSql boundSql
   ) throws SQLException {
-    Cache cache = ms.getCache();
-    if (cache != null) {
-      ... // 有缓存，则处理缓存，未过期则返回
+    Cache cache = ms.getCache();  // Cache 链参考： sign_cc_010
+    if (cache != null) { // sign_bc_410 有开启二级缓存
+      ...
+      if (ms.isUseCache() && resultHandler == null) {
+        ...
+        List<E> list = (List<E>) tcm.getObject(cache, key); // sign_bc_411 从二级缓存中取，ref: sign_m_610
+        if (list == null) {
+          list = delegate.query(ms, parameterObject, rowBounds, resultHandler, key, boundSql);  // ref: sign_m_510
+          tcm.putObject(cache, key, list);                  // sign_bc_412 添加(只是暂存)到二级缓存，ref: sign_m_611
+        }
+        return list;    // sign_bc_413 二级缓存数据不为空，直接返回
+      }
     }
     // delegate 为 SimpleExecutor 实例 (继承 BaseExecutor)
-    return delegate.query(ms, parameterObject, rowBounds, resultHandler, key, boundSql);  // ref: sign_m_510
+    return delegate.query(ms, parameterObject, rowBounds, resultHandler, key, boundSql);        // ref: sign_m_510
   }
 }
 ```
@@ -473,13 +507,18 @@ public class CachingExecutor implements Executor {
       list = resultHandler == null ? (List<E>) localCache.getObject(key) : null;
       if (list != null) {
         handleLocallyCachedOutputParameters(ms, key, parameter, boundSql);
-      } else {  // 没有缓存进入此逻辑
+      } else {  // sign_bc_510 没有一级缓存进入此逻辑
         list = queryFromDatabase(ms, parameter, rowBounds, resultHandler, key, boundSql); // ref: sign_m_511
       }
     } finally {
       queryStack--;
     }
-    ...
+    if (queryStack == 0) {
+      ...
+      if (configuration.getLocalCacheScope() == LocalCacheScope.STATEMENT) {
+        clearLocalCache();  // sign_bc_520  默认 SESSION 是启用一级缓存，设置为 STATEMENT 会清空，相当于禁用
+      }
+    }
     return list;
   }
   
@@ -492,13 +531,9 @@ public class CachingExecutor implements Executor {
     localCache.putObject(key, EXECUTION_PLACEHOLDER);
     try {
       list = doQuery(ms, parameter, rowBounds, resultHandler, boundSql);  // ref: sign_m_520
-    } finally {
-      localCache.removeObject(key);
-    }
-    localCache.putObject(key, list);
-    if (ms.getStatementType() == StatementType.CALLABLE) {
-      localOutputParameterCache.putObject(key, parameter);
-    }
+    } ... // finally
+    localCache.putObject(key, list);  // sign_bc_530 添加到一级缓存
+    ...
     return list;
   }
 ```
@@ -630,4 +665,72 @@ public class RoutingStatementHandler implements StatementHandler {
     ps.execute(); // 执行 SQL 查询
     return resultSetHandler.handleResultSets(ps); // 处理查询结果(封装返回)
   }
+```
+
+### 缓存
+#### 一级缓存
+- **默认开启**；关闭参考：
+  - `sign_demo_110`
+- 原理参考：
+  - `sign_bc_510 | sign_bc_520 | sign_bc_530`
+
+#### 二级缓存
+- 开启参考：
+  - `sign_demo_120 | sign_demo_210`
+- 使用注意点：
+  - `sign_demo_010`
+- 原理参考：
+  - `sign_bc_410 | sign_bc_411 | sign_bc_412 | sign_bc_413`
+
+- `org.apache.ibatis.cache.TransactionalCacheManager`
+```java
+public class TransactionalCacheManager {
+  private final Map<Cache, TransactionalCache> transactionalCaches = new HashMap<>();
+
+  // sign_m_610
+  public Object getObject(Cache cache, CacheKey key) {
+    return getTransactionalCache(cache).getObject(key);
+  }
+
+  // sign_m_611 暂存
+  public void putObject(Cache cache, CacheKey key, Object value) {
+    getTransactionalCache(cache).putObject(key, value);     // 暂存，ref: sign_m_620
+  }
+}
+```
+
+- `org.apache.ibatis.cache.decorators.TransactionalCache`
+```java
+public class TransactionalCache implements Cache {
+  private final Cache delegate;
+  private final Map<Object, Object> entriesToAddOnCommit;   // 中间暂存
+
+  // sign_m_620 暂存
+  @Override
+  public void putObject(Object key, Object object) {
+    entriesToAddOnCommit.put(key, object);
+  }
+
+  // sign_m_621 提交后，刷入最终的缓存
+  public void commit() {
+    ...
+    flushPendingEntries();  // ref: sign_m_622
+    ...
+  }
+
+  // sign_m_622
+  private void flushPendingEntries() {
+    for (Map.Entry<Object, Object> entry : entriesToAddOnCommit.entrySet()) {
+      delegate.putObject(entry.getKey(), entry.getValue()); // 加入到最终的缓存
+    }
+    ...
+  }
+}
+```
+
+- **Cache 链**
+```js
+// sign_cc_010
+// (delegate)
+SynchronizedCache -> LoggingCache -> SerializedCache -> LruCache -> PerpetualCache
 ```
