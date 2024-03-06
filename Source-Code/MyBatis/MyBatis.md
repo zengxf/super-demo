@@ -702,7 +702,7 @@ public class TransactionalCacheManager {
 - `org.apache.ibatis.cache.decorators.TransactionalCache`
 ```java
 public class TransactionalCache implements Cache {
-  private final Cache delegate;
+  private final Cache delegate; // Cache 链参考： sign_cc_010
   private final Map<Object, Object> entriesToAddOnCommit;   // 中间暂存
 
   // sign_m_620 暂存
@@ -732,5 +732,13 @@ public class TransactionalCache implements Cache {
 ```js
 // sign_cc_010
 // (delegate)
+TransactionalCache ->
 SynchronizedCache -> LoggingCache -> SerializedCache -> LruCache -> PerpetualCache
+
+// 上面相关实现原理较简单
+//   SynchronizedCache 使用 ReentrantLock 加锁
+//   LoggingCache 只是在 getObject() 方法记录和打印命中率
+//   SerializedCache 使用 JDK 序列化
+//   LruCache 使用 LinkedHashMap 实现 LRU
+//   PerpetualCache 使用 HashMap 记录
 ```
