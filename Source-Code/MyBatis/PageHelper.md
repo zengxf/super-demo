@@ -59,7 +59,7 @@ public abstract class PageMethod {
 
     // sign_m_110 开启分页
     public static <E> Page<E> startPage(int pageNum, int pageSize) {
-        return startPage(pageNum, pageSize, DEFAULT_COUNT); // 默认进行 COUNT(1) 查询
+        return startPage(pageNum, pageSize, DEFAULT_COUNT); // 默认进行 COUNT(0) 查询
     }
 
     public static <E> Page<E> startPage(int pageNum, int pageSize, boolean count) {
@@ -127,7 +127,7 @@ public class PageInterceptor implements Interceptor {
                 if (dialect.beforeCount(ms, parameter, rowBounds)) {
                     ... // 异步 Count 处理
                     else {
-                        // 查询总数
+                        // 查询总数，将原接口改成 COUNT(0) 统计 SQL 再进行查询
                         Long count = count(executor, ms, parameter, rowBounds, null, boundSql);
                         // 处理查询总数，返回 true 时继续分页查询，false 时直接返回
                         if (!dialect.afterCount(count, parameter, rowBounds)) { // 将 count 设置到 Page 里面去
@@ -147,3 +147,8 @@ public class PageInterceptor implements Interceptor {
     }
 }
 ```
+
+### 总结
+- 原理总体较简单
+- 只在一个拦截器里处理（统计与数据查询）
+- 最后返回 `Page<T>` 封装集合类
