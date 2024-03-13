@@ -161,16 +161,17 @@ public class MybatisMapperAnnotationBuilder extends MapperAnnotationBuilder {
             try {
                 if (GlobalConfigUtils.isSupperMapperChildren(configuration, type)) { // 判断 type 是不是继承 Mapper 接口
                     // 自己继承 BaseMapper，就会进入此逻辑
-                    parserInjector();
+                    parserInjector(); // 注入基础方法，ref: sign_m_141
                 }
             } ... // catch
         }
         parsePendingMethods();
     }
 
+    // sign_m_141 注入基础方法
     void parserInjector() {
         GlobalConfigUtils.getSqlInjector(configuration) // 返回 DefaultSqlInjector 实例, ref: sign_c_150
-            .inspectInject(assistant, type); // ref: sign_m_160
+            .inspectInject(assistant, type); // 解析 BaseMapper 基础方法，ref: sign_m_160
     }
 }
 ```
@@ -206,7 +207,7 @@ public class DefaultSqlInjector extends AbstractSqlInjector {
 ```java
 // sign_c_160  SQL 自动注入器
 public abstract class AbstractSqlInjector implements ISqlInjector {
-    // sign_m_160
+    // sign_m_160  将 BaseMapper 的基础方法转成 SQL 语句注入到 configuration (MyBatis) 中去
     @Override
     public void inspectInject(MapperBuilderAssistant builderAssistant, Class<?> mapperClass) {
         Class<?> modelClass = ReflectionKit.getSuperClassGenericType(mapperClass, Mapper.class, 0); // 获取实体类
@@ -252,8 +253,8 @@ public abstract class AbstractMethod implements Constants {
         SqlCommandType sqlCommandType, ...
     ) {
         ... // 判断是否已添加处理
-        // 构建 MappedStatement 并添加到 configuration。参考： MyBatis-创建-SqlSessionFactory sign_m_150
-        return builderAssistant.addMappedStatement(...);
+        // 构建 MappedStatement 并添加到 configuration
+        return builderAssistant.addMappedStatement(...); // 参考： MyBatis-创建-SqlSessionFactory sign_m_150
     }
 }
 ```
@@ -262,7 +263,7 @@ public abstract class AbstractMethod implements Constants {
 ```java
 // sign_c_180
 public class SelectCount extends AbstractMethod {
-    // sign_m_180
+    // sign_m_180  拼接 SQL 语句注入到 configuration (MyBatis) 中去
     @Override
     public MappedStatement injectMappedStatement(Class<?> mapperClass, Class<?> modelClass, TableInfo tableInfo) {
         SqlMethod sqlMethod = SqlMethod.SELECT_COUNT;
