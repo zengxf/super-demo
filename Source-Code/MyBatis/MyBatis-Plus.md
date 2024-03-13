@@ -6,7 +6,7 @@
 
 
 ## 单元测试
-### 添加方法
+### 添加方法-UT
 - 参考：`com.baomidou.mybatisplus.core.MybatisXMLConfigBuilderTest`
 ```java
     @Test
@@ -36,6 +36,37 @@
 </configuration>
 ```
 
+### 完整测试
+- 参考：`com.baomidou.mybatisplus.test.MybatisTest`
+```java
+    private static SqlSessionFactory sqlSessionFactory;
+
+    @BeforeAll
+    public static void init() throws IOException, SQLException {
+        Reader reader = Resources.getResourceAsReader("mybatis-config.xml");
+        sqlSessionFactory = new MybatisSqlSessionFactoryBuilder().build(reader);    // 关键部分
+
+        Configuration configuration = sqlSessionFactory.getConfiguration();
+        TypeHandlerRegistry typeHandlerRegistry = configuration.getTypeHandlerRegistry();
+        typeHandlerRegistry.register(AgeEnum.class, MybatisEnumTypeHandler.class);  // 注册枚举类型处理器
+
+        DataSource dataSource = sqlSessionFactory.getConfiguration().getEnvironment().getDataSource();
+        Connection connection = dataSource.getConnection();                         // 获取连接执行脚本
+        ScriptRunner scriptRunner = new ScriptRunner(connection);
+        scriptRunner.runScript(Resources.getResourceAsReader("h2/user.ddl.sql"));
+    }
+
+    @Test
+    void test() {
+        try (SqlSession sqlSession = sqlSessionFactory.openSession(true)) {
+            H2UserMapper mapper = sqlSession.getMapper(H2UserMapper.class); // 添加 Mapper, ref: sign_m_130
+            mapper.myInsertWithNameVersion("test", 2);
+            H2User h2User = new H2User(...);
+            mapper.insert(h2User);
+        }
+    }
+```
+
 
 ## 原理
 ### 添加方法
@@ -61,7 +92,7 @@ public class MybatisXMLConfigBuilder extends BaseBuilder {
     // sign_m_111
     private void parseConfiguration(XNode root) {
         try {
-            // 参考(类似)： MyBatis-创建-SqlSessionFactory sign_m_121
+            // (类似的) 参考：[MyBatis-创建-SqlSessionFactory sign_m_121]
             ...
             mapperElement(root.evalNode("mappers")); // ref: sign_m_112
         } ... // catch
@@ -108,6 +139,7 @@ public class MybatisConfiguration extends Configuration {
 ```
 
 - `com.baomidou.mybatisplus.core.MybatisMapperRegistry`
+  - 参考：[MyBatis-获取-Mapper sign_m_330](MyBatis.md#获取-Mapper)
 ```java
 // sign_c_130  继承自 MapperRegistry
 public class MybatisMapperRegistry extends MapperRegistry {
@@ -126,7 +158,7 @@ public class MybatisMapperRegistry extends MapperRegistry {
         if (type.isInterface()) {
             ...
             try {
-                knownMappers.put(type, new MybatisMapperProxyFactory<>(type));
+                knownMappers.put(type, new MybatisMapperProxyFactory<>(type)); // 会在 getMapper(T) 时调用，参考：[MyBatis-获取-Mapper sign_m_330]
                 MybatisMapperAnnotationBuilder parser = new MybatisMapperAnnotationBuilder(config, type); // ref: sign_c_140 | sign_cm_140
                 parser.parse(); // ref: sign_m_140
             } ... // finally {}
@@ -165,7 +197,7 @@ public class MybatisMapperAnnotationBuilder extends MapperAnnotationBuilder {
                 }
             } ... // catch
         }
-        parsePendingMethods();
+        ...
     }
 
     // sign_m_141 注入基础方法
@@ -254,7 +286,7 @@ public abstract class AbstractMethod implements Constants {
     ) {
         ... // 判断是否已添加处理
         // 构建 MappedStatement 并添加到 configuration
-        return builderAssistant.addMappedStatement(...); // 参考： MyBatis-创建-SqlSessionFactory sign_m_150
+        return builderAssistant.addMappedStatement(...); // 参考：[MyBatis-创建-SqlSessionFactory sign_m_150]
     }
 }
 ```
