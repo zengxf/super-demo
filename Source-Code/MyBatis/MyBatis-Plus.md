@@ -368,6 +368,68 @@ public class SelectCount extends AbstractMethod {
 }
 ```
 
+- `com.baomidou.mybatisplus.core.injector.methods.SelectList`
+  - SQL 格式化参考：[#SQL-格式化](#SQL-格式化)
+```java
+    public MappedStatement injectMappedStatement(Class<?> mapperClass, Class<?> modelClass, TableInfo tableInfo) {
+        SqlMethod sqlMethod = SqlMethod.SELECT_COUNT;
+        String.format(
+            sqlMethod.getSql(), // "<script>%s SELECT %s FROM %s %s %s %s\n</script>"
+            /*
+            <if test="ew != null and ew.sqlFirst != null">
+                ${ew.sqlFirst}
+            </if>
+            */
+            sqlFirst(), 
+            /*
+            <choose>
+                <when test="ew != null and ew.sqlSelect != null">
+                    ${ew.sqlSelect}
+                </when>
+                <otherwise>test_id,name,age,price,test_type,`desc`,version,deleted,last_updated_dt</otherwise>
+            </choose>
+            */
+            sqlSelectColumns(tableInfo, true), 
+            tableInfo.getTableName(), // 表名：entity
+            /*
+            <where>
+                deleted=0
+                <if test="ew != null">
+                    <bind name="_sgEs_" value="ew.sqlSegment != null and ew.sqlSegment != ''"/>
+                    <if test="ew.entity != null">
+                        <if test="ew.entity.testId != null"> AND test_id=#{ew.entity.testId}</if>
+                        <if test="ew.entity['name'] != null"> AND name=#{ew.entity.name}</if>
+                        <if test="ew.entity['age'] != null"> AND age=#{ew.entity.age}</if>
+                        <if test="ew.entity['price'] != null"> AND price=#{ew.entity.price}</if>
+                        <if test="ew.entity['testType'] != null"> AND test_type=#{ew.entity.testType}</if>
+                        <if test="ew.entity['desc'] != null"> AND `desc`=#{ew.entity.desc}</if>
+                        <if test="ew.entity['testDate'] != null"> AND test_date=#{ew.entity.testDate}</if>
+                        <if test="ew.entity['version'] != null"> AND version=#{ew.entity.version}</if>
+                        <if test="ew.entity['lastUpdatedDt'] != null"> AND last_updated_dt=#{ew.entity.lastUpdatedDt}</if>
+                    </if>
+                    <if test="_sgEs_ and ew.nonEmptyOfNormal">
+                        AND ${ew.sqlSegment}
+                    </if>
+                    <if test="_sgEs_ and ew.emptyOfNormal">
+                        ${ew.sqlSegment}
+                    </if>
+                </if>
+            </where>
+            */
+            sqlWhereEntityWrapper(true, tableInfo), 
+            sqlOrderBy(tableInfo), // 空
+            /*
+            <if test="ew != null and ew.sqlComment != null">
+                ${ew.sqlComment}
+            </if>
+            */
+            sqlComment()
+        );
+        SqlSource sqlSource = super.createSqlSource(configuration, sql, modelClass);
+        return this.addSelectMappedStatementForOther(mapperClass, methodName, sqlSource, Long.class); // ref: sign_m_171
+    }
+```
+
 #### 总结
 - 大部分扩展自 MyBatis 已有类，扩展的类使用 `Mybatis` 前缀
 
