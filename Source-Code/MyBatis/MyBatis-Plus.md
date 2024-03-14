@@ -67,6 +67,25 @@
     }
 ```
 
+### Spring 测试
+- 参考：`com.baomidou.mybatisplus.test.h2.H2StudentMapperTest`
+```java
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+@ExtendWith(SpringExtension.class)
+@ContextConfiguration(locations = {"classpath:h2/spring-test-h2.xml"})
+class H2StudentMapperTest {
+    @Resource
+    protected H2StudentMapper studentMapper;
+
+    @Test
+    void testIn() {
+        LambdaQueryWrapper<H2Student> wrapper = Wrappers.<H2Student>lambdaQuery()
+            .in(H2Student::getName, Arrays.asList("a", "b"));
+        List<H2Student> list = studentMapper.selectList(wrapper);
+    }
+}
+```
+
 
 ## 原理
 ### 添加方法
@@ -292,6 +311,7 @@ public abstract class AbstractMethod implements Constants {
 ```
 
 - `com.baomidou.mybatisplus.core.injector.methods.SelectCount`
+  - SQL 格式化参考：[#SQL-格式化](#SQL-格式化)
 ```java
 // sign_c_180
 public class SelectCount extends AbstractMethod {
@@ -348,6 +368,22 @@ public class SelectCount extends AbstractMethod {
 }
 ```
 
-
-## 总结
+#### 总结
 - 大部分扩展自 MyBatis 已有类，扩展的类使用 `Mybatis` 前缀
+
+
+### Spring 集成
+- 单测关键类：
+  - `com.baomidou.mybatisplus.test.h2.config.DBConfig`
+  - `com.baomidou.mybatisplus.test.h2.config.MybatisPlusConfig`
+- Spring-Boot 关键类:
+  - `com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration`
+  - 数据源（连接池）通过 `# sqlSessionFactory(DataSource)` 方法设置
+- 注解扫描：
+  - 示例 `@MapperScan("com.baomidou.mybatisplus.test.h2.mapper")`
+  - 参考：[MyBatis-Spring-集成](MyBatis.md#Spring-集成)
+
+
+### SQL 格式化
+- `org.apache.ibatis.executor.CachingExecutor #query(MS, p, RB, RH)` 调用
+- `org.apache.ibatis.mapping.MappedStatement #getBoundSql` 主要逻辑在这里

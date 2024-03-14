@@ -742,3 +742,10 @@ SynchronizedCache -> LoggingCache -> SerializedCache -> LruCache -> PerpetualCac
 //   LruCache 使用 LinkedHashMap 实现 LRU
 //   PerpetualCache 使用 HashMap 记录
 ```
+
+
+## Spring 集成
+- 注解扫描：
+  - 示例 `@MapperScan("com.baomidou.mybatisplus.test.h2.mapper")`
+  - 类 `org.mybatis.spring.annotation.MapperScan`
+    - 会引入注册类 `org.mybatis.spring.annotation.MapperScannerRegistrar`
