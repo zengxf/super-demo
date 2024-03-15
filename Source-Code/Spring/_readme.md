@@ -8,6 +8,14 @@
   - 源码仓库： https://github.com/spring-projects/spring-boot
   - 克隆：`git clone https://github.com/spring-projects/spring-boot.git`
   - 切分支：`git checkout 3.1.x`
+- **Spring-Cloud-Commons**
+  - 源码仓库： https://github.com/spring-cloud/spring-cloud-commons
+  - 克隆：`git clone https://github.com/spring-cloud/spring-cloud-commons.git`
+  - 切分支：
+    ```js
+    git branch my-study v4.1.1
+    git checkout my-study
+    ```
 - JDK: `17`
 
 ### UML
@@ -24,3 +32,5 @@
     1. [Ann-注解测试](Ann-注解测试.md)
     2. [Import-原理](Import-原理.md)
 5. [Spring-Boot-加载原理](Boot-加载原理.md)
+6. Spring-Cloud
+    1. [Spring-Cloud-Commons](Cloud-Commons.md)
