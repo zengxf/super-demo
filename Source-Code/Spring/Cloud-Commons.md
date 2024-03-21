@@ -1,7 +1,7 @@
-## Spring-Cloud-Commons
+# Spring-Cloud-Commons
 
 
-### 使用示例
+## 使用示例
 - 服务注册与发现：https://github.com/zengxf/spring-demo/tree/master/cloud-demo/ali-nacos/naming-test-1
 - 依赖：
   - `spring-cloud-starter-alibaba-nacos-discovery`
@@ -9,9 +9,9 @@
     - `spring-cloud-commons`
 
 
-### 原理
-#### spring-cloud-context
-##### 自动配置导入
+## 原理
+### spring-cloud-context
+#### 自动配置导入
 - `../../*.AutoConfiguration.imports`
   ```js
   *.ConfigurationPropertiesRebinderAutoConfiguration // 环境改变
@@ -26,7 +26,7 @@
   ...
   ```
 
-##### 新 Context 刷新
+#### 新 Context 刷新
 - 单元测试参考：
   - `org.springframework.cloud.bootstrap.BootstrapSourcesOrderingTests`
 
@@ -42,7 +42,7 @@ public class BootstrapApplicationListener implements ApplicationListener<Applica
             return; // 都不是，则返回，不处理
         }
         // 不要监听引导上下文中的事件
-        if (environment.getPropertySources().contains(BOOTSTRAP_PROPERTY_SOURCE_NAME)) {
+        if (environment.getPropertySources().contains("bootstrap")) {
             return;
         }
         ConfigurableApplicationContext context = null;
@@ -53,12 +53,17 @@ public class BootstrapApplicationListener implements ApplicationListener<Applica
             ...
         }
 
-        apply(context, event.getSpringApplication(), environment); // 应用新的上下文
+        apply(context, event.getSpringApplication(), environment); // 应用新的上下文部分配置
     }
 
-    // sign_m_120
+    // sign_m_120 构建新的上下文
     private ConfigurableApplicationContext bootstrapServiceContext(ConfigurableEnvironment environment,
-            final SpringApplication application, String configName) {
+            final SpringApplication application, String configName
+    ) {
+        ConfigurableEnvironment bootstrapEnvironment = new AbstractEnvironment() { }; // 创建匿名内部类
+		MutablePropertySources bootstrapProperties = bootstrapEnvironment.getPropertySources();
+        ...
+        bootstrapProperties.addFirst(new MapPropertySource("bootstrap", bootstrapMap));
         ...
         SpringApplicationBuilder builder = new SpringApplicationBuilder()
                 ...
@@ -72,18 +77,19 @@ public class BootstrapApplicationListener implements ApplicationListener<Applica
         final ConfigurableApplicationContext context = builder.run();
         context.setId("bootstrap");
         ...
-        mergeDefaultProperties(environment.getPropertySources(), bootstrapProperties); // 合并属性
+        // 合并属性：将 bootstrap 的配置添加到原环境中
+        mergeDefaultProperties(environment.getPropertySources(), bootstrapProperties);
         return context;
     }
 }
 ```
 
-##### 加载 bootstrap 文件
+#### 使用 bootstrap 配置填充环境
 - 参考：https://www.cnblogs.com/qlqwjy/p/17135908.html
 
 - `org.springframework.boot.SpringApplication`
 ```java
-    // sign_m_210
+    // sign_m_210 准备环境
     private ConfigurableEnvironment prepareEnvironment(
         SpringApplicationRunListeners listeners,
         DefaultBootstrapContext bootstrapContext, ApplicationArguments applicationArguments
@@ -98,12 +104,12 @@ public class BootstrapApplicationListener implements ApplicationListener<Applica
 
 - `org.springframework.boot.context.event.EventPublishingRunListener`
 ```java
-    // sign_m_220
+    // sign_m_220 发布环境准备好的事件
     @Override
     public void environmentPrepared(ConfigurableBootstrapContext bootstrapContext,
             ConfigurableEnvironment environment) {
         multicastInitialEvent( // 广播事件，其一监听器处理参考: sign_m_230
-                new ApplicationEnvironmentPreparedEvent(bootstrapContext, this.application, this.args, environment)
+                new ApplicationEnvironmentPreparedEvent(bootstrapContext, ...)
         );
     }
 ```
@@ -119,7 +125,7 @@ public class BootstrapApplicationListener implements ApplicationListener<Applica
         ...
     }
 
-    // sign_m_231
+    // sign_m_231 处理环境事件
     private void onApplicationEnvironmentPreparedEvent(ApplicationEnvironmentPreparedEvent event) {
         ConfigurableEnvironment environment = event.getEnvironment();
         SpringApplication application = event.getSpringApplication();
@@ -211,8 +217,7 @@ public class BootstrapApplicationListener implements ApplicationListener<Applica
 - `org.springframework.boot.context.config.ConfigDataEnvironmentContributors`
 ```java
     // sign_m_260 解析加载配置文件
-    ConfigDataEnvironmentContributors withProcessedImports(ConfigDataImporter importer,
-            ConfigDataActivationContext activationContext) {
+    ConfigDataEnvironmentContributors withProcessedImports(ConfigDataImporter importer, ...) {
         ...
         while (true) {
             ...
@@ -224,17 +229,15 @@ public class BootstrapApplicationListener implements ApplicationListener<Applica
     }
 ```
 
+#### 查找并加载配置文件
 - `org.springframework.boot.context.config.ConfigDataImporter`
 ```java
     // sign_m_270 解析加载配置文件
-    Map<ConfigDataResolutionResult, ConfigData> resolveAndLoad(ConfigDataActivationContext activationContext,
-            ConfigDataLocationResolverContext locationResolverContext, ConfigDataLoaderContext loaderContext,
-            List<ConfigDataLocation> locations
-    ) {
+    Map<ConfigDataResolutionResult, ConfigData> resolveAndLoad( ... ) {
         try {
             ...
-            // 从 "/" 和 "/config/" 目录下查找 ".xml .yml .yaml .properties" 文件
-            // 最终查找出 "/bootstrap.properties" 文件
+            // 从 "./"、"./config/" 和 "./config/*/" 目录下查找 ".xml .yml .yaml .properties" 文件
+            // 最终查找出 "./bootstrap.properties" 文件
             // 参考：StandardConfigDataLocationResolver #resolve()
             List<ConfigDataResolutionResult> resolved = resolve(locationResolverContext, profiles, locations);
             return load(loaderContext, resolved); // 解析加载配置文件 (即 bootstrap.properties 文件)，ref: sign_m_271
@@ -242,9 +245,7 @@ public class BootstrapApplicationListener implements ApplicationListener<Applica
     }
 
     // sign_m_271 解析加载配置文件
-    private Map<ConfigDataResolutionResult, ConfigData> load(ConfigDataLoaderContext loaderContext,
-            List<ConfigDataResolutionResult> candidates
-    ) throws IOException {
+    private Map<ConfigDataResolutionResult, ConfigData> load( ... ) throws IOException {
         Map<ConfigDataResolutionResult, ConfigData> result = new LinkedHashMap<>();
         for (int i = candidates.size() - 1; i >= 0; i--) {
             ConfigDataResolutionResult candidate = candidates.get(i);
@@ -265,7 +266,7 @@ public class BootstrapApplicationListener implements ApplicationListener<Applica
 - `org.springframework.boot.context.config.ConfigDataLoaders#load`
 ```java
     // sign_m_280 解析加载配置文件
-    <R extends ConfigDataResource> ConfigData load(ConfigDataLoaderContext context, R resource) throws IOException {
+    <R extends ConfigDataResource> ConfigData load(ConfigDataLoaderContext context, R resource) ... {
         ConfigDataLoader<R> loader = getLoader(context, resource);
         return loader.load(context, resource); // ref: sign_m_290
     }
@@ -291,7 +292,7 @@ public class BootstrapApplicationListener implements ApplicationListener<Applica
 ```java
     // sign_m_2A0 解析加载配置文件
     @Override
-    public List<PropertySource<?>> load(String name, Resource resource) throws IOException {
+    public List<PropertySource<?>> load(String name, Resource resource) ... {
         List<Map<String, ?>> properties = loadProperties(resource); // 解析 *.properties 配置文件
         ...
         List<PropertySource<?>> propertySources = new ArrayList<>(properties.size());
@@ -310,8 +311,8 @@ public class BootstrapApplicationListener implements ApplicationListener<Applica
 ```
 
 
-#### spring-cloud-commons
-##### 自动配置导入
+### spring-cloud-commons
+#### 自动配置导入
 - `../../*.AutoConfiguration.imports`
   ```js
   *.client.CommonsClientAutoConfiguration // 阻塞式-服务发现
