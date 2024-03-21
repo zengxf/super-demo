@@ -1,7 +1,7 @@
-## Spring-Boot 原理
+# Spring-Boot-加载原理
 
-### Spring-Boot 条件注解
-#### 单元测试
+## Spring-Boot 条件注解
+### 单元测试
 ```java
 public class MyPropertyTest {
     @Test
@@ -71,7 +71,7 @@ public class MyPropertyTest {
 }
 ```
 
-#### 原理
+### 原理
 - 参考：[Configuration-加载原理-条件解析](Configuration-加载原理.md#条件解析)
 - `org.springframework.boot.autoconfigure.condition.ConditionalOnProperty`
 ```java
@@ -186,7 +186,7 @@ public abstract class SpringBootCondition implements Condition {
 }
 ```
 
-##### 其他条件注解
+#### 其他条件注解
 - `@ConditionalOnBean`
 - `@ConditionalOnClass`
 - `@ConditionalOnExpression`
@@ -195,14 +195,14 @@ public abstract class SpringBootCondition implements Condition {
 - ... 其他省略
 
 
-### Spring-Boot 加载类
-#### 关键类
+## Spring-Boot 加载类
+### 关键类
 - `org.springframework.boot.autoconfigure.SpringBootApplication`
 - `org.springframework.boot.autoconfigure.EnableAutoConfiguration`
 - `org.springframework.boot.autoconfigure.AutoConfigurationImportSelector`
 - `org.springframework.boot.context.annotation.ImportCandidates`
 
-#### 单元测试
+### 单元测试
 - 参考：
   - `org.springframework.boot.context.annotation.ImportCandidatesTests`
   - `org.springframework.boot.autoconfigure.SpringBootApplicationTests`
@@ -226,7 +226,7 @@ public class MyQuartzAppTest {
 }
 ```
 
-#### 原理
+### 原理
 - 上下文刷新参考：[Context-刷新原理](Context-刷新原理.md#原理)
 
 - `org.springframework.boot.SpringApplication`
@@ -300,7 +300,7 @@ public @interface EnableAutoConfiguration {
 }
 ```
 
-##### 导入原理
+#### 导入原理
 - 调用参考：[Import-原理](Import-原理.md#原理)
 
 - `org.springframework.boot.autoconfigure.AutoConfigurationImportSelector`
