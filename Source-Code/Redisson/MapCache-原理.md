@@ -150,5 +150,5 @@ RFuture<Integer> execute() {
   - **此问题不纠结**
 
 ## Ref
-- Lua 解释 https://blog.csdn.net/Michelle_Zhong/article/details/126391915
-- 大量 new 会创建大量任务，引起 OOM https://juejin.cn/post/6844903842728034317
+- Lua 解释：https://blog.csdn.net/Michelle_Zhong/article/details/126391915
+- 大量 new 会创建大量任务，引起 OOM: https://juejin.cn/post/6844903842728034317

@@ -18,19 +18,23 @@
     ```
 - JDK: `17`
 
+
 ### UML
 - Context-UML: https://www.processon.com/view/link/648532c4320a4e3425972722
 - BeanFactory-UML: https://www.processon.com/view/link/648b3146516ce3025f4e850d
 
-### 阅读顺序
-1. [Context-刷新原理](Context-刷新原理.md)
-2. [Bean-实例化原理](Bean-实例化原理.md)
-3. [AOP-原理](AOP-原理.md)
-    1. [Cache-原理](Cache-原理.md)
-    2. [Transaction-原理](Transaction-原理.md)
-4. [Configuration-加载原理](Configuration-加载原理.md)
-    1. [Ann-注解测试](Ann-注解测试.md)
-    2. [Import-原理](Import-原理.md)
-5. [Spring-Boot-加载原理](Boot-加载原理.md)
-6. Spring-Cloud
-    1. [Spring-Cloud-Commons](Cloud-Commons.md)
+
+### 内容
+- Spring
+  - [Context-刷新原理](Context-刷新原理.md)
+  - [Bean-实例化原理](Bean-实例化原理.md)
+  - [AOP-原理](AOP-原理.md)
+    - [Cache-原理](Cache-原理.md)
+    - [Transaction-原理](Transaction-原理.md)
+  - [Configuration-加载原理](Configuration-加载原理.md)
+    - [Ann-注解测试](Ann-注解测试.md)
+    - [Import-原理](Import-原理.md)
+- Spring-Boot
+  - [Spring-Boot-加载原理](Boot-加载原理.md)
+- Spring-Cloud
+  - [Spring-Cloud-Commons](Cloud-Commons.md)
