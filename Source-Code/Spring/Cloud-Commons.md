@@ -31,6 +31,7 @@
   - `org.springframework.cloud.bootstrap.BootstrapSourcesOrderingTests`
 
 - `org.springframework.cloud.bootstrap.BootstrapApplicationListener`
+  - 参考：[Boot-基础类-ConfigData ConfigDataLocationResolver](Boot-基础类.md#ConfigData)
 ```java
 public class BootstrapApplicationListener implements ApplicationListener<ApplicationEnvironmentPreparedEvent>, Ordered {
     @Override
@@ -46,6 +47,8 @@ public class BootstrapApplicationListener implements ApplicationListener<Applica
             return;
         }
         ConfigurableApplicationContext context = null;
+        // 参考： Boot-基础类-ConfigData ConfigDataLocationResolver
+        // 默认配置名用 bootstrap，即查找 bootstrap .yaml .yml .properties 文件
         String configName = environment.resolvePlaceholders("${spring.cloud.bootstrap.name:bootstrap}");
         ...
         if (context == null) {
@@ -62,6 +65,9 @@ public class BootstrapApplicationListener implements ApplicationListener<Applica
     ) {
         ConfigurableEnvironment bootstrapEnvironment = new AbstractEnvironment() { }; // 创建匿名内部类
 		MutablePropertySources bootstrapProperties = bootstrapEnvironment.getPropertySources();
+        ...
+        // 参考： Boot-基础类-ConfigData ConfigDataLocationResolver
+		bootstrapMap.put("spring.config.name", configName); // 设置配置文件名
         ...
         bootstrapProperties.addFirst(new MapPropertySource("bootstrap", bootstrapMap));
         ...
@@ -238,7 +244,7 @@ public class BootstrapApplicationListener implements ApplicationListener<Applica
             ...
             // 从 "./"、"./config/" 和 "./config/*/" 目录下查找 ".xml .yml .yaml .properties" 文件
             // 最终查找出 "./bootstrap.properties" 文件
-            // 参考：StandardConfigDataLocationResolver #resolve()
+            // 参考： StandardConfigDataLocationResolver #resolve()
             List<ConfigDataResolutionResult> resolved = resolve(locationResolverContext, profiles, locations);
             return load(loaderContext, resolved); // 解析加载配置文件 (即 bootstrap.properties 文件)，ref: sign_m_271
         } ... // catch
