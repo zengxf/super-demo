@@ -316,6 +316,25 @@ public class BootstrapApplicationListener implements ApplicationListener<Applica
     }
 ```
 
+#### 服务注册
+- 关键类：
+  - **服务注册**接口：`org.springframework.cloud.client.serviceregistry.ServiceRegistry`
+  - **服务实例**接口：`org.springframework.cloud.client.ServiceInstance`
+  - **注册对象**（服务实例子类）接口：`org.springframework.cloud.client.serviceregistry.Registration`
+  - **服务注册逻辑**抽象类：`org.springframework.cloud.client.serviceregistry.AbstractAutoServiceRegistration`
+- 第三方提供商需实现上面两接口
+  - 同时还需提供**自动配置类**，将上面两接口组装到 Context 中
+  - 如 Ali 的 `com.alibaba.cloud.nacos.registry.NacosServiceRegistryAutoConfiguration`
+
+#### 服务发现
+- 关键类：
+  - **服务发现**接口：`org.springframework.cloud.client.discovery.DiscoveryClient`
+  - **启动服务发现**注解：`org.springframework.cloud.client.discovery.EnableDiscoveryClient`
+  - **服务发现**选择器：`org.springframework.cloud.client.discovery.EnableDiscoveryClientImportSelector`
+- 第三方提供商需实现上面的接口
+  - 同时还需提供**自动配置类**，将上面的接口组装到 Context 中
+  - 如 Ali 的 `com.alibaba.cloud.nacos.discovery.NacosDiscoveryClientConfiguration`
+
 
 ### spring-cloud-commons
 #### 自动配置导入
