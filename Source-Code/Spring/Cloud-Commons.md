@@ -316,6 +316,24 @@ public class BootstrapApplicationListener implements ApplicationListener<Applica
     }
 ```
 
+
+### spring-cloud-commons
+#### 自动配置导入
+- `../../*.AutoConfiguration.imports`
+  ```js
+  *.client.CommonsClientAutoConfiguration // 阻塞式-服务发现 (并不创建 DiscoveryClient，只做健康检测等基础处理)
+  *.client.ReactiveCommonsClientAutoConfiguration // 响应式-服务发现
+  ...
+  *.client.loadbalancer.LoadBalancerAutoConfiguration // 负载平衡
+  ...
+  *.client.serviceregistry.ServiceRegistryAutoConfiguration // 服务注册 Endpoint
+  ...
+  *.configuration.CompatibilityVerifierAutoConfiguration // Boot 版本校验
+  *.client.serviceregistry.AutoServiceRegistrationAutoConfiguration // 自动注册校验
+  ...
+  ```
+  - **熔断器无配置**
+
 #### 服务注册
 - 关键类：
   - **服务注册**接口：`org.springframework.cloud.client.serviceregistry.ServiceRegistry`
@@ -334,21 +352,3 @@ public class BootstrapApplicationListener implements ApplicationListener<Applica
 - 第三方提供商需实现上面的接口
   - 同时还需提供**自动配置类**，将上面的接口组装到 Context 中
   - 如 Ali 的 `com.alibaba.cloud.nacos.discovery.NacosDiscoveryClientConfiguration`
-
-
-### spring-cloud-commons
-#### 自动配置导入
-- `../../*.AutoConfiguration.imports`
-  ```js
-  *.client.CommonsClientAutoConfiguration // 阻塞式-服务发现
-  *.client.ReactiveCommonsClientAutoConfiguration // 响应式-服务发现
-  ...
-  *.client.loadbalancer.LoadBalancerAutoConfiguration // 负载平衡
-  ...
-  *.client.serviceregistry.ServiceRegistryAutoConfiguration // 服务注册 Endpoint
-  ...
-  *.configuration.CompatibilityVerifierAutoConfiguration // Boot 版本校验
-  *.client.serviceregistry.AutoServiceRegistrationAutoConfiguration // 自动注册校验
-  ...
-  ```
-  - **熔断器无配置**
