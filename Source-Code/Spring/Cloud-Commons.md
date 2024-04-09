@@ -338,7 +338,7 @@ public class BootstrapApplicationListener implements ApplicationListener<Applica
 - 关键类：
   - **服务注册**接口：`org.springframework.cloud.client.serviceregistry.ServiceRegistry`
   - **服务实例**接口：`org.springframework.cloud.client.ServiceInstance`
-  - **注册对象**（服务实例子类）接口：`org.springframework.cloud.client.serviceregistry.Registration`
+  - **注册项**（服务实例子类）接口：`org.springframework.cloud.client.serviceregistry.Registration`
   - **服务注册逻辑**抽象类：`org.springframework.cloud.client.serviceregistry.AbstractAutoServiceRegistration`
 - 第三方提供商需实现上面两接口
   - 同时还需提供**自动配置类**，将上面两接口组装到 Context 中
