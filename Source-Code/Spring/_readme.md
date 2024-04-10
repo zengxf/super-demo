@@ -34,6 +34,7 @@
   - [Configuration-加载原理](Configuration-加载原理.md)
     - [Ann-注解测试](Ann-注解测试.md)
     - [Import-原理](Import-原理.md)
+  - [Web-RestTemplate](Web-RestTemplate.md)
 - Spring-Boot
   - [Spring-Boot-加载原理](Boot-加载原理.md)
   - [Spring-Boot-基础类](Boot-基础类.md)

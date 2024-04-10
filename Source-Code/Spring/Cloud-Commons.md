@@ -352,3 +352,6 @@ public class BootstrapApplicationListener implements ApplicationListener<Applica
 - 第三方提供商需实现上面的接口
   - 同时还需提供**自动配置类**，将上面的接口组装到 Context 中
   - 如 Ali 的 `com.alibaba.cloud.nacos.discovery.NacosDiscoveryClientConfiguration`
+
+#### 负载均衡
+- 
