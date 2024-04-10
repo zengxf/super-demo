@@ -64,10 +64,10 @@ public class BootstrapApplicationListener implements ApplicationListener<Applica
             final SpringApplication application, String configName
     ) {
         ConfigurableEnvironment bootstrapEnvironment = new AbstractEnvironment() { }; // 创建匿名内部类
-		MutablePropertySources bootstrapProperties = bootstrapEnvironment.getPropertySources();
+        MutablePropertySources bootstrapProperties = bootstrapEnvironment.getPropertySources();
         ...
         // 参考： Boot-基础类-ConfigData ConfigDataLocationResolver
-		bootstrapMap.put("spring.config.name", configName); // 设置配置文件名
+        bootstrapMap.put("spring.config.name", configName); // 设置配置文件名
         ...
         bootstrapProperties.addFirst(new MapPropertySource("bootstrap", bootstrapMap));
         ...
@@ -322,13 +322,13 @@ public class BootstrapApplicationListener implements ApplicationListener<Applica
 - `../../*.AutoConfiguration.imports`
   ```js
   *.client.CommonsClientAutoConfiguration // 阻塞式-服务发现 (并不创建 DiscoveryClient，只做健康检测等基础处理)
-  *.client.ReactiveCommonsClientAutoConfiguration // 响应式-服务发现
+  *.client.ReactiveCommonsClientAutoConfiguration       // 响应式-服务发现
   ...
-  *.client.loadbalancer.LoadBalancerAutoConfiguration // 负载平衡
+  *.client.loadbalancer.LoadBalancerAutoConfiguration   // 负载平衡，ref: sign_c_300
   ...
   *.client.serviceregistry.ServiceRegistryAutoConfiguration // 服务注册 Endpoint
   ...
-  *.configuration.CompatibilityVerifierAutoConfiguration // Boot 版本校验
+  *.configuration.CompatibilityVerifierAutoConfiguration    // Boot 版本校验
   *.client.serviceregistry.AutoServiceRegistrationAutoConfiguration // 自动注册校验
   ...
   ```
@@ -354,4 +354,106 @@ public class BootstrapApplicationListener implements ApplicationListener<Applica
   - 如 Ali 的 `com.alibaba.cloud.nacos.discovery.NacosDiscoveryClientConfiguration`
 
 #### 负载均衡
-- 
+- `org.springframework.cloud.client.loadbalancer.LoadBalancerAutoConfiguration`
+```java
+// sign_c_300
+@AutoConfiguration
+...
+public class LoadBalancerAutoConfiguration {
+
+    @LoadBalanced // 自定义的 RestTemplate 需加此注解，否则无效
+    @Autowired(required = false) // 收集所有的 RestTemplate 实例
+    private List<RestTemplate> restTemplates = Collections.emptyList();
+
+    @Bean
+    public SmartInitializingSingleton loadBalancedRestTemplateInitializerDeprecated(
+            final ObjectProvider<List<RestTemplateCustomizer>> restTemplateCustomizers // 来源： sign_m_320
+    ) {
+        return () -> restTemplateCustomizers.ifAvailable(customizers -> {
+            for (RestTemplate restTemplate : LoadBalancerAutoConfiguration.this.restTemplates) {
+                for (RestTemplateCustomizer customizer : customizers) {
+                    customizer.customize(restTemplate); // 对每个 RestTemplate 实例进行定制操作，ref: sign_cb_320
+                }
+            }
+        });
+    }
+
+    // 拦截器配置
+    @Configuration(proxyBeanMethods = false)
+    @Conditional(RetryMissingOrDisabledCondition.class)
+    static class LoadBalancerInterceptorConfig {
+        // sign_m_310  初始化 REST 拦截器
+        @Bean
+        public LoadBalancerInterceptor loadBalancerInterceptor(
+            LoadBalancerClient loadBalancerClient, // 来源： sign_m_420
+            LoadBalancerRequestFactory requestFactory
+        ) {
+            return new LoadBalancerInterceptor(loadBalancerClient, requestFactory);
+        }
+
+        // sign_m_320  初始化 REST 定制器
+        @Bean
+        @ConditionalOnMissingBean
+        public RestTemplateCustomizer restTemplateCustomizer(final LoadBalancerInterceptor loadBalancerInterceptor) {
+            return restTemplate -> { // sign_cb_320
+                List<ClientHttpRequestInterceptor> list = new ArrayList<>(restTemplate.getInterceptors());
+                list.add(loadBalancerInterceptor);  // 添加，来源： sign_m_310
+                restTemplate.setInterceptors(list); // 设置进去
+            };
+        }
+    }
+}
+```
+
+
+### spring-cloud-loadbalancer
+#### 自动配置导入
+- `../../*.AutoConfiguration.imports`
+  ```js
+  *.loadbalancer.config.LoadBalancerAutoConfiguration // 基础配置，ref: sign_c_410
+  *.loadbalancer.config.BlockingLoadBalancerClientAutoConfiguration // 客户端配置，ref: sign_c_420
+  *.loadbalancer.config.LoadBalancerCacheAutoConfiguration
+  *.loadbalancer.security.OAuth2LoadBalancerClientAutoConfiguration
+  *.loadbalancer.config.LoadBalancerStatsAutoConfiguration
+  ```
+
+#### 客户端
+- `org.springframework.cloud.loadbalancer.config.LoadBalancerAutoConfiguration`
+```java
+// sign_c_410  基础配置
+@Configuration(proxyBeanMethods = false)
+@EnableConfigurationProperties({ LoadBalancerClientsProperties.class, LoadBalancerEagerLoadProperties.class })
+...
+public class LoadBalancerAutoConfiguration {
+
+    // sign_m_410  初始化获取服务实例的工厂
+    @ConditionalOnMissingBean
+    @Bean
+    public LoadBalancerClientFactory loadBalancerClientFactory(LoadBalancerClientsProperties properties,
+            ObjectProvider<List<LoadBalancerClientSpecification>> configurations) {
+        LoadBalancerClientFactory clientFactory = new LoadBalancerClientFactory(properties); // 获取服务实例
+        clientFactory.setConfigurations(configurations.getIfAvailable(Collections::emptyList));
+        return clientFactory;
+    }
+}
+```
+
+- `org.springframework.cloud.loadbalancer.config.BlockingLoadBalancerClientAutoConfiguration`
+```java
+// sign_c_420  客户端配置
+@Configuration(proxyBeanMethods = false)
+@LoadBalancerClients
+...
+public class BlockingLoadBalancerClientAutoConfiguration {
+
+    // sign_m_420  初始化客户端
+    @Bean
+    @ConditionalOnBean(LoadBalancerClientFactory.class)
+    @ConditionalOnMissingBean
+    public LoadBalancerClient blockingLoadBalancerClient(
+        LoadBalancerClientFactory loadBalancerClientFactory // 来源： sign_m_410
+    ) {
+        return new BlockingLoadBalancerClient(loadBalancerClientFactory);
+    }
+}
+```
