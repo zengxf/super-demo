@@ -104,6 +104,7 @@ public abstract class InterceptingHttpAccessor extends HttpAccessor {
 
 ### 请求
 - `org.springframework.http.client.InterceptingClientHttpRequest`
+  - 拦截器可参考：[Spring-Cloud-Commons-负载均衡-拦截器 sign_m_510](Cloud-Commons.md#拦截器)
 ```java
 // sign_c_210  继承： sign_c_220
 class InterceptingClientHttpRequest extends AbstractBufferingClientHttpRequest {
@@ -129,7 +130,9 @@ class InterceptingClientHttpRequest extends AbstractBufferingClientHttpRequest {
         public ClientHttpResponse execute(HttpRequest request, byte[] body) throws IOException {
             if (this.iterator.hasNext()) { // 存在拦截器
                 ClientHttpRequestInterceptor nextInterceptor = this.iterator.next();
-                return nextInterceptor.intercept(request, body, this); // 直接用第一个拦截器进行处理
+                // 直接用第一个拦截器进行处理。
+                // 拦截器参考：[Spring-Cloud-Commons-负载均衡-拦截器 sign_m_510]
+                return nextInterceptor.intercept(request, body, this);
             }
             else { // 没有拦截器
                 HttpMethod method = request.getMethod();

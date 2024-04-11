@@ -388,7 +388,7 @@ public class LoadBalancerAutoConfiguration {
             LoadBalancerClient loadBalancerClient, // 来源： sign_m_420
             LoadBalancerRequestFactory requestFactory
         ) {
-            return new LoadBalancerInterceptor(loadBalancerClient, requestFactory);
+            return new LoadBalancerInterceptor(loadBalancerClient, requestFactory); // ref: sign_c_510
         }
 
         // sign_m_320  初始化 REST 定制器
@@ -417,7 +417,7 @@ public class LoadBalancerAutoConfiguration {
   *.loadbalancer.config.LoadBalancerStatsAutoConfiguration
   ```
 
-#### 客户端
+#### 自动配置
 - `org.springframework.cloud.loadbalancer.config.LoadBalancerAutoConfiguration`
 ```java
 // sign_c_410  基础配置
@@ -453,7 +453,86 @@ public class BlockingLoadBalancerClientAutoConfiguration {
     public LoadBalancerClient blockingLoadBalancerClient(
         LoadBalancerClientFactory loadBalancerClientFactory // 来源： sign_m_410
     ) {
-        return new BlockingLoadBalancerClient(loadBalancerClientFactory);
+        return new BlockingLoadBalancerClient(loadBalancerClientFactory); // ref: sign_c_520
+    }
+}
+```
+
+#### 拦截器
+- `org.springframework.cloud.client.loadbalancer.LoadBalancerInterceptor`
+```java
+// sign_c_510  拦截器
+public class LoadBalancerInterceptor implements ClientHttpRequestInterceptor {
+    // sign_m_510  拦截处理
+    @Override
+    public ClientHttpResponse intercept(final HttpRequest request, final byte[] body,
+            final ClientHttpRequestExecution execution) throws IOException {
+        final URI originalUri = request.getURI();
+        String serviceName = originalUri.getHost();
+        ...
+        return this.loadBalancer.execute(serviceName, ...); // 执行请求，ref: sign_m_520
+    }
+}
+```
+
+- `org.springframework.cloud.loadbalancer.blocking.client.BlockingLoadBalancerClient`
+```java
+// sign_c_520  客户端
+public class BlockingLoadBalancerClient implements LoadBalancerClient {
+
+    // sign_m_520  执行请求
+    @Override
+    public <T> T execute(String serviceId, LoadBalancerRequest<T> request) throws IOException {
+        ...
+        ServiceInstance serviceInstance = choose(serviceId, lbRequest); // 选出服务实例，ref: sign_m_521
+        ...
+        return execute(serviceId, serviceInstance, lbRequest); // 进行请求，ref: sign_m_522
+    }
+
+    // sign_m_521  均衡算法，选出服务实例
+    @Override
+    public <T> ServiceInstance choose(String serviceId, Request<T> request) {
+        ReactiveLoadBalancer<ServiceInstance> loadBalancer = loadBalancerClientFactory.getInstance(serviceId); // 获取负载均衡器
+        ...
+        Response<ServiceInstance> loadBalancerResponse = Mono.from(
+                loadBalancer.choose(request)        // 使用负载均衡算法，选择出服务实例
+            )
+            .block();
+        ...
+        return loadBalancerResponse.getServer();    // 返回服务实例
+    }
+
+    // sign_m_522  对选出的服务实例进行请求
+    @Override
+    public <T> T execute(
+        String serviceId, ServiceInstance serviceInstance, LoadBalancerRequest<T> request
+    ) throws IOException {
+        ...
+        try {
+            // request 最终为 BlockingLoadBalancerRequest 实例，ref: sign_c_530
+            T response = request.apply(serviceInstance); // 请求处理，ref: sign_m_530
+            ...
+            return response;
+        }
+        ... // catch
+        return null;
+    }
+}
+```
+
+- `org.springframework.cloud.client.loadbalancer.BlockingLoadBalancerRequest`
+  - [Web-RestTemplate-请求 sign_m_211](Web-RestTemplate.md#请求)
+```java
+// sign_c_530
+class BlockingLoadBalancerRequest implements HttpRequestLoadBalancerRequest<ClientHttpResponse> {
+
+    // sign_m_530  请求处理
+    @Override
+    public ClientHttpResponse apply(ServiceInstance instance) throws Exception {
+        HttpRequest serviceRequest = new ServiceRequestWrapper(clientHttpRequestData.request, instance, loadBalancer);
+        ...
+        return clientHttpRequestData.execution // 为 InterceptingClientHttpRequest.InterceptingRequestExecution 实例
+            .execute(serviceRequest, clientHttpRequestData.body); // 参考：[Web-RestTemplate-请求 sign_m_211]，没有拦截器
     }
 }
 ```
