@@ -463,6 +463,8 @@ public class BlockingLoadBalancerClientAutoConfiguration {
 ```java
 // sign_c_510  拦截器
 public class LoadBalancerInterceptor implements ClientHttpRequestInterceptor {
+    private LoadBalancerClient loadBalancer;
+
     // sign_m_510  拦截处理
     @Override
     public ClientHttpResponse intercept(final HttpRequest request, final byte[] body,
@@ -536,3 +538,10 @@ class BlockingLoadBalancerRequest implements HttpRequestLoadBalancerRequest<Clie
     }
 }
 ```
+
+#### RestTemplate 的微服务调用原理
+- 是通过拦截器实现，并实现负载均衡
+- 关键类：
+  - `LoadBalancerInterceptor`
+  - `BlockingLoadBalancerClient`
+  - `BlockingLoadBalancerRequest`
