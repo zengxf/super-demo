@@ -463,7 +463,7 @@ public class BlockingLoadBalancerClientAutoConfiguration {
 ```java
 // sign_c_510  拦截器
 public class LoadBalancerInterceptor implements ClientHttpRequestInterceptor {
-    private LoadBalancerClient loadBalancer;
+    private LoadBalancerClient loadBalancer; // 来源： sign_m_420
 
     // sign_m_510  拦截处理
     @Override
@@ -494,7 +494,9 @@ public class BlockingLoadBalancerClient implements LoadBalancerClient {
     // sign_m_521  均衡算法，选出服务实例
     @Override
     public <T> ServiceInstance choose(String serviceId, Request<T> request) {
-        ReactiveLoadBalancer<ServiceInstance> loadBalancer = loadBalancerClientFactory.getInstance(serviceId); // 获取负载均衡器
+        // 获取负载均衡器，
+        // Ali 套件返回的是 NacosLoadBalancer 实例。
+        ReactiveLoadBalancer<ServiceInstance> loadBalancer = loadBalancerClientFactory.getInstance(serviceId);
         ...
         Response<ServiceInstance> loadBalancerResponse = Mono.from(
                 loadBalancer.choose(request)        // 使用负载均衡算法，选择出服务实例

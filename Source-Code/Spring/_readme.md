@@ -16,6 +16,14 @@
     git branch my-study v4.1.1
     git checkout my-study
     ```
+- **Spring-Cloud-OpenFeign**
+  - 源码仓库： https://github.com/spring-cloud/spring-cloud-openfeign
+  - 克隆：`git clone https://github.com/spring-cloud/spring-cloud-openfeign.git`
+  - 切分支：
+    ```js
+    git branch my-study v4.1.1
+    git checkout my-study
+    ```
 - JDK: `17`
 
 
@@ -40,3 +48,4 @@
   - [Spring-Boot-基础类](Boot-基础类.md)
 - Spring-Cloud
   - [Spring-Cloud-Commons](Cloud-Commons.md)
+  - [Spring-Cloud-OpenFeign](Cloud-OpenFeign.mdd)
