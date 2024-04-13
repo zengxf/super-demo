@@ -316,6 +316,64 @@ public class BootstrapApplicationListener implements ApplicationListener<Applica
     }
 ```
 
+#### 分层-Context
+- 相当于**父子容器**
+  - 参考：https://cloud.tencent.com/developer/article/1403379
+
+- `org.springframework.cloud.context.named.NamedContextFactory`
+  - 作用：
+    - 可以为每个命名空间创建一个单独的 `BeanFactory`
+    - 方便地切换命名空间
+
+```java
+public abstract class NamedContextFactory<C extends NamedContextFactory.Specification>
+        implements DisposableBean, ApplicationContextAware 
+{
+    private final Map<String, GenericApplicationContext> contexts = new ConcurrentHashMap<>();
+    private ApplicationContext parent;
+    private Class<?> defaultConfigType;
+
+
+    public <T> T getInstance(String name, Class<T> type) {
+        GenericApplicationContext context = getContext(name);
+        try {
+            return context.getBean(type);
+        }
+        ... // catch
+        return null;
+    }
+
+    protected GenericApplicationContext getContext(String name) {
+        if (!this.contexts.containsKey(name)) {
+            synchronized (this.contexts) { // DCL
+                if (!this.contexts.containsKey(name)) {
+                    this.contexts.put(
+                        name, 
+                        createContext(name)
+                    );
+                }
+            }
+        }
+        return this.contexts.get(name);
+    }
+
+    public GenericApplicationContext createContext(String name) {
+        GenericApplicationContext context = buildContext(name);
+        ...
+        registerBeans(name, context);
+        context.refresh();
+        return context;
+    }
+
+    public void registerBeans(String name, GenericApplicationContext context) {
+        ...
+        AnnotationConfigRegistry registry = (AnnotationConfigRegistry) context;
+        ...
+        registry.register(PropertyPlaceholderAutoConfiguration.class, this.defaultConfigType); // 注册 Class
+    }
+}
+```
+
 
 ### spring-cloud-commons
 #### 自动配置导入
