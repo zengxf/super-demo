@@ -27,11 +27,12 @@
 ...
 public class FeignAutoConfiguration {
 
-    // 相当于创建分层的 Context；
+    // 初始化工厂，ref: sign_c_140
+    // 相当于创建分层 Context；
     // 并导入 FeignClientsConfiguration 配置类，ref: sign_c_130
     @Bean
     public FeignClientFactory feignContext() {
-        FeignClientFactory context = new FeignClientFactory();
+        FeignClientFactory context = new FeignClientFactory(); // ref: sign_cm_140
         context.setConfigurations(this.configurations);
         return context;
     }
@@ -119,6 +120,29 @@ public class FeignClientsConfiguration {
         public Feign.Builder circuitBreakerFeignBuilder() {
             return FeignCircuitBreaker.builder(); // 创建 Builder, ref: sign_c_310 | sign_m_310
         }
+    }
+}
+```
+
+- `org.springframework.cloud.openfeign.FeignClientFactory`
+  - 参考：[Spring-Cloud-Commons-分层-Context sign_c_240 | sign_m_2404](Cloud-Commons.md#分层-Context)
+```java
+// sign_c_140  
+public class FeignClientFactory extends NamedContextFactory<FeignClientSpecification> {
+
+    // sign_cm_140
+    public FeignClientFactory() {
+        this(new HashMap<>());  // ref: sign_cm_141
+    }
+
+    // sign_cm_141
+    public FeignClientFactory(
+        Map<String, ApplicationContextInitializer<GenericApplicationContext>> applicationContextInitializers
+    ) {
+        super( // 参考：[Spring-Cloud-Commons-分层-Context sign_c_240 | sign_m_2404]
+            FeignClientsConfiguration.class, // 要导入的配置类，ref: sign_c_130
+            ..., applicationContextInitializers
+        );
     }
 }
 ```
