@@ -326,16 +326,17 @@ public class BootstrapApplicationListener implements ApplicationListener<Applica
     - 方便地切换命名空间
 
 ```java
+// sign_c_240  上下文工厂
 public abstract class NamedContextFactory<C extends NamedContextFactory.Specification>
         implements DisposableBean, ApplicationContextAware 
 {
     private final Map<String, GenericApplicationContext> contexts = new ConcurrentHashMap<>();
     private ApplicationContext parent;
-    private Class<?> defaultConfigType;
+    private Class<?> defaultConfigType; // 要注册的配置类
 
-
+    // sign_m_2401  从指定名称的上下文获取实例
     public <T> T getInstance(String name, Class<T> type) {
-        GenericApplicationContext context = getContext(name);
+        GenericApplicationContext context = getContext(name); // 获取上下文，ref: sign_m_2402
         try {
             return context.getBean(type);
         }
@@ -343,13 +344,14 @@ public abstract class NamedContextFactory<C extends NamedContextFactory.Specific
         return null;
     }
 
+    // sign_m_2402  获取指定名称的上下文，没有则创建
     protected GenericApplicationContext getContext(String name) {
         if (!this.contexts.containsKey(name)) {
             synchronized (this.contexts) { // DCL
                 if (!this.contexts.containsKey(name)) {
                     this.contexts.put(
                         name, 
-                        createContext(name)
+                        createContext(name) // 创建上下文，ref: sign_m_2403
                     );
                 }
             }
@@ -357,19 +359,24 @@ public abstract class NamedContextFactory<C extends NamedContextFactory.Specific
         return this.contexts.get(name);
     }
 
+    // sign_m_2403  创建上下文
     public GenericApplicationContext createContext(String name) {
         GenericApplicationContext context = buildContext(name);
         ...
-        registerBeans(name, context);
+        registerBeans(name, context); // 注册类，ref: sign_m_2404
         context.refresh();
         return context;
     }
 
+    // sign_m_2404  注册类
     public void registerBeans(String name, GenericApplicationContext context) {
         ...
         AnnotationConfigRegistry registry = (AnnotationConfigRegistry) context;
         ...
-        registry.register(PropertyPlaceholderAutoConfiguration.class, this.defaultConfigType); // 注册 Class
+        registry.register( // 注册类
+                PropertyPlaceholderAutoConfiguration.class, 
+                this.defaultConfigType  // 将子类设置的配置类注册进去
+        );
     }
 }
 ```
