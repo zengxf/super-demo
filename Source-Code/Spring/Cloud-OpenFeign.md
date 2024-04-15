@@ -147,6 +147,84 @@ public class FeignClientFactory extends NamedContextFactory<FeignClientSpecifica
 }
 ```
 
+### 创建-Feign-Bean
+- `org.springframework.cloud.openfeign.EnableFeignClients`
+```java
+// sign_c_500  启用 Feign 注解
+...
+@Import(FeignClientsRegistrar.class) // ref: sign_c_510
+public @interface EnableFeignClients {
+}
+```
+
+- `org.springframework.cloud.openfeign.FeignClientsRegistrar`
+```java
+// sign_c_510
+class FeignClientsRegistrar implements ImportBeanDefinitionRegistrar, ResourceLoaderAware, EnvironmentAware {
+
+    @Override
+    public void registerBeanDefinitions(AnnotationMetadata metadata, BeanDefinitionRegistry registry) {
+        registerDefaultConfiguration(metadata, registry);
+        registerFeignClients(metadata, registry);
+    }
+
+    public void registerFeignClients(AnnotationMetadata metadata, BeanDefinitionRegistry registry) {
+        ...
+
+        for (BeanDefinition candidateComponent : candidateComponents) {
+            if (candidateComponent instanceof AnnotatedBeanDefinition beanDefinition) {
+                ...
+
+                // 读取 @FeignClient 注解
+                Map<String, Object> attributes = annotationMetadata
+                        .getAnnotationAttributes(FeignClient.class.getCanonicalName());
+
+                ...
+                registerFeignClient(registry, annotationMetadata, attributes);
+            }
+        }
+    }
+
+    private void registerFeignClient(BeanDefinitionRegistry registry, ..., Map<String, Object> attributes) {
+        String className = annotationMetadata.getClassName();
+        if (...) { ... } // 非懒加载处理
+        else {
+            // 懒加载处理
+            lazilyRegisterFeignClientBeanDefinition(className, attributes, registry);
+        }
+    }
+
+    private void lazilyRegisterFeignClientBeanDefinition(String className, Map<String, Object> attributes, BeanDefinitionRegistry registry) {
+        ConfigurableBeanFactory beanFactory = registry instanceof ConfigurableBeanFactory ...;
+        Class clazz = ClassUtils.resolveClassName(className, null);
+        ...
+        FeignClientFactoryBean factoryBean = new FeignClientFactoryBean(); // 创建工厂 Bean
+        ...
+        factoryBean.setType(clazz);
+        BeanDefinitionBuilder definition = BeanDefinitionBuilder.genericBeanDefinition(clazz, () -> {
+            ...
+            Object fallback = attributes.get("fallback");
+            if (fallback != null) {
+                factoryBean.setFallback(fallback ...); // 设置回退
+            }
+            Object fallbackFactory = attributes.get("fallbackFactory");
+            if (fallbackFactory != null) {
+                factoryBean.setFallbackFactory(fallbackFactory ...); // 设置回退工厂
+            }
+            return factoryBean.getObject();
+        });
+
+        ...
+        AbstractBeanDefinition beanDefinition = definition.getBeanDefinition(); // 获取 Bean 定义
+        
+        ...
+        BeanDefinitionHolder holder = new BeanDefinitionHolder(beanDefinition, className, qualifiers);
+        BeanDefinitionReaderUtils.registerBeanDefinition(holder, registry);     // 注册 Bean
+        ...
+    }
+}
+```
+
 ### 负载均衡
 - `org.springframework.cloud.openfeign.loadbalancer.FeignBlockingLoadBalancerClient`
 ```java
@@ -198,7 +276,7 @@ class FeignCircuitBreakerTargeter implements Targeter {
     private final CircuitBreakerFactory circuitBreakerFactory;
 
     // sign_m_300
-    @Override
+    @Override // 在 FeignClientFactoryBean 里面调用
     public <T> T target(FeignClientFactoryBean factory, Feign.Builder feign, FeignClientFactory context,
             Target.HardCodedTarget<T> target) {
         ...
