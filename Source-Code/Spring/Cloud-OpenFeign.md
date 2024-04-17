@@ -149,25 +149,28 @@ public class FeignClientFactory extends NamedContextFactory<FeignClientSpecifica
 
 ### 创建-Feign-Bean
 - `org.springframework.cloud.openfeign.EnableFeignClients`
+  - 一般会使用 `@EnableFeignClients` 进行启用 Feign
 ```java
 // sign_c_500  启用 Feign 注解
 ...
-@Import(FeignClientsRegistrar.class) // ref: sign_c_510
+@Import(FeignClientsRegistrar.class) // 导入注册器，ref: sign_c_510 | sign_m_510
 public @interface EnableFeignClients {
 }
 ```
 
 - `org.springframework.cloud.openfeign.FeignClientsRegistrar`
 ```java
-// sign_c_510
+// sign_c_510  Feign 注册器
 class FeignClientsRegistrar implements ImportBeanDefinitionRegistrar, ResourceLoaderAware, EnvironmentAware {
 
+    // sign_m_510  注册 Bean 定义
     @Override
     public void registerBeanDefinitions(AnnotationMetadata metadata, BeanDefinitionRegistry registry) {
         registerDefaultConfiguration(metadata, registry);
-        registerFeignClients(metadata, registry);
+        registerFeignClients(metadata, registry); // ref: sign_m_511
     }
 
+    // sign_m_511  注册带 @FeignClient 注解的接口
     public void registerFeignClients(AnnotationMetadata metadata, BeanDefinitionRegistry registry) {
         ...
 
@@ -185,42 +188,89 @@ class FeignClientsRegistrar implements ImportBeanDefinitionRegistrar, ResourceLo
         }
     }
 
+    // sign_m_512  注册 FeignClient
     private void registerFeignClient(BeanDefinitionRegistry registry, ..., Map<String, Object> attributes) {
         String className = annotationMetadata.getClassName();
         if (...) { ... } // 非懒加载处理
         else {
-            // 懒加载处理
+            // 注册懒加载式 Bean 定义，ref: sign_m_513
             lazilyRegisterFeignClientBeanDefinition(className, attributes, registry);
         }
     }
 
+    // sign_m_513  注册懒加载式 Bean 定义
     private void lazilyRegisterFeignClientBeanDefinition(String className, Map<String, Object> attributes, BeanDefinitionRegistry registry) {
         ConfigurableBeanFactory beanFactory = registry instanceof ConfigurableBeanFactory ...;
         Class clazz = ClassUtils.resolveClassName(className, null);
         ...
-        FeignClientFactoryBean factoryBean = new FeignClientFactoryBean(); // 创建工厂 Bean
+        FeignClientFactoryBean factoryBean = new FeignClientFactoryBean(); // 创建工厂 Bean, ref: sign_c_520
         ...
         factoryBean.setType(clazz);
-        BeanDefinitionBuilder definition = BeanDefinitionBuilder.genericBeanDefinition(clazz, () -> {
-            ...
-            Object fallback = attributes.get("fallback");
-            if (fallback != null) {
-                factoryBean.setFallback(fallback ...); // 设置回退
+        BeanDefinitionBuilder definition = BeanDefinitionBuilder.genericBeanDefinition(clazz, // 创建 Bean 定义构造者
+            // Bean 提供者
+            () -> {
+                ...
+                Object fallback = attributes.get("fallback");
+                if (fallback != null) {
+                    factoryBean.setFallback(fallback ...); // 设置回退
+                }
+                Object fallbackFactory = attributes.get("fallbackFactory");
+                if (fallbackFactory != null) {
+                    factoryBean.setFallbackFactory(fallbackFactory ...); // 设置回退工厂
+                }
+                return factoryBean.getObject(); // 创建 Bean, ref: sign_m_520
             }
-            Object fallbackFactory = attributes.get("fallbackFactory");
-            if (fallbackFactory != null) {
-                factoryBean.setFallbackFactory(fallbackFactory ...); // 设置回退工厂
-            }
-            return factoryBean.getObject();
-        });
+        );
 
         ...
-        AbstractBeanDefinition beanDefinition = definition.getBeanDefinition(); // 获取 Bean 定义
+        AbstractBeanDefinition beanDefinition = definition.getBeanDefinition(); // 构造 Bean 定义
         
         ...
         BeanDefinitionHolder holder = new BeanDefinitionHolder(beanDefinition, className, qualifiers);
-        BeanDefinitionReaderUtils.registerBeanDefinition(holder, registry);     // 注册 Bean
+        BeanDefinitionReaderUtils.registerBeanDefinition(holder, registry);     // 注册 Bean 定义
         ...
+    }
+}
+```
+
+- `org.springframework.cloud.openfeign.FeignClientFactoryBean`
+```java
+// sign_c_520  Feign 工厂 Bean
+public class FeignClientFactoryBean
+        implements FactoryBean<Object>, InitializingBean, ApplicationContextAware, BeanFactoryAware 
+{
+    // sign_m_520  创建 Bean 实例
+    @Override
+    public Object getObject() {
+        return getTarget(); // ref: sign_m_521
+    }
+
+    // sign_m_521  创建代理对象
+    <T> T getTarget() {
+        FeignClientFactory feignClientFactory = ... applicationContext.getBean(FeignClientFactory.class);
+        Feign.Builder builder = feign(feignClientFactory); // 获取构造者
+        if (!StringUtils.hasText(url) && !isUrlAvailableInConfig(contextId)) {
+            ...
+            if (!name.startsWith("http://") && !name.startsWith("https://")) {
+                url = "http://" + name;
+            }
+            ...
+            url += cleanPath();
+            return (T) loadBalance(builder, feignClientFactory, ...); // ref: sign_m_522
+        }
+        ...
+    }
+
+    // sign_m_522
+    protected <T> T loadBalance(Feign.Builder builder, FeignClientFactory context, HardCodedTarget<T> target) {
+        Client client = getOptional(context, Client.class);
+        if (client != null) {
+            builder.client(client);
+            applyBuildCustomizers(context, builder);
+            Targeter targeter = get(context, Targeter.class);
+            return targeter.target(this, builder, context, target); // 创建代理对象，ref: sign_m_300
+        }
+        ... // throw
     }
 }
 ```
@@ -275,7 +325,7 @@ final class LoadBalancerUtils {
 class FeignCircuitBreakerTargeter implements Targeter {
     private final CircuitBreakerFactory circuitBreakerFactory;
 
-    // sign_m_300
+    // sign_m_300  创建代理对象
     @Override // 在 FeignClientFactoryBean 里面调用
     public <T> T target(FeignClientFactoryBean factory, Feign.Builder feign, FeignClientFactory context,
             Target.HardCodedTarget<T> target) {
