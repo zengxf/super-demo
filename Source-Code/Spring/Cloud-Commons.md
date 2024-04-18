@@ -11,7 +11,7 @@
 
 ## 原理
 ### spring-cloud-context
-#### 自动配置导入
+#### 配置导入
 - `./META-INF/spring/*.AutoConfiguration.imports`
   ```js
   *.ConfigurationPropertiesRebinderAutoConfiguration // 环境改变
@@ -383,7 +383,7 @@ public abstract class NamedContextFactory<C extends NamedContextFactory.Specific
 
 
 ### spring-cloud-commons
-#### 自动配置导入
+#### 配置导入
 - `./META-INF/spring/*.AutoConfiguration.imports`
   ```js
   *.client.CommonsClientAutoConfiguration // 阻塞式-服务发现 (并不创建 DiscoveryClient，只做健康检测等基础处理)
@@ -472,7 +472,7 @@ public class LoadBalancerAutoConfiguration {
 
 
 ### spring-cloud-loadbalancer
-#### 自动配置导入
+#### 配置导入
 - `./META-INF/spring/*.AutoConfiguration.imports`
   ```js
   *.loadbalancer.config.LoadBalancerAutoConfiguration // 基础配置，ref: sign_c_410

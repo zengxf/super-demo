@@ -9,7 +9,7 @@
 
 
 ## 原理
-### 自动配置导入
+### 配置导入
 - `./META-INF/spring/*.AutoConfiguration.imports`
   ```js
   ...
