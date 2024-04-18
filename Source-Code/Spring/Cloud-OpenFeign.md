@@ -373,11 +373,52 @@ public final class FeignCircuitBreaker {
         // sign_m_312  设置熔断回退处理
         public Feign build(final FallbackFactory<?> nullableFallbackFactory) {
             super.invocationHandlerFactory((target, dispatch) -> 
-                new FeignCircuitBreakerInvocationHandler(...)
+                new FeignCircuitBreakerInvocationHandler(...) // JDK 代理处理器，ref: sign_c_320
             );
             return super.build();
         }
 
+    }
+}
+```
+
+- `org.springframework.cloud.openfeign.FeignCircuitBreakerInvocationHandler`
+```java
+// sign_c_320  JDK 代理处理器
+class FeignCircuitBreakerInvocationHandler implements InvocationHandler {
+    
+    private final CircuitBreakerFactory factory;
+    private final Target<?> target;
+    private final Map<Method, InvocationHandlerFactory.MethodHandler> dispatch;
+
+    // sign_m_320  JDK 代理处理逻辑
+    @Override
+    public Object invoke(final Object proxy, final Method method, final Object[] args) {
+        ... // equals hashCode toString 三方法的处理
+
+        String circuitName = circuitBreakerNameResolver.resolveCircuitBreakerName(feignClientName, target, method);
+        CircuitBreaker circuitBreaker = ... factory.create(circuitName); // sign_cb_320  通过工厂创建熔断器
+        Supplier<Object> supplier = asSupplier(method, args); // 方法调用提供者，ref: sign_m_321
+        if (this.nullableFallbackFactory != null) {
+            Function<Throwable, Object> fallbackFunction = throwable -> { ... };
+            return circuitBreaker.run(supplier, fallbackFunction); // 带回退的熔断运行
+        }
+        return circuitBreaker.run(supplier); // 熔断运行
+    }
+
+    // sign_m_321  相当于提供一个方法调用实现
+    private Supplier<Object> asSupplier(final Method method, final Object[] args) {
+        final RequestAttributes requestAttributes = RequestContextHolder.getRequestAttributes();
+        ...
+        return () -> {
+            ...
+            try {
+                ...
+                return dispatch.get(method)     // 获取目标方法处理器 MethodHandler
+                               .invoke(args);   // 进行调用
+            }
+            ... // catch finally
+        };
     }
 }
 ```
