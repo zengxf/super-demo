@@ -10,7 +10,7 @@
 
 ## 原理
 ### 自动配置导入
-- `../../*.AutoConfiguration.imports`
+- `./META-INF/spring/*.AutoConfiguration.imports`
   ```js
   ...
   *.openfeign.FeignAutoConfiguration // 常规配置，ref: sign_c_100
@@ -383,6 +383,7 @@ public final class FeignCircuitBreaker {
 ```
 
 - `org.springframework.cloud.openfeign.FeignCircuitBreakerInvocationHandler`
+  - 可参考：[Ali-Sentinel-熔断](../Ali/Spring-Cloud-Alibaba/熔断.md)
 ```java
 // sign_c_320  JDK 代理处理器
 class FeignCircuitBreakerInvocationHandler implements InvocationHandler {
@@ -403,7 +404,7 @@ class FeignCircuitBreakerInvocationHandler implements InvocationHandler {
             Function<Throwable, Object> fallbackFunction = throwable -> { ... };
             return circuitBreaker.run(supplier, fallbackFunction); // 带回退的熔断运行
         }
-        return circuitBreaker.run(supplier); // 熔断运行
+        return circuitBreaker.run(supplier); // 熔断运行。可参考：[Ali-Sentinel-熔断]
     }
 
     // sign_m_321  相当于提供一个方法调用实现
