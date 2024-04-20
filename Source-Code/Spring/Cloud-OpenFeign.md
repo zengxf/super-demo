@@ -423,3 +423,11 @@ class FeignCircuitBreakerInvocationHandler implements InvocationHandler {
     }
 }
 ```
+
+### 总结
+- 熔断回退使用 `FeignCircuitBreakerInvocationHandler` JDK 动态代理实现
+- 负载均衡使用 `FeignBlockingLoadBalancerClient` 委派底层客户端实现
+- 调用顺序是：
+  - `熔断回退 -> 负载均衡 -> 底层客户端 (HC5) -> HTTP -> 远程服务`
+- 初始化 Bean 顺序是：
+  - `负载均衡 -> (传给) -> 熔断回退 -> (组装) -> Builder -> (构建) -> instance`
