@@ -383,7 +383,7 @@ public final class FeignCircuitBreaker {
 ```
 
 - `org.springframework.cloud.openfeign.FeignCircuitBreakerInvocationHandler`
-  - 可参考：[Ali-Sentinel-熔断-熔断处理 sign_m_220](../Ali/Spring-Cloud-Alibaba/熔断.md#熔断处理)
+  - 可参考：[Ali-Sentinel-限流熔断-熔断处理 sign_m_220](../Ali/Spring-Cloud-Alibaba/限流熔断.md#熔断处理)
 ```java
 // sign_c_320  JDK 代理处理器
 class FeignCircuitBreakerInvocationHandler implements InvocationHandler {
@@ -404,7 +404,7 @@ class FeignCircuitBreakerInvocationHandler implements InvocationHandler {
             Function<Throwable, Object> fallbackFunction = throwable -> { ... };
             return circuitBreaker.run(supplier, fallbackFunction); // 带回退的熔断运行
         }
-        return circuitBreaker.run(supplier); // 熔断运行。可参考：[Ali-Sentinel-熔断-熔断处理 sign_m_220]
+        return circuitBreaker.run(supplier); // 熔断运行。可参考：[Ali-Sentinel-限流熔断-熔断处理 sign_m_220]
     }
 
     // sign_m_321  相当于提供一个方法调用实现
