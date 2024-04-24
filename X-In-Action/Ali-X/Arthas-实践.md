@@ -1,44 +1,46 @@
 # Arhtas 实战
+
 ## ref
 - **快速入门** https://arthas.aliyun.com/doc/quick-start.html
 - **arthas-idea-plugin** https://www.yuque.com/arthas-idea-plugin
 - **Spring-Web 试验项目** https://github.com/zengxf/spring-demo/tree/master/web/mock-data-web
 
 
+## 下载
+- https://github.com/alibaba/arthas/releases
+  - 下载 `arthas-bin.zip` 包
+- 如：https://github.com/alibaba/arthas/releases/download/arthas-all-3.7.2/arthas-bin.zip
+  - 下载后解压
+
+
 ---
 ## 启动
-- **运行 jar**：`java -Dfile.encoding=UTF-8 -jar arthas-boot.jar`
-  - 设置 `UTF-8` 防止乱码
+- **运行 jar**：
+  - `java -Dfile.encoding=UTF-8 -jar arthas-boot.jar`
+    - 设置 `UTF-8` 防止乱码
+  - Linux 直接运行 
+    - `./as.sh`
+
 ```js
 C:\Users\656553> cd /d D:\Install\Java\Ali\arthas-3.6.8
+
 // 启动：直接运行 jar: java -jar arthas-boot.jar
-D:\Install\Java\Ali\arthas-3.6.8> java -Dfile.encoding=UTF-8 -jar arthas-boot.jar
-[INFO] JAVA_HOME: C:\Install\Java\JDK\openjdk-17-35
-[INFO] arthas-boot version: 3.6.8
-[INFO] Process 20648 already using port 3658
-[INFO] Process 20648 already using port 8563
-[INFO] Found existing java process, please choose one and input the serial number of the process, eg : 1. Then hit ENTER.
+...\arthas-3.6.8> java -Dfile.encoding=UTF-8 -jar arthas-boot.jar
+...
+
 * [1]: 20648 test.MainApplication
   [2]: 12304
   [3]: 12432 org.gradle.launcher.daemon.bootstrap.GradleDaemon
 // 选择 1
 1
-[INFO] arthas home: D:\Install\Java\Ali\arthas-3.6.8
-[INFO] The target process already listen port 3658, skip attach.
+
+...
 // 开启连接端口，可 Web 查看：http://127.0.0.1:3658
 [INFO] arthas-client connect 127.0.0.1 3658
-  ,---.  ,------. ,--------.,--.  ,--.  ,---.   ,---.
- /  O  \ |  .--. ''--.  .--'|  '--'  | /  O  \ '   .-'
-|  .-.  ||  '--'.'   |  |   |  .--.  ||  .-.  |`.  `-.
-|  | |  ||  |\  \    |  |   |  |  |  ||  | |  |.-'    |
-`--' `--'`--' '--'   `--'   `--'  `--'`--' `--'`-----'
+...
 
 wiki       https://arthas.aliyun.com/doc
-tutorials  https://arthas.aliyun.com/doc/arthas-tutorials.html
-version    3.6.8
-main_class
-pid        20648
-time       2023-05-08 14:33:00
+...
 
 [arthas@20648]$
 ```
@@ -490,3 +492,7 @@ ts=2023-05-08 19:05:59; [cost=30.2032ms] result=@ArrayList[
 AsyncProfiler error: Current OS do not support AsyncProfiler, Only support Linux/Mac.
 [arthas@22044]$ 
 ```
+
+### 总结
+- 分析性能：
+  - **基本用 trace 命令即可满足**
