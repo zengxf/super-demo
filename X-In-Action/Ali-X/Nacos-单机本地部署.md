@@ -24,7 +24,7 @@ set MODE="standalone"  // 设置为单机模式
 db.num=1
 
 // 改下 URL 和用户名密码
-db.url.0=jdbc:mysql://127.0.0.1:3306/nacos?characterEncoding=utf8&useUnicode=true&useSSL=false&serverTimezone=GMT%2B8
+db.url.0=jdbc:mysql://127.0.0.1:3306/nacos?characterEncoding=utf8&connectTimeout=1000&socketTimeout=3000&autoReconnect=true&useUnicode=true&useSSL=false&serverTimezone=GMT%2B8
 db.user.0=root
 db.password.0=abcd
 ```
