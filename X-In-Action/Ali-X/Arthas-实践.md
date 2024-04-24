@@ -22,7 +22,7 @@
     - `./as.sh`
 
 ```js
-C:\Users\656553> cd /d D:\Install\Java\Ali\arthas-3.6.8
+...> cd /d D:\Install\Java\Ali\arthas-3.6.8
 
 // 启动：直接运行 jar: java -jar arthas-boot.jar
 ...\arthas-3.6.8> java -Dfile.encoding=UTF-8 -jar arthas-boot.jar
