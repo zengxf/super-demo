@@ -4,9 +4,5 @@
 - 切分支：`git checkout 2.0.0`
 - JDK: `17`
 
-### 编译源码
-- `mvn install -DskipTests`
-  - 或使用 `mvn compile`
-- 之后才能启动服务
-
 ### 内容
+- [启动及测试](启动及测试.md)
