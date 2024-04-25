@@ -26,14 +26,7 @@ seata:
       url: jdbc:mysql://127.0.0.1:3306/seata?rewriteBatchedStatements=true&characterEncoding=utf8&connectTimeout=1000&socketTimeout=3000&autoReconnect=true&useUnicode=true&useSSL=false&serverTimezone=GMT%2B8
       user: root
       password: abcd
-      min-conn: 10
-      max-conn: 100
-      global-table: global_table
-      branch-table: branch_table
-      lock-table: lock_table
-      distributed-lock-table: distributed_lock
-      query-limit: 1000
-      max-wait: 5000
+      ... # 同模板 application.example.yml
 ```
 
 
