@@ -123,6 +123,7 @@ public class GlobalTransactionalInterceptorHandler extends AbstractProxyInvocati
 ```
 
 
+---
 ## AOP-事务处理
 ### 处理调用栈
 ```js
@@ -205,11 +206,107 @@ public class GlobalTransactionalInterceptorHandler extends AbstractProxyInvocati
                                 globalTransactionalAnnotation.lockStrategyMode() // 锁模式
                             );
                     } ... // else
-                    return handleGlobalTransaction(invocation, transactional); // 处理事务
+                    // 处理事务
+                    // sign_cb_230  事务处理调用源
+                    return handleGlobalTransaction(invocation, transactional);
                 } ... // else
             }
         }
         return invocation.proceed();
+    }
+
+
+    Object handleGlobalTransaction(final InvocationWrapper methodInvocation,
+                                   final AspectTransactional aspectTransactional) throws Throwable {
+        boolean succeed = true;
+        try {
+            return transactionalTemplate.execute(new TransactionalExecutor() {
+                @Override
+                public Object execute() throws Throwable {
+                    return methodInvocation.proceed();
+                }
+
+                public String name() {
+                    String name = aspectTransactional.getName();
+                    if (!StringUtils.isNullOrEmpty(name)) {
+                        return name;
+                    }
+                    return formatMethod(methodInvocation.getMethod());
+                }
+
+                @Override
+                public TransactionInfo getTransactionInfo() {
+                    // reset the value of timeout
+                    int timeout = aspectTransactional.getTimeoutMills();
+                    if (timeout <= 0 || timeout == DEFAULT_GLOBAL_TRANSACTION_TIMEOUT) {
+                        timeout = defaultGlobalTransactionTimeout;
+                    }
+
+                    TransactionInfo transactionInfo = new TransactionInfo();
+                    transactionInfo.setTimeOut(timeout);
+                    transactionInfo.setName(name());
+                    transactionInfo.setPropagation(aspectTransactional.getPropagation());
+                    transactionInfo.setLockRetryInterval(aspectTransactional.getLockRetryInterval());
+                    transactionInfo.setLockRetryTimes(aspectTransactional.getLockRetryTimes());
+                    transactionInfo.setLockStrategyMode(aspectTransactional.getLockStrategyMode());
+                    Set<RollbackRule> rollbackRules = new LinkedHashSet<>();
+                    for (Class<?> rbRule : aspectTransactional.getRollbackFor()) {
+                        rollbackRules.add(new RollbackRule(rbRule));
+                    }
+                    for (String rbRule : aspectTransactional.getRollbackForClassName()) {
+                        rollbackRules.add(new RollbackRule(rbRule));
+                    }
+                    for (Class<?> rbRule : aspectTransactional.getNoRollbackFor()) {
+                        rollbackRules.add(new NoRollbackRule(rbRule));
+                    }
+                    for (String rbRule : aspectTransactional.getNoRollbackForClassName()) {
+                        rollbackRules.add(new NoRollbackRule(rbRule));
+                    }
+                    transactionInfo.setRollbackRules(rollbackRules);
+                    return transactionInfo;
+                }
+            });
+        } catch (TransactionalExecutor.ExecutionException e) {
+            GlobalTransaction globalTransaction = e.getTransaction();
+
+            ...
+
+            TransactionalExecutor.Code code = e.getCode();
+            Throwable cause = e.getCause();
+            boolean timeout = isTimeoutException(cause);
+            switch (code) {
+                case RollbackDone:
+                    if (timeout) {
+                        throw cause;
+                    } else {
+                        throw e.getOriginalException();
+                    }
+                case BeginFailure:
+                    succeed = false;
+                    failureHandler.onBeginFailure(globalTransaction, cause);
+                    throw cause;
+                case CommitFailure:
+                    succeed = false;
+                    failureHandler.onCommitFailure(globalTransaction, cause);
+                    throw cause;
+                case RollbackFailure:
+                    failureHandler.onRollbackFailure(globalTransaction, e.getOriginalException());
+                    throw e.getOriginalException();
+                case Rollbacking:
+                    failureHandler.onRollbacking(globalTransaction, e.getOriginalException());
+                    if (timeout) {
+                        throw cause;
+                    } else {
+                        throw e.getOriginalException();
+                    }
+                default:
+                    throw new ShouldNeverHappenException(String.format("Unknown TransactionalExecutor.Code: %s", code), e.getOriginalException());
+            }
+        } finally {
+            if (ATOMIC_DEGRADE_CHECK.get()) {
+                EVENT_BUS.post(new DegradeCheckEvent(succeed));
+            }
+        }
     }
 }
 ```
