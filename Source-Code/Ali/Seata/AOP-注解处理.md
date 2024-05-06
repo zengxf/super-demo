@@ -180,7 +180,9 @@ public abstract class AbstractProxyInvocationHandler implements ProxyInvocationH
 ```
 
 - `io.seata.integration.tx.api.interceptor.handler.GlobalTransactionalInterceptorHandler`
+  - 参考：[事务处理-事务处理 sign_m_110](./事务处理.md#事务处理)
 ```java
+// sign_c_140  注解处理器
 public class GlobalTransactionalInterceptorHandler extends AbstractProxyInvocationHandler implements ConfigurationChangeListener {
 
     // sign_m_230  拦截处理 (即：具体的事务处理)
@@ -191,13 +193,14 @@ public class GlobalTransactionalInterceptorHandler extends AbstractProxyInvocati
         if (specificMethod != null 
             && !specificMethod.getDeclaringClass().equals(Object.class) // 相当于排除 hashCode equals 等方法
         ) {
+            // 获取注解
             final GlobalTransactional globalTransactionalAnnotation = getAnnotation(specificMethod, targetClass, GlobalTransactional.class);
             boolean localDisable = disable || ...;
             if (!localDisable) {
                 if (globalTransactionalAnnotation != null || this.aspectTransactional != null) {
                     AspectTransactional transactional;
                     if (globalTransactionalAnnotation != null) {
-                        transactional = new AspectTransactional(
+                        transactional = new AspectTransactional( // 组装事务配置对象
                                 globalTransactionalAnnotation.timeoutMills(),
                                 globalTransactionalAnnotation.name(), 
                                 ...
@@ -206,107 +209,45 @@ public class GlobalTransactionalInterceptorHandler extends AbstractProxyInvocati
                                 globalTransactionalAnnotation.lockStrategyMode() // 锁模式
                             );
                     } ... // else
-                    // 处理事务
-                    // sign_cb_230  事务处理调用源
-                    return handleGlobalTransaction(invocation, transactional);
+                    return handleGlobalTransaction(invocation, transactional); // 处理事务，ref: sign_m_231
                 } ... // else
             }
         }
         return invocation.proceed();
     }
 
-
-    Object handleGlobalTransaction(final InvocationWrapper methodInvocation,
-                                   final AspectTransactional aspectTransactional) throws Throwable {
+    // sign_m_231  处理事务
+    Object handleGlobalTransaction(
+        final InvocationWrapper methodInvocation, 
+        final AspectTransactional aspectTransactional
+    ) throws Throwable {
         boolean succeed = true;
         try {
+            // 执行事务处理，参考：[事务处理-事务处理 sign_m_110]
+            // sign_cb_231  事务处理调用源
             return transactionalTemplate.execute(new TransactionalExecutor() {
                 @Override
                 public Object execute() throws Throwable {
                     return methodInvocation.proceed();
                 }
 
-                public String name() {
-                    String name = aspectTransactional.getName();
-                    if (!StringUtils.isNullOrEmpty(name)) {
-                        return name;
-                    }
-                    return formatMethod(methodInvocation.getMethod());
-                }
-
                 @Override
                 public TransactionInfo getTransactionInfo() {
-                    // reset the value of timeout
                     int timeout = aspectTransactional.getTimeoutMills();
-                    if (timeout <= 0 || timeout == DEFAULT_GLOBAL_TRANSACTION_TIMEOUT) {
-                        timeout = defaultGlobalTransactionTimeout;
-                    }
+                    ...
 
                     TransactionInfo transactionInfo = new TransactionInfo();
                     transactionInfo.setTimeOut(timeout);
-                    transactionInfo.setName(name());
                     transactionInfo.setPropagation(aspectTransactional.getPropagation());
-                    transactionInfo.setLockRetryInterval(aspectTransactional.getLockRetryInterval());
-                    transactionInfo.setLockRetryTimes(aspectTransactional.getLockRetryTimes());
-                    transactionInfo.setLockStrategyMode(aspectTransactional.getLockStrategyMode());
-                    Set<RollbackRule> rollbackRules = new LinkedHashSet<>();
-                    for (Class<?> rbRule : aspectTransactional.getRollbackFor()) {
-                        rollbackRules.add(new RollbackRule(rbRule));
-                    }
-                    for (String rbRule : aspectTransactional.getRollbackForClassName()) {
-                        rollbackRules.add(new RollbackRule(rbRule));
-                    }
-                    for (Class<?> rbRule : aspectTransactional.getNoRollbackFor()) {
-                        rollbackRules.add(new NoRollbackRule(rbRule));
-                    }
-                    for (String rbRule : aspectTransactional.getNoRollbackForClassName()) {
-                        rollbackRules.add(new NoRollbackRule(rbRule));
-                    }
+                    ... // 组装事务信息
                     transactionInfo.setRollbackRules(rollbackRules);
                     return transactionInfo;
                 }
             });
         } catch (TransactionalExecutor.ExecutionException e) {
             GlobalTransaction globalTransaction = e.getTransaction();
-
-            ...
-
-            TransactionalExecutor.Code code = e.getCode();
-            Throwable cause = e.getCause();
-            boolean timeout = isTimeoutException(cause);
-            switch (code) {
-                case RollbackDone:
-                    if (timeout) {
-                        throw cause;
-                    } else {
-                        throw e.getOriginalException();
-                    }
-                case BeginFailure:
-                    succeed = false;
-                    failureHandler.onBeginFailure(globalTransaction, cause);
-                    throw cause;
-                case CommitFailure:
-                    succeed = false;
-                    failureHandler.onCommitFailure(globalTransaction, cause);
-                    throw cause;
-                case RollbackFailure:
-                    failureHandler.onRollbackFailure(globalTransaction, e.getOriginalException());
-                    throw e.getOriginalException();
-                case Rollbacking:
-                    failureHandler.onRollbacking(globalTransaction, e.getOriginalException());
-                    if (timeout) {
-                        throw cause;
-                    } else {
-                        throw e.getOriginalException();
-                    }
-                default:
-                    throw new ShouldNeverHappenException(String.format("Unknown TransactionalExecutor.Code: %s", code), e.getOriginalException());
-            }
-        } finally {
-            if (ATOMIC_DEGRADE_CHECK.get()) {
-                EVENT_BUS.post(new DegradeCheckEvent(succeed));
-            }
-        }
+            ... // 处理异常，并继续抛出异常
+        } ...   // finally { }
     }
 }
 ```
