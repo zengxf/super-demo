@@ -201,11 +201,9 @@ public class GlobalTransactionalInterceptorHandler extends AbstractProxyInvocati
                     AspectTransactional transactional;
                     if (globalTransactionalAnnotation != null) {
                         transactional = new AspectTransactional( // 组装事务配置对象
-                                globalTransactionalAnnotation.timeoutMills(),
+                                ...
                                 globalTransactionalAnnotation.name(), 
-                                ...
                                 globalTransactionalAnnotation.propagation(), // 传播级别
-                                ...
                                 globalTransactionalAnnotation.lockStrategyMode() // 锁模式
                             );
                     } ... // else
@@ -233,21 +231,17 @@ public class GlobalTransactionalInterceptorHandler extends AbstractProxyInvocati
 
                 @Override
                 public TransactionInfo getTransactionInfo() {
-                    int timeout = aspectTransactional.getTimeoutMills();
                     ...
 
                     TransactionInfo transactionInfo = new TransactionInfo();
-                    transactionInfo.setTimeOut(timeout);
-                    transactionInfo.setPropagation(aspectTransactional.getPropagation());
                     ... // 组装事务信息
-                    transactionInfo.setRollbackRules(rollbackRules);
+                    transactionInfo.setPropagation(aspectTransactional.getPropagation());
                     return transactionInfo;
                 }
             });
-        } catch (TransactionalExecutor.ExecutionException e) {
-            GlobalTransaction globalTransaction = e.getTransaction();
-            ... // 处理异常，并继续抛出异常
-        } ...   // finally { }
+        }
+        ... // catch { 处理异常，并继续抛出异常 }
+        ... // finally { }
     }
 }
 ```
