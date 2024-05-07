@@ -1,6 +1,5 @@
 ## 源码解读
 - [Ali - 阿里开源项目](./Ali/_readme.md)
-- [HuTool - 工具类](./HuTool/_readme.md)
 - [JDK - OpenJDK](./JDK/_readme.md)
 - [Netty - 网络通信](./Netty/_readme.md)
 - [Others - 其他小框架（一般一个框架一个文件）](./Others/_readme.md)

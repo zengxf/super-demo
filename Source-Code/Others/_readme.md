@@ -5,3 +5,4 @@
 - [OpenFeign](OpenFeign.md)
 - [XXL-Job](XXL-Job.md)
 - [Reactor-Core](Reactor-Core.md)
+- [HuTool 工具类](HuTool.md)
