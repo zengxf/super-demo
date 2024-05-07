@@ -3,3 +3,4 @@
 ### 内容
 - [Ali-工具集](Ali-X/_readme.md)
 - [Git](Git.md)
+- MySQL 配置测试等
