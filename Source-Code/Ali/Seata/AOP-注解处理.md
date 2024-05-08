@@ -180,7 +180,7 @@ public abstract class AbstractProxyInvocationHandler implements ProxyInvocationH
 ```
 
 - `io.seata.integration.tx.api.interceptor.handler.GlobalTransactionalInterceptorHandler`
-  - 参考：[事务处理-事务处理 sign_m_110](./事务处理.md#事务处理)
+  - 参考：[事务处理-事务控制 sign_m_110](./事务处理.md#事务处理)
 ```java
 // sign_c_140  注解处理器
 public class GlobalTransactionalInterceptorHandler extends AbstractProxyInvocationHandler implements ConfigurationChangeListener {
@@ -221,7 +221,7 @@ public class GlobalTransactionalInterceptorHandler extends AbstractProxyInvocati
     ) throws Throwable {
         boolean succeed = true;
         try {
-            // 执行事务处理，参考：[事务处理-事务处理 sign_m_110]
+            // 执行事务处理，参考：[事务处理-事务控制 sign_m_110]
             // sign_cb_231  事务处理调用源
             return transactionalTemplate.execute(new TransactionalExecutor() {
                 @Override
