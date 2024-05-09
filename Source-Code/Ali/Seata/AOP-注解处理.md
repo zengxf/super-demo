@@ -2,6 +2,39 @@
 
 
 ---
+## Spring-Boot-自动配置
+- 模块：`seata-spring-boot-starter`
+- `./META-INF/spring/*.AutoConfiguration.imports`
+```js
+io.seata.*.SeataAutoConfiguration // Seata 配置，ref: sign_c_010
+...
+```
+
+- `io.seata.spring.boot.autoconfigure.SeataAutoConfiguration`
+```java
+// sign_c_010  Seata 配置
+@ConditionalOnProperty(prefix = SEATA_PREFIX, name = "enabled", havingValue = "true", matchIfMissing = true)
+...
+public class SeataAutoConfiguration {
+
+    // 创建全局事务扫描器 (注解 AOP 处理)，ref: sign_c_110
+    @Bean
+    ...
+    @ConditionalOnMissingBean(GlobalTransactionScanner.class)
+    public static GlobalTransactionScanner globalTransactionScanner(SeataProperties seataProperties, ...) {
+        ...
+
+        //set accessKey and secretKey
+        GlobalTransactionScanner.setAccessKey(seataProperties.getAccessKey());
+        GlobalTransactionScanner.setSecretKey(seataProperties.getSecretKey());
+
+        return new GlobalTransactionScanner(..., seataProperties.getTxServiceGroup(), ...); // ref: sign_c_110
+    }
+}
+```
+
+
+---
 ## 注解处理器
 - `io.seata.integration.tx.api.interceptor.handler.GlobalTransactionalInterceptorHandler`
 
@@ -25,7 +58,7 @@ java.lang.RuntimeException: 栈跟踪
 ### 处理器初始化原理
 - `io.seata.spring.annotation.GlobalTransactionScanner`
 ```java
-// sign_c_110
+// sign_c_110  全局事务扫描器 (AOP 处理)
 public class GlobalTransactionScanner extends AbstractAutoProxyCreator
         implements ConfigurationChangeListener, InitializingBean, ApplicationContextAware, DisposableBean 
 {
@@ -180,7 +213,7 @@ public abstract class AbstractProxyInvocationHandler implements ProxyInvocationH
 ```
 
 - `io.seata.integration.tx.api.interceptor.handler.GlobalTransactionalInterceptorHandler`
-  - 参考：[事务处理-事务控制 sign_m_110](./事务处理.md#事务处理)
+  - 参考：[TM-事务处理-事务控制 sign_m_110](./事务处理.md#事务处理)
 ```java
 // sign_c_140  注解处理器
 public class GlobalTransactionalInterceptorHandler extends AbstractProxyInvocationHandler implements ConfigurationChangeListener {
@@ -221,7 +254,7 @@ public class GlobalTransactionalInterceptorHandler extends AbstractProxyInvocati
     ) throws Throwable {
         boolean succeed = true;
         try {
-            // 执行事务处理，参考：[事务处理-事务控制 sign_m_110]
+            // 执行事务处理，参考：[TM-事务处理-事务控制 sign_m_110]
             // sign_cb_231  事务处理调用源
             return transactionalTemplate.execute(new TransactionalExecutor() {
                 @Override

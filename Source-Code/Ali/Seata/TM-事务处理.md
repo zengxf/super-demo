@@ -1,4 +1,4 @@
-# Seata-事务处理
+# Seata-TM-事务处理
 
 
 ---
@@ -308,7 +308,7 @@ public class DefaultTransactionManager implements TransactionManager {
     // sign_m_320  请求事务控制器
     private AbstractTransactionResponse syncCall(AbstractTransactionRequest request) throws TransactionException {
         try {
-            return (...) TmNettyRemotingClient.getInstance().sendSyncRequest(request); // 使用 Netty 进行请求
+            return (...) TmNettyRemotingClient.getInstance().sendSyncRequest(request); // 使用 Netty 进行请求 (端口: 8091)
         } ... // catch
     }
 }
