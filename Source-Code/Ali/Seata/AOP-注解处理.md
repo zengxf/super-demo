@@ -76,7 +76,8 @@ public class GlobalTransactionScanner extends AbstractAutoProxyCreator
                     .parserInterfaceToProxy(bean, beanName); // 获取 Seata 拦截器，ref: sign_m_120
                 ...
 
-                interceptor = new AdapterSpringSeataInterceptor(proxyInvocationHandler); // 创建 AOP 拦截器，ref: sign_cm_210
+                // sign_cb_110 创建 AOP 拦截器，ref: sign_cm_210
+                interceptor = new AdapterSpringSeataInterceptor(proxyInvocationHandler);
 
                 if (!AopUtils.isAopProxy(bean)) {
                     bean = super.wrapIfNecessary(bean, beanName, cacheKey);
@@ -89,9 +90,9 @@ public class GlobalTransactionScanner extends AbstractAutoProxyCreator
         } ... // catch 
     }
 
-    @Override
+    @Override // 返回给父类方法用，组装 AOP 拦截链
     protected Object[] getAdvicesAndAdvisorsForBean(Class beanClass, String beanName, ...) throws BeansException {
-        return new Object[] { interceptor }; // 返回给父类方法用，组装 AOP 拦截链
+        return new Object[] { interceptor }; // 初始值来自： sign_cb_110
     }
 }
 ```
