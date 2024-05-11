@@ -31,7 +31,7 @@ public class SeataDataSourceAutoConfiguration {
 
 ---
 ## 事务处理
-- 其通过 AOP 控制连接池，进而代理连接，在代理连接中对事务相关方法进行控制
+- 通过 AOP 控制连接池，进而代理连接，在代理连接中对事务相关方法进行控制
 
 - `io.seata.spring.annotation.datasource.SeataAutoDataSourceProxyCreator`
 ```java
@@ -70,7 +70,7 @@ public class SeataAutoDataSourceProxyCreator extends AbstractAutoProxyCreator {
             // 否则，构建代理，将 <origin, proxy> 放入持有者并返回增强器
             DataSource origin = (DataSource) bean;
             SeataDataSourceProxy proxy = buildProxy(origin, dataSourceProxyMode); // 构建连接池代理，ref: sign_m_111
-            DataSourceProxyHolder.put(origin, proxy); // sign_cb_110
+            DataSourceProxyHolder.put(origin, proxy); // sign_cb_110  存放，AOP 增强时用
             ...
             return enhancer;
         }
@@ -81,7 +81,7 @@ public class SeataAutoDataSourceProxyCreator extends AbstractAutoProxyCreator {
     // sign_m_111  构建连接池代理
     SeataDataSourceProxy buildProxy(DataSource origin, String proxyMode) {
         if (BranchType.AT.name().equalsIgnoreCase(proxyMode)) {
-            return new DataSourceProxy(origin);
+            return new DataSourceProxy(origin); // ref: sign_c_220
         }
         if (BranchType.XA.name().equalsIgnoreCase(proxyMode)) {
             return new DataSourceProxyXA(origin);
@@ -95,6 +95,8 @@ public class SeataAutoDataSourceProxyCreator extends AbstractAutoProxyCreator {
 
 ---
 ## AOP-处理
+- 增强连接池对象，返回连接代理
+
 - `io.seata.spring.annotation.datasource.SeataAutoDataSourceProxyAdvice`
 ```java
 // sign_c_210  断言（增强）
@@ -115,10 +117,136 @@ public class SeataAutoDataSourceProxyAdvice implements MethodInterceptor, Introd
 
         // 将方法调用切换到其代理
         DataSource origin = (DataSource) invocation.getThis();
-        SeataDataSourceProxy proxy = DataSourceProxyHolder.get(origin); // ref: sign_cb_110
+        SeataDataSourceProxy proxy = DataSourceProxyHolder.get(origin); // 存放参考： sign_cb_110
         Object[] args = invocation.getArguments();
-        return declared.invoke(proxy, args);
+        return declared.invoke(proxy, args); // ref: sign_m_220
     }
 
+}
+```
+
+- `io.seata.rm.datasource.DataSourceProxy`
+```java
+// sign_c_220  连接池代理
+public class DataSourceProxy extends AbstractDataSourceProxy implements Resource {
+
+    // sign_m_220  获取连接
+    @Override
+    public ConnectionProxy getConnection() throws SQLException {
+        Connection targetConnection = targetDataSource.getConnection(); // 通过目标对象连接真正的连接
+        return new ConnectionProxy(this, targetConnection); // 对连接进行代理，返回。ref: sign_c_310
+    }
+
+}
+```
+
+
+---
+## 事务代理处理
+- 通过连接代理进行事务处理
+
+- `io.seata.rm.datasource.ConnectionProxy`
+```java
+// sign_c_310  连接代理
+public class ConnectionProxy extends AbstractConnectionProxy {
+
+    // sign_m_310  提交
+    @Override
+    public void commit() throws SQLException {
+        try {
+            lockRetryPolicy.execute(() -> { // 使用重试策略进行提交
+                doCommit(); // ref: sign_m_311
+            });
+        } ... // catch
+    }
+
+    // sign_m_315  回滚
+    @Override
+    public void rollback() throws SQLException {
+        targetConnection.rollback(); // 目标连接回滚
+        report(false); // 上报结果
+        ...
+    }
+
+    // sign_m_311  提交处理
+    private void doCommit() throws SQLException {
+        if (context.inGlobalTransaction()) {
+            processGlobalTransactionCommit(); // ref: sign_m_312
+        }
+        ...
+    }
+
+    // sign_m_312  AT 事务提交处理
+    private void processGlobalTransactionCommit() throws SQLException {
+        try {
+            register(); // 注册事务分支，ref: sign_m_313
+        } ... // catch
+        try {
+            UndoLogManagerFactory.getUndoLogManager(this.getDbType()).flushUndoLogs(this);
+            targetConnection.commit(); // 目标连接提交
+        } ... // catch
+        report(false); // 上报结果
+        ...
+    }
+
+    // sign_m_313  向 TC 服务注册事务分支
+    private void register() throws TransactionException {
+        ...
+        Long branchId = DefaultResourceManager.get()
+            .branchRegister( // 注册事务分支
+                BranchType.AT, getDataSourceProxy().getResourceId(),
+                null, context.getXid(), context.getApplicationData(),
+                context.buildLockKeys()
+            );
+        context.setBranchId(branchId);
+    }
+}
+```
+
+- `io.seata.rm.datasource.AbstractConnectionProxy`
+```java
+// sign_c_320
+public abstract class AbstractConnectionProxy implements Connection {
+
+    @Override
+    public PreparedStatement prepareStatement(String sql) throws SQLException {
+        ...
+        PreparedStatement targetPreparedStatement = null;
+        ...
+        if (targetPreparedStatement == null) {
+            targetPreparedStatement = getTargetConnection().prepareStatement(sql);
+        }
+        return new PreparedStatementProxy(this, targetPreparedStatement, sql);
+    }
+
+}
+```
+
+
+---
+## JDBC-模板
+- 业务代码用常规 `JdbcTemplate` 即可自动使用 AT 事务
+
+- `org.springframework.jdbc.core.JdbcTemplate`
+```java
+public class JdbcTemplate extends JdbcAccessor implements JdbcOperations {
+	@Nullable
+	private <T> T execute(PreparedStatementCreator psc, ...) throws DataAccessException {
+		...
+
+		Connection con = DataSourceUtils.getConnection(obtainDataSource()); // 相当于 dataSource.getConnection(); ref: sign_m_220
+		PreparedStatement ps = null;
+		try {
+			ps = psc.createPreparedStatement(con); // 相当于 con.prepareStatement(this.sql);
+			T result = action.doInPreparedStatement(ps); // 相当于 int rows = ps.executeUpdate();
+			...
+			return result;
+		}
+		... // catch
+		finally {
+            ...
+            DataSourceUtils.releaseConnection(con, getDataSource());
+		}
+	}
 }
 ```
