@@ -148,7 +148,7 @@ public class DataSourceProxy extends AbstractDataSourceProxy implements Resource
 - `io.seata.rm.datasource.ConnectionProxy`
 ```java
 // sign_c_310  连接代理
-public class ConnectionProxy extends AbstractConnectionProxy {
+public class ConnectionProxy extends AbstractConnectionProxy { // ref: sign_c_320
 
     // sign_m_310  提交
     @Override
@@ -163,7 +163,7 @@ public class ConnectionProxy extends AbstractConnectionProxy {
     // sign_m_315  回滚
     @Override
     public void rollback() throws SQLException {
-        targetConnection.rollback(); // 目标连接回滚
+        targetConnection.rollback(); // 调用原连接进行回滚
         report(false); // 上报结果
         ...
     }
@@ -183,7 +183,7 @@ public class ConnectionProxy extends AbstractConnectionProxy {
         } ... // catch
         try {
             UndoLogManagerFactory.getUndoLogManager(this.getDbType()).flushUndoLogs(this);
-            targetConnection.commit(); // 目标连接提交
+            targetConnection.commit(); // 调用原连接进行提交
         } ... // catch
         report(false); // 上报结果
         ...
@@ -194,9 +194,7 @@ public class ConnectionProxy extends AbstractConnectionProxy {
         ...
         Long branchId = DefaultResourceManager.get()
             .branchRegister( // 注册事务分支
-                BranchType.AT, getDataSourceProxy().getResourceId(),
-                null, context.getXid(), context.getApplicationData(),
-                context.buildLockKeys()
+                BranchType.AT, *.getResourceId(), ..., context.getXid(), ...
             );
         context.setBranchId(branchId);
     }
@@ -208,15 +206,34 @@ public class ConnectionProxy extends AbstractConnectionProxy {
 // sign_c_320
 public abstract class AbstractConnectionProxy implements Connection {
 
+    // sign_m_320  创建 Statement
     @Override
     public PreparedStatement prepareStatement(String sql) throws SQLException {
         ...
         PreparedStatement targetPreparedStatement = null;
         ...
         if (targetPreparedStatement == null) {
-            targetPreparedStatement = getTargetConnection().prepareStatement(sql);
+            targetPreparedStatement = getTargetConnection().prepareStatement(sql); // 调用原连接创建底层 Statement
         }
-        return new PreparedStatementProxy(this, targetPreparedStatement, sql);
+        return new PreparedStatementProxy(this, targetPreparedStatement, sql); // 对 Statement 进行代理
+    }
+
+}
+```
+
+- `io.seata.rm.datasource.PreparedStatementProxy`
+```java
+// sign_c_330  Statement 代理
+public class PreparedStatementProxy extends AbstractPreparedStatementProxy implements PreparedStatement, ParametersHolder {
+
+    // sign_m_330  执行修改操作
+    @Override
+    public int executeUpdate() throws SQLException {
+        // TODO
+        return ExecuteTemplate.execute(
+            this,
+            (statement, args) -> statement.executeUpdate() // 底层 Statement 执行
+        );
     }
 
 }
@@ -234,19 +251,18 @@ public class JdbcTemplate extends JdbcAccessor implements JdbcOperations {
 	private <T> T execute(PreparedStatementCreator psc, ...) throws DataAccessException {
 		...
 
-		Connection con = DataSourceUtils.getConnection(obtainDataSource()); // 相当于 dataSource.getConnection(); ref: sign_m_220
+		Connection con = DataSourceUtils.getConnection( // 相当于 dataSource.getConnection(); ref: sign_m_220
+            obtainDataSource() // 返回的是连接池代理，ref: sign_c_220
+        );
 		PreparedStatement ps = null;
 		try {
-			ps = psc.createPreparedStatement(con); // 相当于 con.prepareStatement(this.sql);
-			T result = action.doInPreparedStatement(ps); // 相当于 int rows = ps.executeUpdate();
+			ps = psc.createPreparedStatement(con); // 相当于 con.prepareStatement(this.sql); ref: sign_m_320
+			T result = action.doInPreparedStatement(ps); // 相当于 int rows = ps.executeUpdate(); ref: sign_m_330
 			...
 			return result;
 		}
 		... // catch
-		finally {
-            ...
-            DataSourceUtils.releaseConnection(con, getDataSource());
-		}
+		... // finally
 	}
 }
 ```
