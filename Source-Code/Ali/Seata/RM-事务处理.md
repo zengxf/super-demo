@@ -229,10 +229,10 @@ public class PreparedStatementProxy extends AbstractPreparedStatementProxy imple
     // sign_m_330  执行修改操作
     @Override
     public int executeUpdate() throws SQLException {
-        // TODO
+        // SQL 执行，ref: sign_m_510
         return ExecuteTemplate.execute(
             this,
-            (statement, args) -> statement.executeUpdate() // 底层 Statement 执行
+            (statement, args) -> statement.executeUpdate() // sign_cb_330  底层 Statement 执行
         );
     }
 
@@ -246,23 +246,182 @@ public class PreparedStatementProxy extends AbstractPreparedStatementProxy imple
 
 - `org.springframework.jdbc.core.JdbcTemplate`
 ```java
+// sign_c_410  JDBC 模板
 public class JdbcTemplate extends JdbcAccessor implements JdbcOperations {
-	@Nullable
-	private <T> T execute(PreparedStatementCreator psc, ...) throws DataAccessException {
-		...
+    @Nullable
+    private <T> T execute(PreparedStatementCreator psc, ...) throws DataAccessException {
+        ...
 
-		Connection con = DataSourceUtils.getConnection( // 相当于 dataSource.getConnection(); ref: sign_m_220
+        Connection con = DataSourceUtils.getConnection( // 相当于 dataSource.getConnection(); ref: sign_m_220
             obtainDataSource() // 返回的是连接池代理，ref: sign_c_220
         );
-		PreparedStatement ps = null;
-		try {
-			ps = psc.createPreparedStatement(con); // 相当于 con.prepareStatement(this.sql); ref: sign_m_320
-			T result = action.doInPreparedStatement(ps); // 相当于 int rows = ps.executeUpdate(); ref: sign_m_330
-			...
-			return result;
-		}
-		... // catch
-		... // finally
-	}
+        PreparedStatement ps = null;
+        try {
+            ps = psc.createPreparedStatement(con); // 相当于 con.prepareStatement(this.sql); ref: sign_m_320
+            T result = action.doInPreparedStatement(ps); // 相当于 int rows = ps.executeUpdate(); ref: sign_m_330
+            ...
+            return result;
+        }
+        ... // catch
+        ... // finally
+    }
+}
+```
+
+
+---
+## 执行-SQL
+- `io.seata.rm.datasource.exec.ExecuteTemplate`
+```java
+// sign_c_510  执行模板
+public class ExecuteTemplate {
+
+    // sign_m_510
+    public static <T, S extends Statement> T execute(
+        StatementProxy<S> statementProxy, StatementCallback<T, S> statementCallback, ...
+    ) throws SQLException {
+        return execute(null, statementProxy, statementCallback, args); // ref: sign_m_511
+    }
+    
+    // sign_m_511  具体执行（查找对应执行器）
+    public static <T, S extends Statement> T execute(
+        ..., StatementProxy<S> statementProxy, StatementCallback<T, S> statementCallback, ...
+    ) throws SQLException {
+        ... // 不是全局性且不是 AT，原语句执行
+
+        String dbType = statementProxy.getConnectionProxy().getDbType();
+
+        ... // 
+        else {
+            if (sqlRecognizers.size() == 1) {
+                SQLRecognizer sqlRecognizer = sqlRecognizers.get(0);
+                switch (sqlRecognizer.getSQLType()) {
+                    case INSERT:
+                        executor = EnhancedServiceLoader.load(InsertExecutor.class, dbType, ...);
+                        break;
+                    case UPDATE:
+                        ...
+                        else {
+                            // 修改执行器，ref: sign_c_520
+                            executor = new UpdateExecutor<>(statementProxy, statementCallback, sqlRecognizer);
+                        }
+                        break;
+                    case DELETE:
+                        ...
+                        else {
+                            executor = new DeleteExecutor<>(statementProxy, statementCallback, sqlRecognizer);
+                        }
+                        break;
+                    ... // case SELECT_FOR_UPDATE:
+                    ... // case INSERT_ON_DUPLICATE_UPDATE:
+                    ... // case UPDATE_JOIN:
+                    ... // default:
+                }
+            } ... // else
+        }
+
+        T rs;
+        try {
+            rs = executor.execute(args); // ref: sign_m_540
+        } ... // catch 
+        return rs;
+    }
+
+}
+```
+
+- `io.seata.rm.datasource.exec.UpdateExecutor`
+```java
+// sign_c_520  修改执行器
+public class UpdateExecutor<T, S extends Statement> extends AbstractDMLBaseExecutor<T, S> {
+
+    // sign_c_520  创建前镜像
+    @Override
+    protected TableRecords beforeImage() throws SQLException {
+        ArrayList<List<Object>> paramAppenderList = new ArrayList<>();
+        TableMeta tmeta = getTableMeta();
+        String selectSQL = buildBeforeImageSQL(tmeta, paramAppenderList);
+        return buildTableRecords(tmeta, selectSQL, paramAppenderList);
+    }
+
+    // sign_c_521  创建后镜像
+    @Override
+    protected TableRecords afterImage(TableRecords beforeImage) throws SQLException {
+        TableMeta tmeta = getTableMeta();
+        ...
+
+        String selectSQL = buildAfterImageSQL(tmeta, beforeImage);
+        ResultSet rs = null;
+        try (PreparedStatement pst = statementProxy.getConnection().prepareStatement(selectSQL)) {
+            SqlGenerateUtils.setParamForPk(beforeImage.pkRows(), getTableMeta().getPrimaryKeyOnlyName(), pst);
+            rs = pst.executeQuery();
+            return TableRecords.buildRecords(tmeta, rs);
+        } ... // finally
+    }
+}
+```
+
+- `io.seata.rm.datasource.exec.AbstractDMLBaseExecutor`
+```java
+// sign_c_530
+public abstract class AbstractDMLBaseExecutor<T, S extends Statement> extends BaseTransactionalExecutor<T, S> {
+
+    // sign_m_530
+    @Override
+    public T doExecute(Object... args) throws Throwable {
+        AbstractConnectionProxy connectionProxy = statementProxy.getConnectionProxy();
+        if (connectionProxy.getAutoCommit()) {
+            return executeAutoCommitTrue(args);  // ref: sign_m_531
+        } else {
+            return executeAutoCommitFalse(args); // ref: sign_m_532
+        }
+    }
+
+    // sign_m_531
+    protected T executeAutoCommitTrue(Object[] args) throws Throwable {
+        ConnectionProxy connectionProxy = statementProxy.getConnectionProxy();
+        try {
+            connectionProxy.changeAutoCommit();
+            return new LockRetryPolicy(connectionProxy).execute(() -> { // 重试执行
+                T result = executeAutoCommitFalse(args); // ref: sign_m_532
+                connectionProxy.commit(); // 提交
+                return result;
+            });
+        } catch (Exception e) {
+            ... // 判断是否回滚
+            throw e;
+        } ... // finally
+    }
+
+    // sign_m_532
+    protected T executeAutoCommitFalse(Object[] args) throws Exception {
+        try {
+            TableRecords beforeImage = beforeImage();           // 前镜像，ref: sign_c_520
+            T result = statementCallback.execute(statementProxy.getTargetStatement(), args); // ref: sign_cb_330
+            TableRecords afterImage = afterImage(beforeImage);  // 后镜像，ref: sign_c_521
+            prepareUndoLog(beforeImage, afterImage);            // 记录撤消日志
+            return result;
+        } ... // catch
+    }
+}
+```
+
+- `io.seata.rm.datasource.exec.BaseTransactionalExecutor`
+```java
+// sign_c_540
+public abstract class BaseTransactionalExecutor<T, S extends Statement> implements Executor<T> {
+
+    // sign_m_540  执行
+    @Override
+    public T execute(Object... args) throws Throwable {
+        String xid = RootContext.getXID();
+        if (xid != null) {
+            statementProxy.getConnectionProxy().bind(xid);
+        }
+
+        statementProxy.getConnectionProxy().setGlobalLockRequire(RootContext.requireGlobalLock());
+        return doExecute(args); // ref: sign_m_530
+    }
+
 }
 ```
