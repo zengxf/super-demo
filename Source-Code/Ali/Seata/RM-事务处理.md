@@ -182,7 +182,7 @@ public class ConnectionProxy extends AbstractConnectionProxy { // ref: sign_c_32
             register(); // 注册事务分支，ref: sign_m_313
         } ... // catch
         try {
-            UndoLogManagerFactory.getUndoLogManager(this.getDbType()).flushUndoLogs(this);
+            UndoLogManagerFactory.getUndoLogManager(this.getDbType()).flushUndoLogs(this); // sign_cb_312 保存 undo 日志
             targetConnection.commit(); // 调用原连接进行提交
         } ... // catch
         report(false); // 上报结果
@@ -399,7 +399,7 @@ public abstract class AbstractDMLBaseExecutor<T, S extends Statement> extends Ba
             TableRecords beforeImage = beforeImage();           // 前镜像，ref: sign_c_520
             T result = statementCallback.execute(statementProxy.getTargetStatement(), args); // ref: sign_cb_330
             TableRecords afterImage = afterImage(beforeImage);  // 后镜像，ref: sign_c_521
-            prepareUndoLog(beforeImage, afterImage);            // 记录撤消日志
+            prepareUndoLog(beforeImage, afterImage);            // 暂存 undo 日志。保存到 DB 参考: sign_cb_312 
             return result;
         } ... // catch
     }
