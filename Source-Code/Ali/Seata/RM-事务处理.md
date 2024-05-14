@@ -146,7 +146,7 @@ public class DataSourceProxy extends AbstractDataSourceProxy implements Resource
 - 通过连接代理进行事务处理
 
 - `io.seata.rm.datasource.ConnectionProxy`
-  - 保存 undo 日志参考：[RM-undo-日志-持久化 sign_m_220](./RM-undo-日志.md#持久化)
+  - 保存 undo 日志参考：[RM-undo-日志及操作-持久化 sign_m_220](./RM-undo-日志及操作.md#持久化)
 ```java
 // sign_c_310  连接代理
 public class ConnectionProxy extends AbstractConnectionProxy { // ref: sign_c_320
@@ -185,7 +185,7 @@ public class ConnectionProxy extends AbstractConnectionProxy { // ref: sign_c_32
         try {
             // sign_cb_312 保存 undo 日志
             UndoLogManagerFactory.getUndoLogManager(this.getDbType()) // 返回 MySQLUndoLogManager 实例
-                .flushUndoLogs(this);   // 参考：[RM-undo-日志-持久化 sign_m_220]
+                .flushUndoLogs(this);   // 参考：[RM-undo-日志及操作-持久化 sign_m_220]
             targetConnection.commit();  // 调用原连接进行提交
         } ... // catch
         report(false); // 上报结果
@@ -365,7 +365,7 @@ public class UpdateExecutor<T, S extends Statement> extends AbstractDMLBaseExecu
 ```
 
 - `io.seata.rm.datasource.exec.AbstractDMLBaseExecutor`
-  - 暂存 undo 日志参考：[RM-undo-日志-暂存 sign_m_110](./RM-undo-日志.md#暂存)
+  - 暂存 undo 日志参考：[RM-undo-日志及操作-暂存 sign_m_110](./RM-undo-日志及操作.md#暂存)
 ```java
 // sign_c_530
 public abstract class AbstractDMLBaseExecutor<T, S extends Statement> extends BaseTransactionalExecutor<T, S> {
@@ -403,7 +403,7 @@ public abstract class AbstractDMLBaseExecutor<T, S extends Statement> extends Ba
             TableRecords beforeImage = beforeImage();           // 前镜像，ref: sign_c_520
             T result = statementCallback.execute(statementProxy.getTargetStatement(), args); // ref: sign_cb_330
             TableRecords afterImage = afterImage(beforeImage);  // 后镜像，ref: sign_c_521
-            // 暂存 undo 日志，参考：[RM-undo-日志-暂存 sign_m_110]。
+            // 暂存 undo 日志，参考：[RM-undo-日志及操作-暂存 sign_m_110]。
             // 保存到 DB 参考: sign_cb_312 
             prepareUndoLog(beforeImage, afterImage);
             return result;
