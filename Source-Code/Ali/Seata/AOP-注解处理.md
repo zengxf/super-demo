@@ -215,7 +215,7 @@ public abstract class AbstractProxyInvocationHandler implements ProxyInvocationH
 ```
 
 - `io.seata.integration.tx.api.interceptor.handler.GlobalTransactionalInterceptorHandler`
-  - 参考：[TM-事务处理-事务控制 sign_m_110](./事务处理.md#事务处理)
+  - 参考：[TM-事务处理-事务控制 sign_m_110](./TM-事务处理.md#事务控制)
 ```java
 // sign_c_140  注解处理器
 public class GlobalTransactionalInterceptorHandler extends AbstractProxyInvocationHandler implements ConfigurationChangeListener {
