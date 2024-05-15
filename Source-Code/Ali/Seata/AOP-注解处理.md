@@ -1,4 +1,5 @@
 # Seata-AOP-注解处理
+- 处理 `@GlobalTransactional` 注解原理
 
 
 ---
