@@ -59,13 +59,14 @@ public final class TmNettyRemotingClient extends AbstractNettyRemotingClient {
     private void registerProcessor() {
         // 1. 注册 TC 响应处理器
         ClientOnResponseProcessor onResponseProcessor = new ClientOnResponseProcessor(
-            mergeMsgMap, super.getFutures(), 
+            mergeMsgMap, super.getFutures(), // 传递 futures Map，方便填充结果，ref: sign_m_330 | sign_cb_330
             getTransactionMessageHandler()
         );
         super.registerProcessor(MessageType.TYPE_SEATA_MERGE_RESULT, onResponseProcessor, null);
         ... // 注册其他响应类型
 
-        ... // 2. 注册心跳消息处理器
+        // 2. 注册心跳消息处理器
+        ... 
     }
 }
 ```
@@ -368,10 +369,35 @@ public abstract class AbstractNettyRemoting implements Disposable {
             });
 
         try {
-            Object result = messageFuture.get(timeoutMillis, TimeUnit.MILLISECONDS); // 获取结果
+            // 获取结果，结果填充参考: sign_m_330 | sign_cb_330
+            Object result = messageFuture.get(timeoutMillis, TimeUnit.MILLISECONDS);
             doAfterRpcHooks(remoteAddr, rpcMessage, result); // 钩子处理
             return result;
         } ... // catch
+    }
+}
+```
+
+- `io.seata.core.rpc.processor.client.ClientOnResponseProcessor`
+```java
+// sign_c_330  TC 响应消息-处理器
+public class ClientOnResponseProcessor implements RemotingProcessor {
+    private final ConcurrentMap<Integer, MessageFuture> futures;
+
+    // sign_m_330  处理消息
+    @Override
+    public void process(ChannelHandlerContext ctx, RpcMessage rpcMessage) throws Exception {
+        if (rpcMessage.getBody() instanceof MergeResultMessage) {
+            ...
+        } else if (rpcMessage.getBody() instanceof BatchResultMessage) {
+            ...
+        } else {
+            MessageFuture messageFuture = futures.remove(rpcMessage.getId());   // 根据消息 id 获取 Future
+            if (messageFuture != null) {
+                messageFuture.setResultMessage(rpcMessage.getBody());           // sign_cb_330  设置消息响应
+            } 
+            ... // else 
+        }
     }
 }
 ```
