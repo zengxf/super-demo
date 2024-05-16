@@ -293,7 +293,7 @@ public class NettyPoolableFactory implements KeyedPoolableObjectFactory<NettyPoo
         ... // 校验
 
         try {
-            response = rpcRemotingClient.sendSyncRequest(tmpChannel, key.getMessage());
+            response = rpcRemotingClient.sendSyncRequest(tmpChannel, key.getMessage()); // 发送注册请求，ref: sign_m_310
             ... // 注册状态判断处理； channelToServer = tmpChannel;
         }
         ... // catch
@@ -401,3 +401,12 @@ public class ClientOnResponseProcessor implements RemotingProcessor {
     }
 }
 ```
+
+
+---
+## RM-通信客户端
+- **关键类**
+  - `io.seata.rm.RMClient`
+    - 类似 `TMClient` 处理逻辑
+  - `io.seata.core.rpc.netty.RmNettyRemotingClient`
+    - 类似 `TmNettyRemotingClient` 处理逻辑

@@ -289,6 +289,7 @@ public class DefaultGlobalTransaction implements GlobalTransaction {
 ---
 ## 事务管理器
 - `io.seata.tm.DefaultTransactionManager`
+  - 参考：[TM-通信客户端-发送请求 sign_m_310](TM-通信客户端.md#发送请求)
 ```java
 // sign_c_310  默认事务管理器
 public class DefaultTransactionManager implements TransactionManager {
@@ -308,7 +309,9 @@ public class DefaultTransactionManager implements TransactionManager {
     // sign_m_320  请求事务控制器
     private AbstractTransactionResponse syncCall(AbstractTransactionRequest request) throws TransactionException {
         try {
-            return (...) TmNettyRemotingClient.getInstance().sendSyncRequest(request); // 使用 Netty 进行请求 (端口: 8091)
+            // 使用 Netty 进行请求 (端口: 8091)，
+            // 参考：[TM-通信客户端-发送请求 sign_m_310]
+            return (...) TmNettyRemotingClient.getInstance().sendSyncRequest(request); 
         } ... // catch
     }
 }
