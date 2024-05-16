@@ -165,7 +165,7 @@ public class ConnectionProxy extends AbstractConnectionProxy { // ref: sign_c_32
     @Override
     public void rollback() throws SQLException {
         targetConnection.rollback(); // 调用原连接进行回滚
-        report(false); // 上报结果
+        report(false); // 上报结果，ref: sign_m_314
         ...
     }
 
@@ -188,7 +188,7 @@ public class ConnectionProxy extends AbstractConnectionProxy { // ref: sign_c_32
                 .flushUndoLogs(this);   // 参考：[RM-undo-日志及操作-持久化 sign_m_220]
             targetConnection.commit();  // 调用原连接进行提交
         } ... // catch
-        report(false); // 上报结果
+        report(false); // 上报结果，ref: sign_m_314
         ...
     }
 
@@ -196,10 +196,26 @@ public class ConnectionProxy extends AbstractConnectionProxy { // ref: sign_c_32
     private void register() throws TransactionException {
         ...
         Long branchId = DefaultResourceManager.get()
-            .branchRegister( // 注册事务分支
+            .branchRegister( // 注册事务分支 (RPC 请求，底层通信跟 TM 一样)
                 BranchType.AT, *.getResourceId(), ..., context.getXid(), ...
             );
         context.setBranchId(branchId);
+    }
+
+    // sign_m_314  向 TC 服务上报结果
+    private void report(boolean commitDone) throws SQLException {
+        ...
+        int retry = REPORT_RETRY_COUNT;
+        while (retry > 0) {
+            try {
+                DefaultResourceManager.get()
+                .branchReport( // 上报事务结果 (RPC 请求，底层通信跟 TM 一样)
+                    BranchType.AT, context.getXid(), context.getBranchId(), ...
+                );
+                return;
+            }
+            ... // catch
+        }
     }
 }
 ```
