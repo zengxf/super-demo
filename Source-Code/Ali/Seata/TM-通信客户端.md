@@ -46,7 +46,7 @@ public final class TmNettyRemotingClient extends AbstractNettyRemotingClient {
     // sign_m_110  初始化
     @Override
     public void init() {
-        registerProcessor(); // registry processor
+        registerProcessor(); // 注册处理器，ref: sign_m_111
         if (initialized.compareAndSet(false, true)) {
             super.init();    // ref: sign_m_120
             if (StringUtils.isNotBlank(transactionServiceGroup)) {
@@ -410,3 +410,32 @@ public class ClientOnResponseProcessor implements RemotingProcessor {
     - 类似 `TMClient` 处理逻辑
   - `io.seata.core.rpc.netty.RmNettyRemotingClient`
     - 类似 `TmNettyRemotingClient` 处理逻辑
+
+- `io.seata.core.rpc.netty.RmNettyRemotingClient`
+```java
+// sign_c_410  RM 通信客户端
+public final class RmNettyRemotingClient extends AbstractNettyRemotingClient {
+
+    // sign_c_411  注册处理器
+    private void registerProcessor() {
+        // 1. 注册 RM 客户端分支提交处理器
+        RmBranchCommitProcessor rmBranchCommitProcessor = new RmBranchCommitProcessor(getTransactionMessageHandler(), this);
+        super.registerProcessor(MessageType.TYPE_BRANCH_COMMIT, rmBranchCommitProcessor, messageExecutor);
+
+        // 2. 注册 RM 客户端分支回滚处理器
+        RmBranchRollbackProcessor rmBranchRollbackProcessor = new RmBranchRollbackProcessor(getTransactionMessageHandler(), this);
+        super.registerProcessor(MessageType.TYPE_BRANCH_ROLLBACK, rmBranchRollbackProcessor, messageExecutor);
+
+        // 3. 注册 RM 客户端撤消日志处理器
+        RmUndoLogProcessor rmUndoLogProcessor = new RmUndoLogProcessor(getTransactionMessageHandler());
+        super.registerProcessor(MessageType.TYPE_RM_DELETE_UNDOLOG, rmUndoLogProcessor, messageExecutor);
+
+        // 4. 注册 TC 响应处理器
+        ClientOnResponseProcessor onResponseProcessor = new ClientOnResponseProcessor(...);
+        super.registerProcessor(MessageType.TYPE_SEATA_MERGE_RESULT, onResponseProcessor, null);
+        ...
+
+        ... // 5. 注册心跳消息处理器
+    }
+}
+```
