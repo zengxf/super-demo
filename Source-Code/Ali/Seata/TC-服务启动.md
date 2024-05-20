@@ -115,7 +115,10 @@ public class NettyRemotingServer extends AbstractNettyRemotingServer {
 
     // sign_m_231  注解处理器
     private void registerProcessor() {
-        ... // 1. 注册请求消息处理器
+        // 1. 注册请求消息处理器
+        ServerOnRequestProcessor onRequestProcessor = new ServerOnRequestProcessor(this, getHandler());
+        super.registerProcessor(MessageType.TYPE_BRANCH_REGISTER, onRequestProcessor, messageExecutor);
+        ...
 
         // 2. 注册响应消息处理器
         ServerOnResponseProcessor onResponseProcessor = new ServerOnResponseProcessor(getHandler(), getFutures());
