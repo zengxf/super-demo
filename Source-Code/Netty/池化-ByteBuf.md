@@ -1,3 +1,7 @@
+# Netty-池化-ByteBuf
+
+
+---
 ## 参考
 - [Netty 内存池优化原理](https://lanchestios.github.io/2021/01/13/Netty-内存池优化原理/)
 - [Netty-专栏-jemalloc 基本原理](https://learn.lianglianglee.com/专栏/Netty%20核心原理剖析与%20RPC%20实践-完/12%20%20他山之石：高性能内存分配器%20jemalloc%20基本原理.md)
