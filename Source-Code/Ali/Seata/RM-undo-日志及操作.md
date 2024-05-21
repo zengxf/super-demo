@@ -252,3 +252,28 @@ public abstract class AbstractUndoExecutor {
     }
 }
 ```
+
+### 调用链路
+- 在 `sign_m_410` 方法打断点
+  - 运行 ` new RuntimeException("UNDO-栈跟踪").printStackTrace(); `
+  - 处理器注册参考：[TM-通信客户端-RM-通信客户端 sign_c_411](TM-通信客户端.md#RM-通信客户端)
+```js
+java.lang.RuntimeException: UNDO-栈跟踪
+    at io.seata.rm.datasource.undo.AbstractUndoLogManager.undo(AbstractUndoLogManager.java:260) // ref: sign_m_410
+    at io.seata.rm.datasource.DataSourceManager.branchRollback(DataSourceManager.java:122)
+    at io.seata.rm.AbstractRMHandler.doBranchRollback(AbstractRMHandler.java:125)               // 分支事务回滚
+    at io.seata.rm.AbstractRMHandler$2.execute(AbstractRMHandler.java:67)
+    at io.seata.rm.AbstractRMHandler$2.execute(AbstractRMHandler.java:63)
+    at io.seata.core.exception.AbstractExceptionHandler.exceptionHandleTemplate(AbstractExceptionHandler.java:131)
+    at io.seata.rm.AbstractRMHandler.handle(AbstractRMHandler.java:63)
+    at io.seata.rm.DefaultRMHandler.handle(DefaultRMHandler.java:68)
+    at io.seata.core.protocol.transaction.BranchRollbackRequest.handle(BranchRollbackRequest.java:35)
+    at io.seata.rm.AbstractRMHandler.onRequest(AbstractRMHandler.java:150)
+    at *.RmBranchRollbackProcessor.handleBranchRollback(RmBranchRollbackProcessor.java:63)
+    at *.RmBranchRollbackProcessor.process(RmBranchRollbackProcessor.java:58) // 参考：[TM-通信客户端-RM-通信客户端 sign_c_411]
+    at io.seata.core.rpc.netty.AbstractNettyRemoting.lambda$processMessage$2(AbstractNettyRemoting.java:280) // RPC 消息处理
+    at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1136)
+    at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:635)
+    at io.netty.util.concurrent.FastThreadLocalRunnable.run(FastThreadLocalRunnable.java:30)
+    at java.base/java.lang.Thread.run(Thread.java:833)
+```
