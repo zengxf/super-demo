@@ -33,7 +33,7 @@ public class DubboComponentScanRegistrar implements ImportBeanDefinitionRegistra
     // sign_m_220  注册 Bean
     @Override
     public void registerBeanDefinitions(AnnotationMetadata importingClassMetadata, BeanDefinitionRegistry registry) {
-        DubboSpringInitializer.initialize(registry); // 初始化 Dubbo Bean
+        DubboSpringInitializer.initialize(registry); // 初始化 Dubbo Bean, ref: sign_sm_310
         Set<String> packagesToScan = getPackagesToScan(importingClassMetadata);
         registerServiceAnnotationPostProcessor(packagesToScan, registry); // ref: sign_m_221
     }
@@ -60,73 +60,40 @@ public class ServiceAnnotationPostProcessor
 }
 ```
 
+
+---
+## 初始化
 - `org.apache.dubbo.config.spring.context.DubboSpringInitializer`
 ```java
+// sign_c_310  Spring 初始化入口
 public class DubboSpringInitializer {
+
+    // sign_sm_310  初始化
     public static void initialize(BeanDefinitionRegistry registry) {
-
-        // prepare context and do customize
+        // 准备上下文并进行定制
         DubboSpringInitContext context = new DubboSpringInitContext();
+        ...
 
-        // Spring ApplicationContext may not ready at this moment (e.g. load from xml), so use registry as key
-        if (contextMap.putIfAbsent(registry, context) != null) {
-            return;
-        }
-
-        // find beanFactory
-        ConfigurableListableBeanFactory beanFactory = findBeanFactory(registry);
-
-        // init dubbo context
-        initContext(context, registry, beanFactory);
+        ConfigurableListableBeanFactory beanFactory = findBeanFactory(registry); // 其实就是转化成 BeanFactory
+        initContext(context, registry, beanFactory);    // 初始化 Dubbo 上下文，ref: sign_sm_311
     }
     
+    // sign_sm_311  初始化 Dubbo 上下文
     private static void initContext(
         DubboSpringInitContext context, BeanDefinitionRegistry registry, ConfigurableListableBeanFactory beanFactory
     ) {
         context.setRegistry(registry);
         context.setBeanFactory(beanFactory);
 
-        // customize context, you can change the bind module model via DubboSpringInitCustomizer SPI
-        customize(context);
+        ... // customize context
+        ... // init ModuleModel
+        ... // set module attributes
 
-        // init ModuleModel
-        ModuleModel moduleModel = context.getModuleModel();
-        if (moduleModel == null) {
-            ApplicationModel applicationModel;
-            if (findContextForApplication(ApplicationModel.defaultModel()) == null) {
-                // first spring context use default application instance
-                applicationModel = ApplicationModel.defaultModel();
-                logger.info("Use default application: " + applicationModel.getDesc());
-            } else {
-                // create a new application instance for later spring context
-                applicationModel = FrameworkModel.defaultModel().newApplication();
-                logger.info("Create new application: " + applicationModel.getDesc());
-            }
-
-            // init ModuleModel
-            moduleModel = applicationModel.getDefaultModule();
-            context.setModuleModel(moduleModel);
-            logger.info("Use default module model of target application: " + moduleModel.getDesc());
-        } else {
-            logger.info("Use module model from customizer: " + moduleModel.getDesc());
-        }
-        logger.info(
-                "Bind " + moduleModel.getDesc() + " to spring container: " + ObjectUtils.identityToString(registry));
-
-        // set module attributes
-        Map<String, Object> moduleAttributes = context.getModuleAttributes();
-        if (moduleAttributes.size() > 0) {
-            moduleModel.getAttributes().putAll(moduleAttributes);
-        }
-
-        // bind dubbo initialization context to spring context
+        // 将 Dubbo 上下文绑定到 Spring 中
         registerContextBeans(beanFactory, context);
+        ...
 
-        // mark context as bound
-        context.markAsBound();
-        moduleModel.setLifeCycleManagedExternally(true);
-
-        // register common beans
+        // 注册普通 Bean
         DubboBeanUtils.registerCommonBeans(registry);
     }
 }
@@ -134,22 +101,18 @@ public class DubboSpringInitializer {
 
 - `org.apache.dubbo.config.spring.util.DubboBeanUtils`
 ```java
+// sign_c_320  Dubbo Bean 工具类
 public interface DubboBeanUtils {
 
+    // sign_sb_320  注册普通 Bean
     static void registerCommonBeans(BeanDefinitionRegistry registry) {
-
         registerInfrastructureBean(registry, ServicePackagesHolder.BEAN_NAME, ServicePackagesHolder.class);
-
         registerInfrastructureBean(registry, ReferenceBeanManager.BEAN_NAME, ReferenceBeanManager.class); // 注入 @DubboReference
 
         // Since 2.5.7 Register @Reference Annotation Bean Processor as an infrastructure Bean
         registerInfrastructureBean(
                 registry, ReferenceAnnotationBeanPostProcessor.BEAN_NAME, ReferenceAnnotationBeanPostProcessor.class);
 
-        // TODO Whether DubboConfigAliasPostProcessor can be removed ?
-        // Since 2.7.4 [Feature] https://github.com/apache/dubbo/issues/5093
-        registerInfrastructureBean(
-                registry, DubboConfigAliasPostProcessor.BEAN_NAME, DubboConfigAliasPostProcessor.class);
 
         // register ApplicationListeners
         registerInfrastructureBean(
