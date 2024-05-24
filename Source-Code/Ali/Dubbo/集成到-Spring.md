@@ -110,28 +110,9 @@ public interface DubboBeanUtils {
         registerInfrastructureBean(registry, ReferenceBeanManager.BEAN_NAME, ReferenceBeanManager.class); // 注入 @DubboReference
 
         // Since 2.5.7 Register @Reference Annotation Bean Processor as an infrastructure Bean
-        registerInfrastructureBean(
-                registry, ReferenceAnnotationBeanPostProcessor.BEAN_NAME, ReferenceAnnotationBeanPostProcessor.class);
+        registerInfrastructureBean(registry, ReferenceAnnotationBeanPostProcessor.BEAN_NAME, ReferenceAnnotationBeanPostProcessor.class);
 
-
-        // register ApplicationListeners
-        registerInfrastructureBean(
-                registry, DubboDeployApplicationListener.class.getName(), DubboDeployApplicationListener.class);
-        registerInfrastructureBean(
-                registry, DubboConfigApplicationListener.class.getName(), DubboConfigApplicationListener.class);
-
-        // Since 2.7.6 Register DubboConfigDefaultPropertyValueBeanPostProcessor as an infrastructure Bean
-        registerInfrastructureBean(
-                registry,
-                DubboConfigDefaultPropertyValueBeanPostProcessor.BEAN_NAME,
-                DubboConfigDefaultPropertyValueBeanPostProcessor.class);
-
-        // Dubbo config initializer
-        registerInfrastructureBean(registry, DubboConfigBeanInitializer.BEAN_NAME, DubboConfigBeanInitializer.class);
-
-        // register infra bean if not exists later
-        registerInfrastructureBean(
-                registry, DubboInfraBeanRegisterPostProcessor.BEAN_NAME, DubboInfraBeanRegisterPostProcessor.class);
+        ...
     }
 }
 ```
