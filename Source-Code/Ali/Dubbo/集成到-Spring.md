@@ -57,6 +57,95 @@ public class DubboComponentScanRegistrar implements ImportBeanDefinitionRegistra
 public class ServiceAnnotationPostProcessor 
     implements BeanDefinitionRegistryPostProcessor, ..., ApplicationContextAware, ...
 {
+    private Set<String> resolvedPackagesToScan;
+    private BeanDefinitionRegistry registry;
+
+    // sign_cm_230  构造器
+    public ServiceAnnotationPostProcessor(Set<String> packagesToScan) {
+        this.packagesToScan = packagesToScan;
+    }
+
+    // sign_m_230
+    @Override
+    public void postProcessBeanDefinitionRegistry(BeanDefinitionRegistry registry) throws BeansException {
+        this.registry = registry;
+        scanServiceBeans(resolvedPackagesToScan, registry);  // sign_m_231
+    }
+
+    // sign_m_231
+    private void scanServiceBeans(Set<String> packagesToScan, BeanDefinitionRegistry registry) {
+        scanned = true;
+        ... // 校验 packagesToScan
+
+        DubboClassPathBeanDefinitionScanner scanner = // ref: sign_c_240
+                new DubboClassPathBeanDefinitionScanner(registry, environment, resourceLoader);
+
+        BeanNameGenerator beanNameGenerator = resolveBeanNameGenerator(registry);
+        scanner.setBeanNameGenerator(beanNameGenerator);
+        for (Class<? extends Annotation> annotationType : serviceAnnotationTypes) {
+            // 查找带 @DubboService @...dubbo...Service 注解的类
+            scanner.addIncludeFilter(new AnnotationTypeFilter(annotationType));
+        }
+        ...
+
+        for (String packageToScan : packagesToScan) {
+            ... // 避免重复扫描判断处理
+
+            scanner.scan(packageToScan); // 扫描包
+
+            // 获取扫描出的 Bean 定义，ref: sign_m_232
+            Set<BeanDefinitionHolder> beanDefinitionHolders =
+                    findServiceBeanDefinitionHolders(scanner, packageToScan, registry, beanNameGenerator); 
+
+            if (!CollectionUtils.isEmpty(beanDefinitionHolders)) {
+                ... // log
+
+                for (BeanDefinitionHolder beanDefinitionHolder : beanDefinitionHolders) {
+                    processScannedBeanDefinition(beanDefinitionHolder); // 注册 Bean 处理
+                    ... // 记录扫描的类
+                }
+            } 
+            ... // else log
+            ... // 记录扫描的包
+        }
+    }
+
+    // sign_m_232  查找扫描出的 Bean 定义
+    private Set<BeanDefinitionHolder> findServiceBeanDefinitionHolders(
+        ClassPathBeanDefinitionScanner scanner, String packageToScan,
+        BeanDefinitionRegistry registry, BeanNameGenerator beanNameGenerator
+    ) {
+        Set<BeanDefinition> beanDefinitions = scanner.findCandidateComponents(packageToScan); // 获取扫描出的 Bean 定义，ref: sign_m_240
+        Set<BeanDefinitionHolder> beanDefinitionHolders = new LinkedHashSet<>(beanDefinitions.size());
+
+        for (BeanDefinition beanDefinition : beanDefinitions) {
+            String beanName = beanNameGenerator.generateBeanName(beanDefinition, registry);
+            BeanDefinitionHolder beanDefinitionHolder = new BeanDefinitionHolder(beanDefinition, beanName); // 组装
+            beanDefinitionHolders.add(beanDefinitionHolder);
+        }
+
+        return beanDefinitionHolders;
+    }
+}
+```
+
+- `org.apache.dubbo.config.spring.context.annotation.DubboClassPathBeanDefinitionScanner`
+```java
+// sign_c_240  扫描工具类
+public class DubboClassPathBeanDefinitionScanner extends ClassPathBeanDefinitionScanner {
+    // key 是要扫描的包，value 是扫描出的 Bean 定义
+    private final ConcurrentMap<String, Set<BeanDefinition>> beanDefinitionMap = new ConcurrentHashMap<>();
+
+    // sign_m_240  只是做了一层包装，方便查找
+    @Override
+    public Set<BeanDefinition> findCandidateComponents(String basePackage) {
+        Set<BeanDefinition> beanDefinitions = beanDefinitionMap.get(basePackage);
+        if (Objects.isNull(beanDefinitions)) {
+            beanDefinitions = super.findCandidateComponents(basePackage); // 调用父类进行扫描
+            beanDefinitionMap.put(basePackage, beanDefinitions);
+        }
+        return beanDefinitions;
+    }
 }
 ```
 
@@ -106,11 +195,11 @@ public interface DubboBeanUtils {
 
     // sign_sb_320  注册普通 Bean
     static void registerCommonBeans(BeanDefinitionRegistry registry) {
-        registerInfrastructureBean(registry, ServicePackagesHolder.BEAN_NAME, ServicePackagesHolder.class);
-        registerInfrastructureBean(registry, ReferenceBeanManager.BEAN_NAME, ReferenceBeanManager.class); // 注入 @DubboReference
+        registerInfrastructureBean(registry, *.BEAN_NAME, ServicePackagesHolder.class);
+        registerInfrastructureBean(registry, *.BEAN_NAME, ReferenceBeanManager.class); // 处理 @DubboReference
 
-        // Since 2.5.7 Register @Reference Annotation Bean Processor as an infrastructure Bean
-        registerInfrastructureBean(registry, ReferenceAnnotationBeanPostProcessor.BEAN_NAME, ReferenceAnnotationBeanPostProcessor.class);
+        // 处理 @...dubbo...Reference
+        registerInfrastructureBean(registry, *.BEAN_NAME, ReferenceAnnotationBeanPostProcessor.class);
 
         ...
     }
