@@ -289,8 +289,6 @@ public class ReferenceAnnotationBeanPostProcessor extends AbstractAnnotationBean
         // Register the reference bean definition to the beanFactory
         RootBeanDefinition beanDefinition = new RootBeanDefinition();
         beanDefinition.setBeanClassName(ReferenceBean.class.getName()); // 创建代理的目标工厂 Bean
-        beanDefinition.getPropertyValues().add(ReferenceAttributes.ID, referenceBeanName);
-
         ... // 设置属性
 
         // 为引用 Bean 创建修饰定义，避免在获取 beanType 时被实例化引用 Bean
@@ -301,7 +299,6 @@ public class ReferenceAnnotationBeanPostProcessor extends AbstractAnnotationBean
         );
 
         beanDefinition.setAttribute(Constants.OBJECT_TYPE_ATTRIBUTE, interfaceClass);
-
         beanDefinitionRegistry.registerBeanDefinition(referenceBeanName, beanDefinition); // 将 Bean 定义注册到 Spring 中
         ...
 
@@ -312,7 +309,7 @@ public class ReferenceAnnotationBeanPostProcessor extends AbstractAnnotationBean
 
 - `org.apache.dubbo.config.spring.beans.factory.annotation.AbstractAnnotationBeanPostProcessor`
 ```java
-// sign_c_340
+// sign_c_340  注解处理父类
 public abstract class AbstractAnnotationBeanPostProcessor
     implements InstantiationAwareBeanPostProcessor, MergedBeanDefinitionPostProcessor,
         BeanFactoryAware, BeanClassLoaderAware, EnvironmentAware, DisposableBean 
