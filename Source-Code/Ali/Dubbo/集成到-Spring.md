@@ -201,10 +201,12 @@ public interface DubboBeanUtils {
     // sign_sb_320  注册通用 Bean
     static void registerCommonBeans(BeanDefinitionRegistry registry) {
         ...
-        registerInfrastructureBean(registry, *.BEAN_NAME, ReferenceBeanManager.class);  // ref: sign_sb_321
+        registerInfrastructureBean(registry, *.BEAN_NAME, ReferenceBeanManager.class);  // 注册 Bean, ref: sign_sb_321
 
         // 用于处理 @DubboReference @...dubbo...Reference 注解，ref: sign_c_330
         registerInfrastructureBean(registry, *.BEAN_NAME, ReferenceAnnotationBeanPostProcessor.class);
+        // 注册监听器，用于处理 Dubbo 服务
+        registerInfrastructureBean(registry, *.class.getName(), DubboDeployApplicationListener.class);
 
         ...
     }
