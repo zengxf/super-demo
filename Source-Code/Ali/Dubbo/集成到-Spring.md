@@ -16,7 +16,7 @@ public @interface EnableDubbo {
 
 
 ---
-## 扫描包
+## 扫描包-服务注册
 - 主要处理 `@DubboService` 注解
 
 - `org.apache.dubbo.config.spring.context.annotation.DubboComponentScan`
@@ -35,7 +35,7 @@ public class DubboComponentScanRegistrar implements ImportBeanDefinitionRegistra
     // sign_m_220  注册 Bean
     @Override
     public void registerBeanDefinitions(AnnotationMetadata importingClassMetadata, BeanDefinitionRegistry registry) {
-        DubboSpringInitializer.initialize(registry); // 初始化 Dubbo Bean, ref: sign_sm_310
+        DubboSpringInitializer.initialize(registry); // 初始化 Dubbo Bean, ref: sign_c_310 | sign_sm_310
         Set<String> packagesToScan = getPackagesToScan(importingClassMetadata);
         registerServiceAnnotationPostProcessor(packagesToScan, registry); // ref: sign_m_221
     }
@@ -153,7 +153,7 @@ public class DubboClassPathBeanDefinitionScanner extends ClassPathBeanDefinition
 
 
 ---
-## 初始化
+## 初始化引用-服务查找
 - 主要处理 `@DubboReference` 注解
   - 最终注册 `ReferenceBean` 类
 
@@ -187,7 +187,7 @@ public class DubboSpringInitializer {
         registerContextBeans(beanFactory, context);
         ...
 
-        // 注册普通 Bean
+        // 注册普通 Bean, ref: sign_c_320 | sign_sb_320
         DubboBeanUtils.registerCommonBeans(registry);
     }
 }
