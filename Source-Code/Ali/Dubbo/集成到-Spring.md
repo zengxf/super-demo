@@ -103,7 +103,7 @@ public class ServiceAnnotationPostProcessor
                 ... // log
 
                 for (BeanDefinitionHolder beanDefinitionHolder : beanDefinitionHolders) {
-                    processScannedBeanDefinition(beanDefinitionHolder); // 注册 Bean 处理
+                    processScannedBeanDefinition(beanDefinitionHolder); // 注册 Bean 处理，ref: sign_m_233
                     ... // 记录扫描的类
                 }
             } 
@@ -128,6 +128,26 @@ public class ServiceAnnotationPostProcessor
 
         return beanDefinitionHolders;
     }
+
+    // sign_m_233  注册 Bean 处理
+    private void processScannedBeanDefinition(BeanDefinitionHolder beanDefinitionHolder) {
+        ...
+        AbstractBeanDefinition serviceBeanDefinition = buildServiceBeanDefinition(...);     // 构建 Bean 定义，ref: sign_m_234
+        registerServiceBeanDefinition(beanName, serviceBeanDefinition, serviceInterface);   // 注册到 Spring 中
+    }
+
+    // sign_m_234  构建 Bean 定义
+    private AbstractBeanDefinition buildServiceBeanDefinition(...) {
+        BeanDefinitionBuilder builder = BeanDefinitionBuilder.rootBeanDefinition(
+            ServiceBean.class   // 设置服务代理工厂 Bean, ref: sign_c_250
+        );
+
+        AbstractBeanDefinition beanDefinition = builder.getBeanDefinition();
+        beanDefinition.setAutowireMode(AbstractBeanDefinition.AUTOWIRE_CONSTRUCTOR);    // 对应的构造器，ref: sign_cm_250
+        ... // 设置属性(字段)值
+        
+        return builder.getBeanDefinition();
+    }
 }
 ```
 
@@ -147,6 +167,30 @@ public class DubboClassPathBeanDefinitionScanner extends ClassPathBeanDefinition
             beanDefinitionMap.put(basePackage, beanDefinitions);
         }
         return beanDefinitions;
+    }
+}
+```
+
+- `org.apache.dubbo.config.spring.ServiceBean`
+```java
+// sign_c_250  服务代理工厂 Bean
+public class ServiceBean<T> extends ServiceConfig<T> implements InitializingBean, ... {
+    
+    // sign_cm_250
+    public ServiceBean(ApplicationContext applicationContext, ModuleModel moduleModel) {
+        super(moduleModel);
+        this.service = null;
+        this.applicationContext = applicationContext;
+    }
+
+    // sign_m_250
+    @Override // 被 Spring 调用
+    public void afterPropertiesSet() throws Exception {
+        ... // 初始化 path
+
+        ModuleModel moduleModel = DubboBeanUtils.getModuleModel(applicationContext);
+        moduleModel.getConfigManager().addService(this);    // 记录服务，以便后面注册
+        ...
     }
 }
 ```
