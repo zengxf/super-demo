@@ -172,6 +172,7 @@ public class DubboClassPathBeanDefinitionScanner extends ClassPathBeanDefinition
 ```
 
 - `org.apache.dubbo.config.spring.ServiceBean`
+  - 服务注册参考：[服务注册-调用原理 sign_m_222](服务注册.md#调用原理)
 ```java
 // sign_c_250  服务代理工厂 Bean
 public class ServiceBean<T> extends ServiceConfig<T> implements InitializingBean, ... {
@@ -189,7 +190,7 @@ public class ServiceBean<T> extends ServiceConfig<T> implements InitializingBean
         ... // 初始化 path
 
         ModuleModel moduleModel = DubboBeanUtils.getModuleModel(applicationContext);
-        moduleModel.getConfigManager().addService(this);    // 记录服务，以便后面注册
+        moduleModel.getConfigManager().addService(this);    // 记录服务，以便后面注册。注册参考：[服务注册-调用原理 sign_m_222]
         ...
     }
 }
