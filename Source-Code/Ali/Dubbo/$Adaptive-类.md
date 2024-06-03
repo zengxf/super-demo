@@ -2,7 +2,7 @@
 
 
 ---
-## 写此篇的原因
+## 此篇说明
 - 调试时发现，有一些类的实现是 `*$Adaptive` 后缀，但搜索没有发现具体实现类
 - 感觉好奇，写此篇记录下
 
@@ -22,14 +22,14 @@ class ExtensionLoaderTest {
         ExtensionLoader<AddExt2> loader = getExtensionLoader(AddExt2.class);
         loader.addExtension(null, AddExt2_ManualAdaptive.class);    // 添加适配类
 
-        AddExt2 adaptive = loader.getAdaptiveExtension();           // 获取时直接返回添加的（类的实例）
+        AddExt2 adaptive = loader.getAdaptiveExtension();           // 获取时直接返回添加的（类的实例），ref: sign_m_110
         assertTrue(adaptive instanceof AddExt2_ManualAdaptive);     // true
     }
 
     @Test
     void test_replaceExtension_Adaptive() {
         ExtensionLoader<AddExt3> loader = getExtensionLoader(AddExt3.class);
-        // 没有添加适配类，则创建类 AddExt3$Adaptive 并返回（其实例）
+        // 没有添加适配类，则创建类 AddExt3$Adaptive 并返回（其实例），ref: sign_m_110
         AddExt3 adaptive = loader.getAdaptiveExtension();      
         assertFalse(adaptive instanceof AddExt3_ManualAdaptive);    // false
         ...
@@ -42,23 +42,26 @@ class ExtensionLoaderTest {
 ## 原理
 - `org.apache.dubbo.common.extension.ExtensionLoader`
 ```java
+// sign_c_110
 public class ExtensionLoader<T> {
 
+    // sign_m_110  获取适配实例
     public T getAdaptiveExtension() {
         Object instance = cachedAdaptiveInstance.get();
         ... // DCL 1
 
             synchronized (cachedAdaptiveInstance) {
                 ... // DCL 2
-                    instance = createAdaptiveExtension();
+                    instance = createAdaptiveExtension();   // 创建适配实例，ref: sign_m_111
             }
 
         return (T) instance;
     }
 
+    // sign_m_111  创建适配实例
     private T createAdaptiveExtension() {
         try {
-            T instance = (T) getAdaptiveExtensionClass()    // 获取适配类
+            T instance = (T) getAdaptiveExtensionClass()    // 获取适配类，ref: sign_m_112
                                 .newInstance();             // 创建实例
             ... // 对实例进行钩子处理和初始化
             return instance;
@@ -66,19 +69,22 @@ public class ExtensionLoader<T> {
         ... // catch
     }
 
+    // sign_m_112  获取适配类
     private Class<?> getAdaptiveExtensionClass() {
         ... // 存在则直接返回
         
-        return cachedAdaptiveClass = createAdaptiveExtensionClass();
+        return cachedAdaptiveClass = createAdaptiveExtensionClass();    // 创建适配类，ref: sign_m_113
     }
 
+    // sign_m_113  创建适配类
     private Class<?> createAdaptiveExtensionClass() {
         // 使用 SPI 接口类的 ClassLoader
         ClassLoader classLoader = type.getClassLoader();
 
         ... // Native 处理
 
-        String code = new AdaptiveClassCodeGenerator(type, ...).generate();   // 生成 Java 代码
+        String code = new AdaptiveClassCodeGenerator(type, ...)
+                            .generate();   // 生成 Java 代码，生成的代码参考： sign_c_250
         org.apache.dubbo.common.compiler.Compiler compiler = extensionDirector
                 .getExtensionLoader(org.apache.dubbo.common.compiler.Compiler.class)
                 .getAdaptiveExtension();
@@ -120,6 +126,7 @@ package org.apache.dubbo.rpc;
 import org.apache.dubbo.rpc.model.ScopeModel;
 import org.apache.dubbo.rpc.model.ScopeModelUtil;
 
+// sign_c_250  生成的适配类（参考）
 public class Protocol$Adaptive implements org.apache.dubbo.rpc.Protocol {
 
     // 没有 @Adaptive 注解的方法，直接抛异常
@@ -163,3 +170,7 @@ public class Protocol$Adaptive implements org.apache.dubbo.rpc.Protocol {
     }
 }
 ```
+
+### 总结
+- 有 `@Adaptive` 注解的方法，才进行适配
+  - 内部只是利用 SPI 进行最终调用
