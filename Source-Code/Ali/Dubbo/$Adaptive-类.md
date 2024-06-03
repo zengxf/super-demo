@@ -162,7 +162,7 @@ public class Protocol$Adaptive implements org.apache.dubbo.rpc.Protocol {
         org.apache.dubbo.rpc.Protocol extension =
                 (org.apache.dubbo.rpc.Protocol) scopeModel.getExtensionLoader(org.apache.dubbo.rpc.Protocol.class)
                 .getExtension(extName); 
-        return extension.refer(arg0, arg1); // 通过 SPI 获取最终的实例，并进行调用
+        return extension.refer(arg0, arg1); // 通过分层 SPI 获取最终的实例，并进行调用
     }
 
     public java.util.List getServers() {
@@ -173,4 +173,13 @@ public class Protocol$Adaptive implements org.apache.dubbo.rpc.Protocol {
 
 ### 总结
 - 有 `@Adaptive` 注解的方法，才进行适配
-  - 内部只是利用 SPI 进行最终调用
+  - 内部只是利用分层 SPI 获取目标对象，并进行最终调用
+
+#### SPI 分层
+```js
+// 分层链类似 Java 的类加载器
+ModuleModel(.parent) -> ApplicationModel(.parent) -> FrameworkModel(.parent) -> null
+
+// 获取扩展加载器 (ExtensionLoader) #getExtensionLoader(type)
+// 先调用自身，再按照上面的链结构调用父类
+```
