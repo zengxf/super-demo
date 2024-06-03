@@ -406,3 +406,13 @@ public abstract class AbstractAnnotationBeanPostProcessor
     }
 }
 ```
+
+
+---
+## 总结
+- **服务注册**关键类：
+  - `org.apache.dubbo.config.spring.ServiceBean`
+  - 服务注册参考：[服务注册-调用原理 sign_m_222](服务注册.md#调用原理)
+- **服务发现**关键类：
+  - `org.apache.dubbo.config.spring.ReferenceBean`
+  - 服务发现参考：[服务发现-调用原理 sign_m_222](服务发现.md#调用原理)

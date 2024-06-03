@@ -6,5 +6,6 @@
 
 ### 内容
 - [使用示例](使用示例.md)
+- [$Adaptive-类]($Adaptive-类.md)
 - [集成到-Spring](集成到-Spring.md)
 - [服务注册](服务注册.md)
