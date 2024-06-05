@@ -96,7 +96,7 @@ public class ExtensionLoader<T> {
 
 ---
 ## 生成的类参考
-### 接口定义
+### 接口定义示例
 - `org.apache.dubbo.rpc.Protocol`
 ```java
 @SPI(value = "dubbo", scope = ExtensionScope.FRAMEWORK)
