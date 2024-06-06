@@ -153,6 +153,7 @@ public class Protocol$Adaptive implements org.apache.dubbo.rpc.Protocol {
         return extension.export(arg0);
     }
 
+    // sign_m_250
     public org.apache.dubbo.rpc.Invoker refer(
         java.lang.Class arg0, org.apache.dubbo.common.URL arg1
     ) throws org.apache.dubbo.rpc.RpcException {
@@ -171,11 +172,132 @@ public class Protocol$Adaptive implements org.apache.dubbo.rpc.Protocol {
 }
 ```
 
+### 其他生成的类参考
+- `ProxyFactory$Adaptive`
+```java
+package org.apache.dubbo.rpc;
+
+import org.apache.dubbo.rpc.model.ScopeModel;
+import org.apache.dubbo.rpc.model.ScopeModelUtil;
+import org.apache.dubbo.rpc.*;   // 为省代码
+
+// sign_c_260
+public class ProxyFactory$Adaptive implements ProxyFactory {
+    
+    // sign_m_260
+    public java.lang.Object getProxy(
+        Invoker invoker, boolean generic
+    ) throws RpcException {
+        ... // check
+
+        org.apache.dubbo.common.URL url = invoker.getUrl();
+        String extName = url.getParameter("proxy", "javassist");
+        ... // check
+
+        ScopeModel scopeModel = ScopeModelUtil.getOrDefault(url.getScopeModel(), ProxyFactory.class);
+        ProxyFactory extension = scopeModel.getExtensionLoader(ProxyFactory.class)  // 返回 ExtensionLoader
+                .getExtension(extName);
+        return extension.getProxy(invoker, generic);
+    }
+
+    ... // 其他适配的方法省略
+}
+```
+
 ### 总结
 - 有 `@Adaptive` 注解的方法，才进行适配
   - 内部只是利用分层 SPI 获取目标对象，并进行最终调用
 
-#### SPI 分层
+
+---
+## SPI 调用
+- `org.apache.dubbo.rpc.model.ScopeModelUtil`
+```java
+public class ScopeModelUtil {
+
+    public static <T> ScopeModel getOrDefault(ScopeModel scopeModel, Class<T> type) {
+        // 一般将 URL.getScopeModel() 作参数传过来，其值为 ModuleModel 实例
+        if (scopeModel != null) {
+            return scopeModel;
+        }
+        return getDefaultScopeModel(type);
+    }
+
+    private static <T> ScopeModel getDefaultScopeModel(Class<T> type) {
+        SPI spi = type.getAnnotation(SPI.class);
+        ... // check
+
+        switch (spi.scope()) {
+            case FRAMEWORK:
+                return FrameworkModel.defaultModel();
+            case APPLICATION:
+                return ApplicationModel.defaultModel();
+            case MODULE:
+                return ApplicationModel.defaultModel().getDefaultModule();
+            default:
+                throw new IllegalStateException(...);
+        }
+    }
+}
+```
+
+- `org.apache.dubbo.rpc.model.FrameworkModel`
+```java
+public class FrameworkModel extends ScopeModel {
+
+    public static FrameworkModel defaultModel() {
+        FrameworkModel instance = defaultInstance;
+
+        ... // DCL
+                defaultInstance = new FrameworkModel();
+                instance = defaultInstance;
+        ...
+
+        return instance;
+    }
+
+    public ApplicationModel defaultApplication() {
+        ApplicationModel appModel = this.defaultAppModel;
+        ... // DCL
+                    this.defaultAppModel = newApplication();
+                    appModel = this.defaultAppModel;
+       ...
+        return appModel;
+    }
+
+    public ApplicationModel newApplication() {
+        synchronized (instLock) {
+            return new ApplicationModel(this);  // 将自己作为 ApplicationModel 的父级
+        }
+    }
+}
+```
+
+- `org.apache.dubbo.rpc.model.ApplicationModel`
+```java
+public class ApplicationModel extends ScopeModel {
+
+    public static ApplicationModel defaultModel() {
+        return FrameworkModel.defaultModel().defaultApplication();
+    }
+
+    public ModuleModel getDefaultModule() {
+        ... // DCL
+                    defaultModule = this.newModule();
+        ...
+
+        return defaultModule;
+    }
+
+    public ModuleModel newModule() {
+        synchronized (instLock) {
+            return new ModuleModel(this);
+        }
+    }
+}
+```
+
+### SPI 分层
 ```js
 // 分层链类似 Java 的类加载器
 ModuleModel(.parent) -> ApplicationModel(.parent) -> FrameworkModel(.parent) -> null
