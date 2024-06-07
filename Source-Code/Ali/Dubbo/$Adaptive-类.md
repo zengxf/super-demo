@@ -261,7 +261,7 @@ public class FrameworkModel extends ScopeModel {
         ... // DCL
                     this.defaultAppModel = newApplication();
                     appModel = this.defaultAppModel;
-       ...
+        ...
         return appModel;
     }
 
