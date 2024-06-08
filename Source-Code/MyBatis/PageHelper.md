@@ -1,3 +1,7 @@
+# MyBatis-PageHelper
+
+
+---
 ## 总说明
 - 源码仓库： https://github.com/pagehelper/Mybatis-PageHelper
 - 克隆：`git clone https://github.com/pagehelper/Mybatis-PageHelper.git`
@@ -5,6 +9,7 @@
 - JDK: `17`
 
 
+---
 ## 单元测试
 - 参考：`com.github.pagehelper.test.reasonable.PageTest`
 ```java
@@ -42,11 +47,30 @@
 ```
 
 
+---
 ## 原理
 ### 开启分页
 - `com.github.pagehelper.PageHelper`
 ```java
+// sign_c_010
 public class PageHelper extends PageMethod implements Dialect, BoundSqlInterceptor.Chain {
+
+    // sign_m_010  后处理
+    @Override
+    public void afterAll() {
+        // 这个方法即使不分页也会被执行，所以要判断 null
+        AbstractHelperDialect delegate = autoDialect.getDelegate();
+        if (delegate != null) {
+            delegate.afterAll();
+            autoDialect.clearDelegate();
+        }
+        clearPage();    // 移除本地变量，ref: sign_m_011
+    }
+
+    // sign_m_011  移除本地变量
+    public static void clearPage() {
+        LOCAL_PAGE.remove();
+    }
 }
 ```
 
@@ -104,7 +128,9 @@ public class PageInterceptor implements Interceptor {
         Dialect tempDialect = ClassUtil.newInstance(dialectClass, properties);
         tempDialect.setProperties(properties);
         ...
-        dialect = tempDialect;  // 初始化完成后再设置值，保证 dialect 完成初始化
+        // 初始化完成后再设置值，保证 dialect 完成初始化。
+        // 默认情况下，dialect 是 PageHelper 实例，ref: sign_c_010
+        dialect = tempDialect;
     }
 
     // sign_m_210 分页拦截
@@ -143,7 +169,11 @@ public class PageInterceptor implements Interceptor {
             } ... // else: 不分页，直接查询结果
 
             return dialect.afterPage(resultList, parameter, rowBounds); // 将 list 添加到 Page，并返回 Page 对象
-        } ... // finally: dialect.afterAll();
+        } finally {
+            if (dialect != null) {
+                dialect.afterAll(); // 清除线程变量。ref: sign_m_010
+            }
+        }
     }
 }
 ```
