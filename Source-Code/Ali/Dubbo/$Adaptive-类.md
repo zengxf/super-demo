@@ -146,7 +146,7 @@ public class Protocol$Adaptive implements org.apache.dubbo.rpc.Protocol {
         String extName = (url.getProtocol() == null ? "dubbo" : url.getProtocol());
         ... // check
 
-        ScopeModel scopeModel = ScopeModelUtil.getOrDefault(url.getScopeModel(), org.apache.dubbo.rpc.Protocol.class);
+        ScopeModel scopeModel = ScopeModelUtil.getOrDefault(url.getScopeModel(), Protocol.class);   // ref: sign_m_410
         org.apache.dubbo.rpc.Protocol extension =
                 (org.apache.dubbo.rpc.Protocol) scopeModel.getExtensionLoader(org.apache.dubbo.rpc.Protocol.class)
                 .getExtension(extName);
@@ -159,7 +159,7 @@ public class Protocol$Adaptive implements org.apache.dubbo.rpc.Protocol {
     ) throws org.apache.dubbo.rpc.RpcException {
         ... // check
 
-        ScopeModel scopeModel = ScopeModelUtil.getOrDefault(url.getScopeModel(), org.apache.dubbo.rpc.Protocol.class);
+        ScopeModel scopeModel = ScopeModelUtil.getOrDefault(url.getScopeModel(), Protocol.class);   // ref: sign_m_410
         org.apache.dubbo.rpc.Protocol extension =
                 (org.apache.dubbo.rpc.Protocol) scopeModel.getExtensionLoader(org.apache.dubbo.rpc.Protocol.class)
                 .getExtension(extName); 
@@ -194,13 +194,45 @@ public class ProxyFactory$Adaptive implements ProxyFactory {
         String extName = url.getParameter("proxy", "javassist");
         ... // check
 
-        ScopeModel scopeModel = ScopeModelUtil.getOrDefault(url.getScopeModel(), ProxyFactory.class);
+        ScopeModel scopeModel = ScopeModelUtil.getOrDefault(url.getScopeModel(), ProxyFactory.class);   // ref: sign_m_410
         ProxyFactory extension = scopeModel.getExtensionLoader(ProxyFactory.class)  // 返回 ExtensionLoader
                 .getExtension(extName);
         return extension.getProxy(invoker, generic);
     }
 
     ... // 其他适配的方法省略
+}
+```
+
+- `Transporter$Adaptive`
+```java
+package org.apache.dubbo.remoting;
+
+import org.apache.dubbo.rpc.model.ScopeModel;
+import org.apache.dubbo.rpc.model.ScopeModelUtil;
+import org.apache.dubbo.remoting.*;
+
+public class Transporter$Adaptive implements Transporter {
+
+    public org.apache.dubbo.remoting.Client connect(URL arg0, ChannelHandler arg1) throws RemotingException {
+        URL url = arg0;
+        String extName = url.getParameter("client", url.getParameter("transporter", "netty"));
+        ScopeModel scopeModel = ScopeModelUtil.getOrDefault(url.getScopeModel(), Transporter.class);    // ref: sign_m_410
+        Transporter extension =
+                (Transporter) scopeModel.getExtensionLoader(Transporter.class)
+                .getExtension(extName);
+        return extension.connect(arg0, arg1);
+    }
+
+    public RemotingServer bind(URL arg0, ChannelHandler arg1) throws RemotingException {
+        URL url = arg0;
+        String extName = url.getParameter("server", url.getParameter("transporter", "netty"));
+        ScopeModel scopeModel = ScopeModelUtil.getOrDefault(url.getScopeModel(), Transporter.class);    // ref: sign_m_410
+        Transporter extension =
+                (Transporter) scopeModel.getExtensionLoader(Transporter.class)
+                .getExtension(extName);
+        return extension.bind(arg0, arg1);
+    }
 }
 ```
 
@@ -213,27 +245,30 @@ public class ProxyFactory$Adaptive implements ProxyFactory {
 ## SPI 调用
 - `org.apache.dubbo.rpc.model.ScopeModelUtil`
 ```java
+// sign_c_410
 public class ScopeModelUtil {
 
+    // sign_m_410
     public static <T> ScopeModel getOrDefault(ScopeModel scopeModel, Class<T> type) {
         // 一般将 URL.getScopeModel() 作参数传过来，其值为 ModuleModel 实例
         if (scopeModel != null) {
             return scopeModel;
         }
-        return getDefaultScopeModel(type);
+        return getDefaultScopeModel(type);  // ref: sign_m_411
     }
 
+    // sign_m_411
     private static <T> ScopeModel getDefaultScopeModel(Class<T> type) {
         SPI spi = type.getAnnotation(SPI.class);
         ... // check
 
         switch (spi.scope()) {
             case FRAMEWORK:
-                return FrameworkModel.defaultModel();
+                return FrameworkModel.defaultModel();   // ref: sign_m_420
             case APPLICATION:
-                return ApplicationModel.defaultModel();
+                return ApplicationModel.defaultModel(); // ref: sign_m_430
             case MODULE:
-                return ApplicationModel.defaultModel().getDefaultModule();
+                return ApplicationModel.defaultModel().getDefaultModule();  // ref: sign_m_430 | sign_m_431
             default:
                 throw new IllegalStateException(...);
         }
@@ -243,8 +278,10 @@ public class ScopeModelUtil {
 
 - `org.apache.dubbo.rpc.model.FrameworkModel`
 ```java
+// sign_c_420
 public class FrameworkModel extends ScopeModel {
 
+    // sign_m_420
     public static FrameworkModel defaultModel() {
         FrameworkModel instance = defaultInstance;
 
@@ -256,15 +293,17 @@ public class FrameworkModel extends ScopeModel {
         return instance;
     }
 
+    // sign_m_421
     public ApplicationModel defaultApplication() {
         ApplicationModel appModel = this.defaultAppModel;
         ... // DCL
-                    this.defaultAppModel = newApplication();
+                    this.defaultAppModel = newApplication();    // ref: sign_m_422
                     appModel = this.defaultAppModel;
         ...
         return appModel;
     }
 
+    // sign_m_422
     public ApplicationModel newApplication() {
         synchronized (instLock) {
             return new ApplicationModel(this);  // 将自己作为 ApplicationModel 的父级
@@ -275,20 +314,24 @@ public class FrameworkModel extends ScopeModel {
 
 - `org.apache.dubbo.rpc.model.ApplicationModel`
 ```java
+// sign_c_430
 public class ApplicationModel extends ScopeModel {
 
+    // sign_m_430
     public static ApplicationModel defaultModel() {
-        return FrameworkModel.defaultModel().defaultApplication();
+        return FrameworkModel.defaultModel().defaultApplication();  // ref: sign_m_421
     }
 
+    // sign_m_431
     public ModuleModel getDefaultModule() {
         ... // DCL
-                    defaultModule = this.newModule();
+                    defaultModule = this.newModule();   // ref: sign_m_432
         ...
 
         return defaultModule;
     }
 
+    // sign_m_432
     public ModuleModel newModule() {
         synchronized (instLock) {
             return new ModuleModel(this);
