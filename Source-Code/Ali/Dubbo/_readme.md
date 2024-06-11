@@ -9,3 +9,5 @@
 - [集成到-Spring](集成到-Spring.md)
 - [服务注册](服务注册.md)
 - [$Adaptive-类]($Adaptive-类.md)
+- [服务发现](服务发现.md)
+- [客户端调用](客户端调用.md)
