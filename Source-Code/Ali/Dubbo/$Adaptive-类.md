@@ -212,9 +212,11 @@ import org.apache.dubbo.rpc.model.ScopeModel;
 import org.apache.dubbo.rpc.model.ScopeModelUtil;
 import org.apache.dubbo.remoting.*;
 
+// sign_c_270
 public class Transporter$Adaptive implements Transporter {
 
-    public org.apache.dubbo.remoting.Client connect(URL arg0, ChannelHandler arg1) throws RemotingException {
+    // sign_m_270
+    public Client connect(URL arg0, ChannelHandler arg1) throws RemotingException {
         URL url = arg0;
         String extName = url.getParameter("client", url.getParameter("transporter", "netty"));
         ScopeModel scopeModel = ScopeModelUtil.getOrDefault(url.getScopeModel(), Transporter.class);    // ref: sign_m_410
@@ -223,7 +225,8 @@ public class Transporter$Adaptive implements Transporter {
                 .getExtension(extName);
         return extension.connect(arg0, arg1);
     }
-
+    
+    // sign_m_271
     public RemotingServer bind(URL arg0, ChannelHandler arg1) throws RemotingException {
         URL url = arg0;
         String extName = url.getParameter("server", url.getParameter("transporter", "netty"));
