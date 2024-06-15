@@ -127,4 +127,22 @@ FROM (
 	) n ON JSON_EXTRACT(ami.label, CONCAT('$[', n.n, ']')) IS NOT NULL
 ) t
 GROUP BY label;
+
+
+-- JSON 转 Table
+-- 参考 https://developer.aliyun.com/article/768446
+SELECT
+    main.id, main.remark, 
+    t.*
+FROM 
+    json_data main,     -- 业务主表
+    JSON_TABLE(
+        main.obj_arr,   -- JSON 列
+        '$[*]'
+        COLUMNS (
+            id FOR ORDINALITY,  -- 生成一个从 1 开始的计数器列
+            x INT PATH '$.x' DEFAULT '-1' ON EMPTY,  -- 使用默认值
+            y INT PATH '$.y'
+        )
+    ) AS t;
 ```
