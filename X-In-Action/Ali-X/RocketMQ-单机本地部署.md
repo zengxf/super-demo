@@ -33,6 +33,7 @@ The broker[KYE-1000875714, 10.32.50.94:10911] boot success. serializeType=JSON
 
 ## 测试
 - 先改 `.\bin\mqadmin.cmd` 文件，追加 set 命令
+- 参考 `.\bin\README.md`
 ```js
 // 更新或创建主题
 mqadmin updateTopic -b 127.0.0.1:10911 -t TopicA
