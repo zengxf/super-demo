@@ -21,13 +21,14 @@
 
 
 ## 启动
-- 先双击 `.\bin\mqnamesrv.cmd`；再双击 `.\bin\mqbroker.cmd`
+- 先双击 `.\bin\mqnamesrv.cmd`；再命令运行 ` mqbroker -n localhost:9876 ` (可设置到 mqbroker.cmd 中，否则不能连接到命名服务)
 ```js
 // mqnamesrv.cmd 输出
 The Name Server boot success. serializeType=JSON, address 0.0.0.0:9876
 
 // mqbroker.cmd 输出
-The broker[KYE-1000875714, 10.32.50.94:10911] boot success. serializeType=JSON
+//   "and name server is localhost:9876" 字样说明连接命名服务成功
+The broker[KYE-1000875714, 10.32.50.94:10911] boot success. serializeType=JSON and name server is localhost:9876
 ```
 
 
