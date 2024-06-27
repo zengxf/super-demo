@@ -92,3 +92,24 @@ git checkout file-or-folder
 ```js
 git config --system core.longpaths true
 ```
+
+
+---
+## gc 问题
+- `git pull` 出现下面问题
+```js
+See "git help gc" for manual housekeeping.
+fatal: bad tree object 957463d7e3bc6725bd571902a09d0b618c307413
+fatal: failed to run repack
+error: task 'gc' failed
+```
+
+- 解决参考：https://stackoverflow.com/questions/9005756/how-to-fix-a-bad-git-tree-object
+```js
+// 修复命令：
+git fetch --refetch
+git gc --aggressive
+
+// 校验是否修复：
+git fsck
+```
