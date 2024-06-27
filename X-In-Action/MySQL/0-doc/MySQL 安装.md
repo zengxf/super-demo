@@ -17,8 +17,8 @@
 # basedir：安装目录； datadir：数据文件存放位置
 
 [mysqld]
-# basedir = K:\install\DB\mysql-8 # 可以不用配置
-datadir = K:\install\DB\mysql-8\data
+# basedir = D:\Install\DB\mysql-8 # 可以不用配置
+datadir = D:\Install\DB\mysql-8\data
 port = 3306
 
 # Windows 不需要此配置
@@ -44,7 +44,7 @@ table_open_cache = 256
 
 [client]    # [mysql]
 default-character-set = utf8mb4
-user = mysqluser
+user = root
 # password = "mysqlpass"           # 测试不行
 # socket = /tmp/mysql-3306.sock    # 测试不行
 ```
@@ -62,6 +62,42 @@ user = mysqluser
 ### 连接并初始密码
 - `mysql -uroot -p`
 - 初始密码 `ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'abc';`
+
+### 总示例
+```js
+D:\Install\DB\MySQL\mysql-8.0.37-winx64\bin> mysqld --initialize --console
+...
+2024-06-27T08:41:10.547442Z 1 [System] [MY-013576] [InnoDB] InnoDB initialization has started.
+2024-06-27T08:41:10.855523Z 1 [System] [MY-013577] [InnoDB] InnoDB initialization has ended.
+2024-06-27T08:41:12.118630Z 6 [Note] [MY-010454] [Server] A temporary password is generated for root@localhost: .;(hmqrW/2gc // 密码为 ".;(hmqrW/2gc"
+...
+
+D:\Install\DB\MySQL\mysql-8.0.37-winx64\bin> mysqld --install mysql
+Install/Remove of the Service Denied! // 普通用户，权限拒绝安装
+
+// Win + X => 终端管理员(A) => 运行下面的命令
+
+PS C:\Users\656553> cd D:\Install\DB\MySQL\mysql-8.0.37-winx64\bin
+
+PS D:\Install\DB\MySQL\mysql-8.0.37-winx64\bin> .\mysqld --install mysql
+Service successfully installed. // 安装成功
+
+PS D:\Install\DB\MySQL\mysql-8.0.37-winx64\bin> net start mysql
+mysql 服务正在启动 .
+mysql 服务已经启动成功。
+
+PS D:\Install\DB\MySQL\mysql-8.0.37-winx64\bin>
+
+// 普通终端 => 运行下面命令
+
+D:\Install\DB\MySQL\mysql-8.0.37-winx64\bin> mysql -u root -p.;(hmqrW/2gc // 使用初始密码 ".;(hmqrW/2gc"
+...
+Server version: 8.0.37
+...
+
+mysql> ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'abcd'; // 改密码为 "abcd"
+Query OK, 0 rows affected (0.01 sec)
+```
 
 
 ----
