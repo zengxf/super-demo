@@ -13,7 +13,7 @@ public class BrokerStartup {
 
         args = new String[]{"-n localhost:9876"};   // 手动设置命名服务地址
         BrokerController brokerController = createBrokerController(args);   // 创建控制器，ref: sign_sm_110
-        start(brokerController);
+        start(brokerController);    // 启动控制器，ref: sign_m_210
     }
 }
 ```
@@ -173,6 +173,92 @@ public class BrokerController {
         fastConfig.setListenPort(listeningPort);
 
         this.fastRemotingServer = new NettyRemotingServer(fastConfig, ...);         // 创建远程服务。参考：[命名服务启动-启动控制器 sign_cm_220]
+    }
+}
+```
+
+
+---
+## 启动控制器
+- `org.apache.rocketmq.broker.BrokerStartup`
+```java
+// sign_c_210
+public class BrokerStartup {
+    
+    // sign_m_210  启动控制器
+    public static BrokerController start(BrokerController controller) {
+        try {
+            controller.start();     // 启动，ref: sign_m_220
+            ... // log
+            return controller;
+        } 
+        ... // catch { exit(-1) }
+    }
+}
+```
+
+- `org.apache.rocketmq.broker.BrokerController`
+  - 服务端启动参考：[命名服务启动-启动控制器 sign_m_220](./命名服务启动.md#启动控制器)
+```java
+// sign_c_220
+public class BrokerController {
+
+    // sign_m_220  启动
+    public void start() throws Exception {
+        ...
+            this.brokerOuterAPI.start();
+
+        startBasicService();    // 启动基础服务，ref: sign_m_221
+        ...
+
+        // 开启定时任务
+            BrokerController.this.registerBrokerAll(true, false, brokerConfig.isForceRegister());
+            BrokerController.this.sendHeartbeat();
+            BrokerController.this.syncBrokerMemberGroup();
+            ScheduleMessageService.this.persist(); // this.scheduleMessageService.start(); // startServiceWithoutCondition();
+            this.transactionalMessageCheckService.start(); // startServiceWithoutCondition();
+            BrokerController.this.brokerOuterAPI.refreshMetadata();
+    }
+
+    // sign_m_221  启动基础服务
+    protected void startBasicService() throws Exception {
+        ...
+            this.messageStore.start();
+            this.timerMessageStore.start();
+            this.replicasManager.start();
+            this.remotingServer.start();        // 服务端启动参考：[命名服务启动-启动控制器 sign_m_220]
+            ...
+            this.fastRemotingServer.start();    // 服务端启动参考：[命名服务启动-启动控制器 sign_m_220]
+
+        ...
+
+        for (BrokerAttachedPlugin brokerAttachedPlugin : brokerAttachedPlugins) {
+            if (brokerAttachedPlugin != null) {
+                brokerAttachedPlugin.start();
+            }
+        }
+
+        if (this.popMessageProcessor != null) {
+            this.popMessageProcessor.getPopLongPollingService().start();
+            this.popMessageProcessor.getPopBufferMergeService().start();
+            this.popMessageProcessor.getQueueLockManager().start();
+        }
+        ...
+
+            this.ackMessageProcessor.startPopReviveService();
+            this.notificationProcessor.getPopLongPollingService().start();
+            this.topicQueueMappingCleanService.start();
+            this.fileWatchService.start();
+            this.pullRequestHoldService.start();
+            this.clientHousekeepingService.start();
+            this.brokerStatsManager.start();
+            this.brokerFastFailure.start();
+            this.broadcastOffsetManager.start();
+            this.escapeBridge.start();
+            this.topicRouteInfoManager.start();
+            this.brokerPreOnlineService.start();
+            this.coldDataPullRequestHoldService.start();
+            this.coldDataCgCtrService.start();
     }
 }
 ```
