@@ -4,6 +4,7 @@
 ---
 ## 测试命令
 ```js
+// 更新或创建主题
 mqadmin updateTopic -b 127.0.0.1:10911 -t TopicA
 ```
 
