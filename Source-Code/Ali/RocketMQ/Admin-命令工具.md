@@ -49,13 +49,13 @@ public class MQAdminStartup {
 
         try {
             switch (args.length) {
-                case 0: // 打印帮助 (输出所有的子命令 -> 指令和描述)
-                    printHelp();
+                case 0:
+                    printHelp();    // 打印帮助 (输出所有的子命令 -> 指令和描述)，ref: sign_sm_021
                     break;
                 case 2:
                     if (args[0].equals("help")) {
                         // 打印子命令的帮助信息
-                        SubCommand cmd = findSubCommand(args[1]);   // 查找对应的子命令
+                        SubCommand cmd = findSubCommand(args[1]);   // 查找对应的子命令，ref: sign_sm_022
                         if (cmd != null) {
                             Options options = ServerUtil.buildCommandlineOptions(new Options());
                             options = cmd.buildCommandlineOptions(options);
@@ -67,15 +67,15 @@ public class MQAdminStartup {
                     }
                 case 1:
                 default:
-                    SubCommand cmd = findSubCommand(args[0]);       // 查找对应的子命令
+                    SubCommand cmd = findSubCommand(args[0]);       // 查找对应的子命令，ref: sign_sm_022
                     if (cmd != null) {
-                        String[] subargs = parseSubArgs(args);      // 解析子命令参数
+                        String[] subargs = parseSubArgs(args);      // 解析子命令参数 (排除第一个参数，即：子命令名)
 
                         Options options = ServerUtil.buildCommandlineOptions(new Options());
-                        final CommandLine commandLine = ServerUtil.parseCmdLine(
+                        final CommandLine commandLine = ServerUtil.parseCmdLine(    // 使用 commons-cli 解析
                             "mqadmin " + cmd.commandName(), subargs, 
-                            cmd.buildCommandlineOptions(options),
-                            new DefaultParser()
+                            cmd.buildCommandlineOptions(options),   // 构建命令支持的选项，以便输出
+                            new DefaultParser() // 解析器带状态，非线程安全，每次用新的
                         );
                         ... // 校验
 
@@ -85,12 +85,34 @@ public class MQAdminStartup {
                         }
 
                         ...
-                            cmd.execute(commandLine, options, AclUtils.getAclRPCHook(..._FILE));    // 执行具体命令
+                            cmd.execute(commandLine, options, AclUtils.getAclRPCHook(..._FILE));    // 执行具体命令，ref: sign_m_210
                     } 
                     ... // else
                     break;
             }
         } ... // catch
+    }
+
+    // sign_sm_021  打印帮助
+    private static void printHelp() {
+        ...
+        for (SubCommand cmd : SUB_COMMANDS) {
+            // %-35s 表示字符长度 35 个，不足的用空格填充
+            System.out.printf("   %-35s %s%n", cmd.commandName(), cmd.commandDesc());   // ref: sign_m_120 | sign_m_121
+        }
+        ...
+    }
+
+    // sign_sm_022  查找子命令
+    private static SubCommand findSubCommand(final String name) {
+        for (SubCommand cmd : SUB_COMMANDS) {
+            if (cmd.commandName().equalsIgnoreCase(name)    // ref: sign_m_120
+                || ... cmd.commandAlias().equalsIgnoreCase(name)
+            ) { // 名称或别名相等就返回 (表示已找到)
+                return cmd; 
+            }
+        }
+        return null;
     }
 }
 ```
@@ -133,6 +155,50 @@ public class UpdateTopicSubCommand implements SubCommand {
     @Override
     public String commandDesc() {
         return "Update or create topic.";
+    }
+}
+```
+
+
+---
+## 子命令执行
+- `org.apache.rocketmq.tools.command.topic.UpdateTopicSubCommand`
+```java
+// sign_c_210  改 Topic 子命令 (示例)
+public class UpdateTopicSubCommand implements SubCommand {
+
+    // -b 127.0.0.1:10911 -t TopicA
+
+    // sign_m_210  具体命令执行体
+    @Override
+    public void execute(final CommandLine commandLine, final Options options, RPCHook rpcHook) ... {
+        DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt(rpcHook);
+        ...
+
+        try {
+            TopicConfig topicConfig = new TopicConfig();
+            ...
+            topicConfig.setTopicName(           // 设置 Topic 名称
+                commandLine.getOptionValue('t') // 读取 -t 选项对应的值
+            );
+            ... // 其他命令选项处理
+
+            if (commandLine.hasOption('b')) {
+                String addr = commandLine.getOptionValue('b').trim();
+
+                defaultMQAdminExt.start();
+                defaultMQAdminExt.createAndUpdateTopicConfig(addr, topicConfig);
+
+                ... // 处理 -o 选项 (排序处理)
+                ... // 输出成功信息
+                return;
+            }
+            ... // -c 选项处理
+
+            // 没有 -b 或 -c 选项，则打印当前命令的帮助信息
+            ServerUtil.printCommandLineHelp("mqadmin " + this.commandName(), options);
+        } 
+        ... // catch finally
     }
 }
 ```
