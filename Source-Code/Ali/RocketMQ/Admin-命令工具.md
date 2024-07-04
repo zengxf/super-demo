@@ -27,6 +27,8 @@ mqadmin updateTopic -b 127.0.0.1:10911 -t TopicA
 public class MQAdminStartup {
 
     public static void main(String[] args) {
+        args = "updateTopic -b 127.0.0.1:10911 -t TopicA".split(" ");   // 相当于上面的示例命令
+
         main0(args, null);  // ref: sign_sm_020
     }
 }
@@ -167,7 +169,7 @@ public class UpdateTopicSubCommand implements SubCommand {
 // sign_c_210  改 Topic 子命令 (示例)
 public class UpdateTopicSubCommand implements SubCommand {
 
-    // -b 127.0.0.1:10911 -t TopicA
+    // 示例： -b 127.0.0.1:10911 -t TopicA
 
     // sign_m_210  具体命令执行体
     @Override
@@ -199,6 +201,44 @@ public class UpdateTopicSubCommand implements SubCommand {
             ServerUtil.printCommandLineHelp("mqadmin " + this.commandName(), options);
         } 
         ... // catch finally
+    }
+}
+```
+
+
+---
+## 远程通信
+### 初始化
+- `org.apache.rocketmq.tools.admin.DefaultMQAdminExt`
+```java
+// sign_c_310
+public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
+    private final DefaultMQAdminExtImpl defaultMQAdminExtImpl;
+    private long timeoutMillis = 5000;
+
+    // sign_cm_310
+    public DefaultMQAdminExt(RPCHook rpcHook) {
+        this.defaultMQAdminExtImpl = new DefaultMQAdminExtImpl(this, rpcHook, timeoutMillis);
+    }
+
+    // sign_m_310
+    @Override
+    public void start() throws MQClientException {
+        defaultMQAdminExtImpl.start();
+    }
+}
+```
+
+### 连接并发送命令
+- `org.apache.rocketmq.tools.admin.DefaultMQAdminExt`
+```java
+// sign_c_410
+public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
+
+    // sign_m_410
+    @Override
+    public void createAndUpdateTopicConfig(String addr, TopicConfig config) throws ... {
+        defaultMQAdminExtImpl.createAndUpdateTopicConfig(addr, config);
     }
 }
 ```
