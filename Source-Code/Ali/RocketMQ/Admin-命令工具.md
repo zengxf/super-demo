@@ -189,7 +189,7 @@ public class UpdateTopicSubCommand implements SubCommand {
                 String addr = commandLine.getOptionValue('b').trim();
 
                 defaultMQAdminExt.start();      // 初始化客户端，ref: sign_m_310
-                defaultMQAdminExt.createAndUpdateTopicConfig(addr, topicConfig);
+                defaultMQAdminExt.createAndUpdateTopicConfig(addr, topicConfig);    // 发送指令，ref: sign_m_410
 
                 ... // 处理 -o 选项 (排序处理)
                 ... // 输出成功信息
@@ -406,7 +406,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
 // sign_c_410
 public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
 
-    // sign_m_410
+    // sign_m_410  发送指令
     @Override
     public void createAndUpdateTopicConfig(String addr, TopicConfig config) throws ... {
         defaultMQAdminExtImpl.createAndUpdateTopicConfig(addr, config);
@@ -418,6 +418,7 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
 ### 总结
 - 调用链：
 ```js
-SubCommand -> DefaultMQAdminExt -> DefaultMQAdminExtImpl -> MQClientInstance 
-    -> MQClientAPIImpl -> NettyRemotingClient (RPC 通信)
+SubCommand  -> DefaultMQAdminExt -> DefaultMQAdminExtImpl 
+            -> MQClientInstance 
+            -> MQClientAPIImpl   -> NettyRemotingClient    (RPC 通信)
 ```
