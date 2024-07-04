@@ -174,7 +174,7 @@ public class UpdateTopicSubCommand implements SubCommand {
     // sign_m_210  具体命令执行体
     @Override
     public void execute(final CommandLine commandLine, final Options options, RPCHook rpcHook) ... {
-        DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt(rpcHook);
+        DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt(rpcHook);   // ref: sign_cm_310
         ...
 
         try {
@@ -188,7 +188,7 @@ public class UpdateTopicSubCommand implements SubCommand {
             if (commandLine.hasOption('b')) {
                 String addr = commandLine.getOptionValue('b').trim();
 
-                defaultMQAdminExt.start();
+                defaultMQAdminExt.start();      // 初始化客户端，ref: sign_m_310
                 defaultMQAdminExt.createAndUpdateTopicConfig(addr, topicConfig);
 
                 ... // 处理 -o 选项 (排序处理)
@@ -208,7 +208,7 @@ public class UpdateTopicSubCommand implements SubCommand {
 
 ---
 ## 远程通信
-### 初始化
+### 初始化客户端
 - `org.apache.rocketmq.tools.admin.DefaultMQAdminExt`
 ```java
 // sign_c_310
@@ -218,16 +218,187 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
 
     // sign_cm_310
     public DefaultMQAdminExt(RPCHook rpcHook) {
-        this.defaultMQAdminExtImpl = new DefaultMQAdminExtImpl(this, rpcHook, timeoutMillis);
+        this.defaultMQAdminExtImpl = new DefaultMQAdminExtImpl(this, rpcHook, timeoutMillis);   // ref: sign_cm_320
     }
 
-    // sign_m_310
+    // sign_m_310  启动 (初始化)
     @Override
     public void start() throws MQClientException {
-        defaultMQAdminExtImpl.start();
+        defaultMQAdminExtImpl.start();  // ref: sign_m_320
     }
 }
 ```
+
+- `org.apache.rocketmq.tools.admin.DefaultMQAdminExtImpl`
+```java
+// sign_c_320
+public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
+
+    // sign_cm_320
+    public DefaultMQAdminExtImpl(DefaultMQAdminExt defaultMQAdminExt, RPCHook rpcHook, long timeoutMillis) {
+        this.defaultMQAdminExt = defaultMQAdminExt;
+        this.rpcHook = rpcHook;
+        this.timeoutMillis = timeoutMillis;
+    }
+
+    // sign_m_320  启动 (初始化)
+    @Override
+    public void start() throws MQClientException {
+        switch (this.serviceState) {
+            case CREATE_JUST:
+                ...
+
+                this.mqClientInstance = MQClientManager.getInstance().getOrCreateMQClientInstance(...); // ref: sign_cm_330
+                ...
+
+                mqClientInstance.start();                   // 启动，ref: sign_m_330
+                this.serviceState = ServiceState.RUNNING;   // 设置服务状态
+
+                ... // 创建线程池
+                break;
+            ...
+        }
+    }
+}
+```
+
+- `org.apache.rocketmq.client.impl.factory.MQClientInstance`
+```java
+// sign_c_330
+public class MQClientInstance {
+
+    // sign_cm_330
+    public MQClientInstance(ClientConfig clientConfig, int instanceIndex, String clientId, RPCHook rpcHook) {
+        this.clientConfig = clientConfig;
+        this.nettyClientConfig = new NettyClientConfig();
+        ... // 设置 nettyClientConfig
+        ... // 其他处理
+       
+        this.mQClientAPIImpl = new MQClientAPIImpl(this.nettyClientConfig, ...);    // ref: sign_cm_340
+        ...
+
+        this.clientId = clientId;
+        this.mQAdminImpl = new MQAdminImpl(this);
+        this.pullMessageService = new PullMessageService(this);
+        this.rebalanceService = new RebalanceService(this);
+
+        ...
+    }
+    
+    // sign_m_330
+    public void start() throws MQClientException {
+        synchronized (this) {
+            switch (this.serviceState) {
+                case CREATE_JUST:
+                    ...
+
+                    this.mQClientAPIImpl.start();   // 初始化客户端，ref: sign_m_340
+                    ... // 启动其他服务的线程或线程池
+
+                    this.serviceState = ServiceState.RUNNING;   // 设置状态
+                    break;
+                ...
+            }
+        }
+    }
+}
+```
+
+- `org.apache.rocketmq.client.impl.MQClientAPIImpl`
+```java
+// sign_c_340
+public class MQClientAPIImpl implements NameServerUpdateCallback {
+
+    // sign_cm_340
+    public MQClientAPIImpl(...) {
+        this(nettyClientConfig, clientRemotingProcessor, rpcHook, clientConfig, null);  // ref: sign_cm_341
+    }
+
+    // sign_cm_341
+    public MQClientAPIImpl(..., final ChannelEventListener channelEventListener) {
+        this.clientConfig = clientConfig;
+        ...
+
+        this.remotingClient = new NettyRemotingClient(nettyClientConfig, channelEventListener); // ref: sign_cm_350
+        this.clientRemotingProcessor = clientRemotingProcessor;
+        ...
+
+        this.remotingClient.registerProcessor(RequestCode.CHECK_TRANSACTION_STATE, this.clientRemotingProcessor, null);
+        this.remotingClient.registerProcessor(RequestCode.NOTIFY_CONSUMER_IDS_CHANGED, ...);        // 同上，注册处理器
+        this.remotingClient.registerProcessor(RequestCode.RESET_CONSUMER_CLIENT_OFFSET, ...);
+        this.remotingClient.registerProcessor(RequestCode.GET_CONSUMER_STATUS_FROM_CLIENT, ...);
+        this.remotingClient.registerProcessor(RequestCode.GET_CONSUMER_RUNNING_INFO, ...);
+        this.remotingClient.registerProcessor(RequestCode.CONSUME_MESSAGE_DIRECTLY, ...);
+        this.remotingClient.registerProcessor(RequestCode.PUSH_REPLY_MESSAGE_TO_CLIENT, ...);
+    }
+
+    // sign_m_340  初始化客户端
+    public void start() {
+        this.remotingClient.start();    // ref: sign_m_350
+    }
+}
+```
+
+- `org.apache.rocketmq.remoting.netty.NettyRemotingClient`
+```java
+// sign_c_350
+public class NettyRemotingClient extends NettyRemotingAbstract implements RemotingClient {
+
+    // sign_cm_350
+    public NettyRemotingClient(final NettyClientConfig nettyClientConfig, final ChannelEventListener channelEventListener) {
+        this(nettyClientConfig, channelEventListener, null, null);  // ref: sign_cm_351
+    }
+
+    // sign_cm_351
+    public NettyRemotingClient(..., final EventLoopGroup eventLoopGroup, final EventExecutorGroup eventExecutorGroup) {
+        super(nettyClientConfig.getClientOnewaySemaphoreValue(), nettyClientConfig.getClientAsyncSemaphoreValue());
+        this.nettyClientConfig = nettyClientConfig;
+        this.channelEventListener = channelEventListener;
+
+        ...
+        this.publicExecutor = Executors.newFixedThreadPool(publicThreadNums, ...);
+        this.scanExecutor = ThreadUtils.newThreadPoolExecutor(4, 10, 60, TimeUnit.SECONDS, ...);
+
+        ...
+            // 创建 Netty 线程池
+            this.eventLoopGroupWorker = new NioEventLoopGroup(1, new ThreadFactoryImpl("NettyClientSelector_"));
+
+        ... // TLS 设置
+    }
+
+    // sign_m_350
+    @Override
+    public void start() {
+        ... // 初始化 defaultEventExecutorGroup
+
+        // 初始化客户端 Bootstrap
+        Bootstrap handler = this.bootstrap.group(this.eventLoopGroupWorker).channel(NioSocketChannel.class)
+            .option(ChannelOption.TCP_NODELAY, true)
+            .option(ChannelOption.SO_KEEPALIVE, false)
+            .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, nettyClientConfig.getConnectTimeoutMillis())
+            .handler(new ChannelInitializer<SocketChannel>() {
+                @Override
+                public void initChannel(SocketChannel ch) throws Exception {
+                    ChannelPipeline pipeline = ch.pipeline();
+                    ... // TSL(SSL) 设置
+                    ch.pipeline().addLast(
+                        ... defaultEventExecutorGroup,
+                        new NettyEncoder(),
+                        new NettyDecoder(),
+                        new IdleStateHandler(0, 0, nettyClientConfig.getClientChannelMaxIdleTimeSeconds()),
+                        new NettyConnectManageHandler(),
+                        new NettyClientHandler()
+                    );
+                }
+            });
+        ... // 设置 Bootstrap 其他选项
+
+        nettyEventExecutor.start();
+        ... // 开启其他定时任务
+    }
+}
+```
+
 
 ### 连接并发送命令
 - `org.apache.rocketmq.tools.admin.DefaultMQAdminExt`
@@ -241,4 +412,12 @@ public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
         defaultMQAdminExtImpl.createAndUpdateTopicConfig(addr, config);
     }
 }
+```
+
+
+### 总结
+- 调用链：
+```js
+SubCommand -> DefaultMQAdminExt -> DefaultMQAdminExtImpl -> MQClientInstance 
+    -> MQClientAPIImpl -> NettyRemotingClient (RPC 通信)
 ```
