@@ -334,7 +334,7 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
 
     // sign_m_340  初始化客户端
     public void start() {
-        this.remotingClient.start();    // ref: sign_m_350
+        this.remotingClient.start();    // 初始化 Bootstrap，ref: sign_m_350
     }
 }
 ```
@@ -343,6 +343,7 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
 ```java
 // sign_c_350
 public class NettyRemotingClient extends NettyRemotingAbstract implements RemotingClient {
+    private final Bootstrap bootstrap = new Bootstrap();    // sign_f_350  客户端 Bootstrap
 
     // sign_cm_350
     public NettyRemotingClient(final NettyClientConfig nettyClientConfig, final ChannelEventListener channelEventListener) {
@@ -366,12 +367,12 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         ... // TLS 设置
     }
 
-    // sign_m_350
+    // sign_m_350  初始化 Netty 客户端 Bootstrap
     @Override
     public void start() {
         ... // 初始化 defaultEventExecutorGroup
 
-        // 初始化客户端 Bootstrap
+        // 初始化客户端 Bootstrap, ref: sign_f_350
         Bootstrap handler = this.bootstrap.group(this.eventLoopGroupWorker).channel(NioSocketChannel.class)
             .option(ChannelOption.TCP_NODELAY, true)
             .option(ChannelOption.SO_KEEPALIVE, false)
@@ -406,11 +407,122 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
 // sign_c_410
 public class DefaultMQAdminExt extends ClientConfig implements MQAdminExt {
 
-    // sign_m_410  发送指令
+    // sign_m_410  发送指令 (创建或修改 Topic)
     @Override
     public void createAndUpdateTopicConfig(String addr, TopicConfig config) throws ... {
-        defaultMQAdminExtImpl.createAndUpdateTopicConfig(addr, config);
+        defaultMQAdminExtImpl.createAndUpdateTopicConfig(addr, config); // 创建或修改 Topic, ref: sign_m_420
     }
+}
+```
+
+- `org.apache.rocketmq.tools.admin.DefaultMQAdminExtImpl`
+```java
+// sign_c_420
+public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
+
+    // sign_m_420  创建或修改 Topic
+    @Override
+    public void createAndUpdateTopicConfig(String addr, TopicConfig config) throws ... {
+        this.mqClientInstance.getMQClientAPIImpl()  // 返回 MQClientAPIImpl 实例
+            .createTopic(addr, ..., config, ...);   // 创建 Topic, ref: sign_m_430
+    }
+}
+```
+
+- `org.apache.rocketmq.client.impl.MQClientAPIImpl`
+```java
+// sign_c_430
+public class MQClientAPIImpl implements NameServerUpdateCallback {
+
+    // sign_m_430  创建 Topic
+    public void createTopic(final String addr, ..., final TopicConfig topicConfig, ...) throws ... {
+        CreateTopicRequestHeader requestHeader = new CreateTopicRequestHeader();
+        requestHeader.setTopic(topicConfig.getTopicName());
+        requestHeader.setPerm(topicConfig.getPerm());
+        ... // 将配置设置到请求头
+        requestHeader.setAttributes(AttributeParser.parseToString(topicConfig.getAttributes()));
+
+        RemotingCommand request = RemotingCommand.createRequestCommand(RequestCode.UPDATE_AND_CREATE_TOPIC, requestHeader);
+        RemotingCommand response = this.remotingClient.invokeSync(... addr, request, ...);  // 发送请求，ref: sign_m_440
+        
+        ... // 校验响应结果，不成功则抛异常
+    }
+}
+```
+
+- `org.apache.rocketmq.remoting.netty.NettyRemotingClient`
+```java
+// sign_c_440
+public class NettyRemotingClient extends NettyRemotingAbstract implements RemotingClient {
+
+    // sign_m_440  发送请求
+    @Override
+    public RemotingCommand invokeSync(String addr, final RemotingCommand request, ...) throws ... {
+        final Channel channel = this.getAndCreateChannel(addr); // 获取信道，ref: sign_m_441
+
+        if (channel != null && channel.isActive()) {
+            try {
+                ... // 超时校验
+                RemotingCommand response = this.invokeSyncImpl(channel, request, left);
+                ...
+                return response;
+            } 
+            ... // catch
+        }   ... // else
+    }
+
+    // sign_m_441  获取或创建信道
+    private Channel getAndCreateChannel(final String addr) throws InterruptedException {
+        ... // 从缓存拿取；没有才进行创建
+        return this.createChannel(addr);    // ref: sign_m_442
+    }
+
+    // sign_m_442  创建信道
+    private Channel createChannel(final String addr) throws InterruptedException {
+        ... // 从缓存拿取
+
+        if (this.lockChannelTables.tryLock(LOCK_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)) {
+            try {
+                ... // 从缓存拿取
+
+                if (createNewConnection) {
+                    String[] hostAndPort = getHostAndPort(addr);        // 将 "127.0.0.1:10911" 解析成 ["127.0.0.1", "10911"]
+
+                    ChannelFuture channelFuture = fetchBootstrap(addr)  // 没有代理连接配置，直接返回 bootstrap, ref: sign_f_350
+                        .connect(hostAndPort[0], Integer.parseInt(hostAndPort[1])); // 连接服务器
+                    ... // log
+
+                    cw = new ChannelWrapper(addr, channelFuture);
+                    ... // 加入到缓存
+                }
+            } 
+            ... // catch 
+        }   ... // else
+
+        ...
+            return waitChannelFuture(addr, cw); // 等待连接完成，并返回连接信道
+    }
+
+    public RemotingCommand invokeSyncImpl(final Channel channel, final RemotingCommand request, ...) throws ... {
+        try {
+            return invokeImpl(channel, request, timeoutMillis)
+                .thenApply(ResponseFuture::getResponseCommand)
+                .get(timeoutMillis, TimeUnit.MILLISECONDS);
+        } 
+        ... // catch
+    }
+
+    public CompletableFuture<ResponseFuture> invokeImpl(final Channel channel, final RemotingCommand request, ...) {
+        String channelRemoteAddr = RemotingHelper.parseChannelRemoteAddr(channel);
+        doBeforeRpcHooks(channelRemoteAddr, request);
+        return invoke0(channel, request, timeoutMillis)
+                .whenComplete((v, t) -> {
+                    if (t == null) {
+                        doAfterRpcHooks(channelRemoteAddr, request, v.getResponseCommand());
+                    }
+                });
+    }
+
 }
 ```
 
