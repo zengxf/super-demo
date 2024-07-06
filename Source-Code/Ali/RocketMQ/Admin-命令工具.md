@@ -453,7 +453,7 @@ public class MQClientAPIImpl implements NameServerUpdateCallback {
 - `org.apache.rocketmq.remoting.netty.NettyRemotingClient`
 ```java
 // sign_c_440
-public class NettyRemotingClient extends NettyRemotingAbstract implements RemotingClient {
+public class NettyRemotingClient extends NettyRemotingAbstract implements RemotingClient {  // 继承 ref: sign_c_450
 
     // sign_m_440  发送请求
     @Override
@@ -463,7 +463,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
         if (channel != null && channel.isActive()) {
             try {
                 ... // 超时校验
-                RemotingCommand response = this.invokeSyncImpl(channel, request, left);
+                RemotingCommand response = super.invokeSyncImpl(channel, request, left);    // (父类方法)发送请求，ref: sign_m_450
                 ...
                 return response;
             } 
@@ -503,26 +503,57 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
             return waitChannelFuture(addr, cw); // 等待连接完成，并返回连接信道
     }
 
+}
+```
+
+- `org.apache.rocketmq.remoting.netty.NettyRemotingAbstract`
+```java
+// sign_c_450  远程通信父类
+public abstract class NettyRemotingAbstract {
+    
+    // sign_m_450  发送请求
     public RemotingCommand invokeSyncImpl(final Channel channel, final RemotingCommand request, ...) throws ... {
         try {
-            return invokeImpl(channel, request, timeoutMillis)
+            return invokeImpl(channel, request, timeoutMillis)  // 发送请求，ref: sign_m_451
                 .thenApply(ResponseFuture::getResponseCommand)
-                .get(timeoutMillis, TimeUnit.MILLISECONDS);
+                .get(timeoutMillis, TimeUnit.MILLISECONDS);     // 同步等待
         } 
         ... // catch
     }
 
+    // sign_m_451  发送请求
     public CompletableFuture<ResponseFuture> invokeImpl(final Channel channel, final RemotingCommand request, ...) {
-        String channelRemoteAddr = RemotingHelper.parseChannelRemoteAddr(channel);
-        doBeforeRpcHooks(channelRemoteAddr, request);
-        return invoke0(channel, request, timeoutMillis)
+        ... // 前钩子处理
+        return invoke0(channel, request, timeoutMillis) // RPC 调用，ref: sign_m_452
                 .whenComplete((v, t) -> {
-                    if (t == null) {
-                        doAfterRpcHooks(channelRemoteAddr, request, v.getResponseCommand());
-                    }
+                    ... // 后钩子处理
                 });
     }
+    
+    // sign_m_452  通过 Netty 发送请求 (RPC 调用)
+    protected CompletableFuture<ResponseFuture> invoke0(final Channel channel, final RemotingCommand request, ...) {
+        CompletableFuture<ResponseFuture> future = new CompletableFuture<>();
+        final int opaque = request.getOpaque();
 
+        ... // 获取请求锁 (信号)
+        if (acquired) {
+            ... // 超时处理
+            ... // 设置异步钩子
+            try {
+                channel.writeAndFlush(request)  // 通过信道发送请求
+                    .addListener((ChannelFutureListener) f -> {
+                        if (f.isSuccess()) {
+                            responseFuture.setSendRequestOK(true);  // 设置成功
+                            return;
+                        }
+                        requestFail(opaque);    // 设置失败
+                    });
+                return future;
+            } 
+            ... // catch
+        } 
+        ...     // else  未获得锁，抛出异常
+    }
 }
 ```
 
@@ -532,5 +563,8 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
 ```js
 SubCommand  -> DefaultMQAdminExt -> DefaultMQAdminExtImpl 
             -> MQClientInstance 
-            -> MQClientAPIImpl   -> NettyRemotingClient    (RPC 通信)
+            -> MQClientAPIImpl   -> NettyRemotingClient    (RPC 通信  ->  NettyRemotingAbstract)
 ```
+
+- 响应结果会通过 `ResponseFuture` 返回
+  - `responseFuture.setResponseCommand(cmd);` (设置响应)
