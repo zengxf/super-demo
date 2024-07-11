@@ -179,8 +179,7 @@ public class AdminBrokerProcessor implements NettyRequestProcessor {
                 return this.getBrokerEpochCache(ctx, request);
             case RequestCode.NOTIFY_BROKER_ROLE_CHANGED:
                 return this.notifyBrokerRoleChanged(ctx, request);
-            default:
-                return getUnknownCmdResponse(ctx, request);
+            ... // default
         }
     }
 }
