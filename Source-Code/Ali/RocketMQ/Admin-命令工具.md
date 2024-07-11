@@ -248,7 +248,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
             case CREATE_JUST:
                 ...
 
-                this.mqClientInstance = MQClientManager.getInstance().getOrCreateMQClientInstance(...); // ref: sign_cm_330
+                this.mqClientInstance = MQClientManager.getInstance().getOrCreateMQClientInstance(...); // 创建，ref: sign_cm_330
                 ...
 
                 mqClientInstance.start();                   // 启动，ref: sign_m_330
@@ -267,7 +267,7 @@ public class DefaultMQAdminExtImpl implements MQAdminExt, MQAdminExtInner {
 // sign_c_330
 public class MQClientInstance {
 
-    // sign_cm_330
+    // sign_cm_330  客户端实例构造器
     public MQClientInstance(ClientConfig clientConfig, int instanceIndex, String clientId, RPCHook rpcHook) {
         this.clientConfig = clientConfig;
         this.nettyClientConfig = new NettyClientConfig();
@@ -285,7 +285,7 @@ public class MQClientInstance {
         ...
     }
     
-    // sign_m_330
+    // sign_m_330  客户端实例启动
     public void start() throws MQClientException {
         synchronized (this) {
             switch (this.serviceState) {
