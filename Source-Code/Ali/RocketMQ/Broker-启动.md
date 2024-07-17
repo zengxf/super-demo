@@ -159,7 +159,7 @@ public class BrokerController {
         if (result) {
             initializeRemotingServer(); // 初始化远程监听 (Netty) 服务，ref: sign_m_124
             initializeResources();      // 初始化线程池
-            registerProcessor();        // 注册处理器
+            registerProcessor();        // 注册处理器，ref: sign_m_125
             initializeScheduledTasks(); // 开启各种定时任务
             initialTransaction();       // 初始化事务管理
             initialAcl();               // 初始化访问控制
@@ -188,6 +188,107 @@ public class BrokerController {
         fastConfig.setListenPort(listeningPort);
 
         this.fastRemotingServer = new NettyRemotingServer(fastConfig, ...);         // 创建远程服务。参考：[命名服务启动-启动控制器 sign_cm_220]
+    }
+
+    // sign_m_125  注册处理器
+    public void registerProcessor() {
+        /**
+         * SendMessageProcessor
+         */
+        ... // 处理器加钩子
+        this.remotingServer.registerProcessor(RequestCode.SEND_MESSAGE, sendMessageProcessor, this.sendMessageExecutor);
+        this.remotingServer.registerProcessor(RequestCode.SEND_MESSAGE_V2, sendMessageProcessor, this.sendMessageExecutor);
+        this.remotingServer.registerProcessor(RequestCode.SEND_BATCH_MESSAGE, sendMessageProcessor, this.sendMessageExecutor);
+        this.remotingServer.registerProcessor(RequestCode.CONSUMER_SEND_MSG_BACK, sendMessageProcessor, this.sendMessageExecutor);
+        ... // fastRemotingServer
+
+        /**
+         * PullMessageProcessor
+         */
+        this.remotingServer.registerProcessor(RequestCode.PULL_MESSAGE, this.pullMessageProcessor, this.pullMessageExecutor);
+        this.remotingServer.registerProcessor(RequestCode.LITE_PULL_MESSAGE, this.pullMessageProcessor, this.litePullMessageExecutor);
+
+        /**
+         * PeekMessageProcessor
+         */
+        this.remotingServer.registerProcessor(RequestCode.PEEK_MESSAGE, this.peekMessageProcessor, this.pullMessageExecutor);
+
+        /**
+         * PopMessageProcessor
+         */
+        this.remotingServer.registerProcessor(RequestCode.POP_MESSAGE, this.popMessageProcessor, this.pullMessageExecutor);
+
+        /**
+         * AckMessageProcessor
+         */
+        this.remotingServer.registerProcessor(RequestCode.ACK_MESSAGE, this.ackMessageProcessor, this.ackMessageExecutor);
+        this.remotingServer.registerProcessor(RequestCode.BATCH_ACK_MESSAGE, this.ackMessageProcessor, this.ackMessageExecutor);
+        ...
+
+        /**
+         * ChangeInvisibleTimeProcessor
+         */
+        this.remotingServer.registerProcessor(RequestCode.CHANGE_MESSAGE_INVISIBLETIME, this.changeInvisibleTimeProcessor, this.ackMessageExecutor);
+
+        /**
+         * NotificationProcessor
+         */
+        this.remotingServer.registerProcessor(RequestCode.NOTIFICATION, this.notificationProcessor, this.pullMessageExecutor);
+
+        /**
+         * PollingInfoProcessor
+         */
+        this.remotingServer.registerProcessor(RequestCode.POLLING_INFO, this.pollingInfoProcessor, this.pullMessageExecutor);
+
+        /**
+         * ReplyMessageProcessor
+         */
+        this.remotingServer.registerProcessor(RequestCode.SEND_REPLY_MESSAGE, replyMessageProcessor, replyMessageExecutor);
+        this.remotingServer.registerProcessor(RequestCode.SEND_REPLY_MESSAGE_V2, replyMessageProcessor, replyMessageExecutor);
+        ...
+
+        /**
+         * QueryMessageProcessor
+         */
+        NettyRequestProcessor queryProcessor = new QueryMessageProcessor(this);
+        this.remotingServer.registerProcessor(RequestCode.QUERY_MESSAGE, queryProcessor, this.queryMessageExecutor);
+        this.remotingServer.registerProcessor(RequestCode.VIEW_MESSAGE_BY_ID, queryProcessor, this.queryMessageExecutor);
+        ...
+
+        /**
+         * ClientManageProcessor
+         */
+        this.remotingServer.registerProcessor(RequestCode.HEART_BEAT, clientManageProcessor, this.heartbeatExecutor);
+        this.remotingServer.registerProcessor(RequestCode.UNREGISTER_CLIENT, clientManageProcessor, this.clientManageExecutor);
+        this.remotingServer.registerProcessor(RequestCode.CHECK_CLIENT_CONFIG, clientManageProcessor, this.clientManageExecutor);
+        ...
+
+        /**
+         * ConsumerManageProcessor
+         */
+        ConsumerManageProcessor consumerManageProcessor = new ConsumerManageProcessor(this);
+        this.remotingServer.registerProcessor(RequestCode.GET_CONSUMER_LIST_BY_GROUP, consumerManageProcessor, this.consumerManageExecutor);
+        this.remotingServer.registerProcessor(RequestCode.UPDATE_CONSUMER_OFFSET, consumerManageProcessor, this.consumerManageExecutor);
+        this.remotingServer.registerProcessor(RequestCode.QUERY_CONSUMER_OFFSET, consumerManageProcessor, this.consumerManageExecutor);
+        ...
+
+        /**
+         * QueryAssignmentProcessor
+         */
+        this.remotingServer.registerProcessor(RequestCode.QUERY_ASSIGNMENT, queryAssignmentProcessor, loadBalanceExecutor);
+        this.remotingServer.registerProcessor(RequestCode.SET_MESSAGE_REQUEST_MODE, queryAssignmentProcessor, loadBalanceExecutor);
+        ...
+
+        /**
+         * EndTransactionProcessor
+         */
+        this.remotingServer.registerProcessor(RequestCode.END_TRANSACTION, endTransactionProcessor, this.endTransactionExecutor);
+
+        /**
+         * Default
+         */
+        AdminBrokerProcessor adminProcessor = new AdminBrokerProcessor(this);
+        this.remotingServer.registerDefaultProcessor(adminProcessor, this.adminBrokerExecutor);
     }
 }
 ```
