@@ -154,3 +154,35 @@ public class ForkJoinPool extends AbstractExecutorService {
         }
     }
 ```
+
+### 执行
+- `java.util.concurrent.ForkJoinPool`
+```java
+public class ForkJoinPool extends AbstractExecutorService {
+
+    public <T> ForkJoinTask<T> submit(ForkJoinTask<T> task) {
+        return externalSubmit(task);
+    }
+
+    private <T> ForkJoinTask<T> externalSubmit(ForkJoinTask<T> task) {
+        Thread t; ForkJoinWorkerThread wt; WorkQueue q;
+        ... // 校验参数
+
+        if (((t = Thread.currentThread()) instanceof ForkJoinWorkerThread) &&
+            (q = (wt = (ForkJoinWorkerThread)t).workQueue) != null &&   // 第一次进来，队列为空
+            wt.pool == this)
+            q.push(task, this);
+        else    // 走此逻辑
+            externalPush(task);
+        return task;
+    }
+
+    final void externalPush(ForkJoinTask<?> task) {
+        WorkQueue q;
+        if ((q = submissionQueue()) == null)        // 查找或创建 WorkQueue
+            throw new RejectedExecutionException(); // shutdown or disabled
+        else if (q.lockedPush(task))
+            signalWork();
+    }
+}
+```
