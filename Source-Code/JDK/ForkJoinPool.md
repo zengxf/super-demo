@@ -2,6 +2,15 @@
 
 
 ---
+## JDK 版本
+```js
+openjdk version "17.0.12" 2024-07-16
+OpenJDK Runtime Environment Temurin-17.0.12+7 (build 17.0.12+7)
+OpenJDK 64-Bit Server VM Temurin-17.0.12+7 (build 17.0.12+7, mixed mode, sharing)
+```
+
+
+---
 ## 测试
 ```java
 @Slf4j
@@ -60,12 +69,13 @@ public class MixTest {
 ```
 
 
+---
 ## 原理
 ### 类结构
 - `java.util.concurrent.ForkJoinPool`
 ```java
 public class ForkJoinPool extends AbstractExecutorService {
-    volatile WorkQueue[] workQueues;     // main registry
+    WorkQueue[] queues;                  // main registry
     final ForkJoinWorkerThreadFactory factory;
     final UncaughtExceptionHandler ueh;  // per-worker UEH
     final String workerNamePrefix;       // 创建工作线程的名称前缀
@@ -75,12 +85,8 @@ public class ForkJoinPool extends AbstractExecutorService {
 - `java.util.concurrent.ForkJoinPool.WorkQueue`
 ```java
     static final class WorkQueue {
-        ForkJoinTask<?>[] array;   // 元素（最初未分配）
-        final ForkJoinPool pool;   // 包含池（可能为空）
+        ForkJoinTask<?>[] array;   // 排队的任务；大小为 2 的幂
         final ForkJoinWorkerThread owner; // 拥有线程或共享时为 null
-        volatile Thread parker;    // == owner during call to park; else null
-        volatile ForkJoinTask<?> currentJoin;  // 在 awaitJoin 中加入的任务
-        volatile ForkJoinTask<?> currentSteal; // 主要由 helpStealer 使用
     }
 ```
 
@@ -90,4 +96,61 @@ public class ForkJoinWorkerThread extends Thread {
     final ForkJoinPool pool;                // 此线程所在的池
     final ForkJoinPool.WorkQueue workQueue; // 工作窃取机制
 }
+```
+
+### 初始化
+- `java.util.concurrent.ForkJoinPool`
+```java
+public class ForkJoinPool extends AbstractExecutorService {
+    public ForkJoinPool() {
+        this(
+            Math.min(MAX_CAP, Runtime.getRuntime().availableProcessors()),  // cpus: 20
+            defaultForkJoinWorkerThreadFactory, 
+            null, false,
+            0, MAX_CAP, // 0x7fff ==> 32767
+            1, null, 
+            DEFAULT_KEEPALIVE, TimeUnit.MILLISECONDS    // def: 60s
+        );
+    }
+
+    public ForkJoinPool(
+        int parallelism, ForkJoinWorkerThreadFactory factory, UncaughtExceptionHandler handler,
+        ..., long keepAliveTime, TimeUnit unit
+    ) {
+        ...
+        int p = parallelism;    // = cpus = 20
+        this.factory = factory;
+        this.ueh = handler;
+        this.keepAlive = Math.max(unit.toMillis(keepAliveTime), TIMEOUT_SLOP);  // = 60s
+        int size = 1 << (33 - Integer.numberOfLeadingZeros(p - 1));             // = 64
+        ...
+
+        this.registrationLock = new ReentrantLock();
+        this.queues = new WorkQueue[size];
+        String pid = Integer.toString(getAndAddPoolIds(1) + 1);                 // = 1
+        this.workerNamePrefix = "ForkJoinPool-" + pid + "-worker-";
+    }
+
+
+    static {
+        ...
+
+        defaultForkJoinWorkerThreadFactory = new DefaultForkJoinWorkerThreadFactory();
+        ...
+
+        ForkJoinPool tmp = ... new ForkJoinPool((byte) 0);
+        common = tmp;   // 通用共公池
+    }
+}
+```
+
+- `java.util.concurrent.ForkJoinPool.DefaultForkJoinWorkerThreadFactory`
+```java
+    static final class DefaultForkJoinWorkerThreadFactory implements ForkJoinWorkerThreadFactory {
+
+        
+        public final ForkJoinWorkerThread newThread(ForkJoinPool pool) {
+            return ... new ForkJoinWorkerThread(null, pool, true, false);
+        }
+    }
 ```
