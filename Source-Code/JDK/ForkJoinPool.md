@@ -168,8 +168,8 @@ public class ForkJoinPool extends AbstractExecutorService {
         Thread t; ForkJoinWorkerThread wt; WorkQueue q;
         ... // 校验参数
 
-        if (((t = Thread.currentThread()) instanceof ForkJoinWorkerThread) &&
-            (q = (wt = (ForkJoinWorkerThread)t).workQueue) != null &&   // 第一次进来，队列为空
+        if (((t = Thread.currentThread()) instanceof ForkJoinWorkerThread) &&   // 第一次进来，不是 FJ 线程
+            (q = (wt = (ForkJoinWorkerThread)t).workQueue) != null &&           //            且队列为空
             wt.pool == this)
             q.push(task, this);
         else    // 走此逻辑
@@ -180,9 +180,45 @@ public class ForkJoinPool extends AbstractExecutorService {
     final void externalPush(ForkJoinTask<?> task) {
         WorkQueue q;
         if ((q = submissionQueue()) == null)        // 查找或创建 WorkQueue
-            throw new RejectedExecutionException(); // shutdown or disabled
-        else if (q.lockedPush(task))
-            signalWork();
+            throw ...;                  // shutdown or disabled
+        else if (q.lockedPush(task))    // 添加到队列
+            signalWork();               // 添加成功，则创建或唤醒线程
     }
+
+    final void signalWork() {
+        for (long c = ctl; c < 0L;) {
+            int sp, i; WorkQueue[] qs; WorkQueue v;
+            if ((sp = (int)c & ~UNSIGNALLED) == 0) {  // no idle workers
+                ...
+                    createWorker();                 // 创建线程
+                    break;
+            }
+            ... // 其他状态校验
+
+            else {
+                ...
+                Thread vt = v.owner;
+                ...
+                    LockSupport.unpark(vt);         // 唤醒线程
+                    break;
+            }
+        }
+    }
+
+    private boolean createWorker() {
+        ForkJoinWorkerThreadFactory fac = factory;
+        ForkJoinWorkerThread wt = null;
+        try {
+            if (fac != null
+                && (wt = fac.newThread(this)) != null
+            ) {
+                wt.start();     // 启动线程
+                return true;
+            }
+        }
+        ... // catch
+        return false;
+    }
+
 }
 ```
