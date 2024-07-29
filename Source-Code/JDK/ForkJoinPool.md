@@ -395,3 +395,7 @@ public abstract class RecursiveTask<V> extends ForkJoinTask<V> {
     }
 }
 ```
+
+### 总结
+- 窃取时，只窃取一个队列，参考 [执行 sign_m_430](#执行)
+- 算法很精妙，了解大概流程即可
