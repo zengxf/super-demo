@@ -155,7 +155,7 @@ public class ForkJoinPool extends AbstractExecutorService {
     }
 ```
 
-### 执行
+### 启动线程
 - `java.util.concurrent.ForkJoinPool`
 ```java
 public class ForkJoinPool extends AbstractExecutorService {
@@ -210,7 +210,7 @@ public class ForkJoinPool extends AbstractExecutorService {
         ForkJoinWorkerThread wt = null;
         try {
             if (fac != null
-                && (wt = fac.newThread(this)) != null
+                && (wt = fac.newThread(this)) != null   // 创建线程
             ) {
                 wt.start();     // 启动线程
                 return true;
@@ -220,5 +220,42 @@ public class ForkJoinPool extends AbstractExecutorService {
         return false;
     }
 
+}
+```
+
+### 执行
+- `java.util.concurrent.ForkJoinWorkerThread`
+```java
+public class ForkJoinWorkerThread extends Thread {
+
+    public void run() {
+        ForkJoinPool p = pool;
+        ForkJoinPool.WorkQueue w = workQueue;
+        if (p != null && w != null) {   // 初始化失败时跳过
+            try {
+                p.registerWorker(w);
+                onStart();              // (空实现，子类可覆盖)
+                p.runWorker(w);         // (这是关键) 执行任务
+            } 
+            ... // catch ... finally 
+        }
+    }
+}
+```
+
+- `java.util.concurrent.ForkJoinPool`
+```java
+public class ForkJoinPool extends AbstractExecutorService {
+
+    final void runWorker(WorkQueue w) {
+        if (mode >= 0 && w != null) {           // skip on failed init
+            w.config |= SRC;                    // mark as valid source
+            int r = w.stackPred, src = 0;       // use seed from registerWorker
+            do {
+                r ^= r << 13; r ^= r >>> 17; r ^= r << 5;   // xorshift
+            } while ((src = scan(w, src, r)) >= 0 ||        // 扫描并支行任务
+                     (src = awaitWork(w)) == 0);
+        }
+    }
 }
 ```
