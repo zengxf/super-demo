@@ -13,41 +13,7 @@
 - **zip 下载安装不了，就用此方法**
 
 ### 同目录下创建 my.ini
-```conf
-# basedir：安装目录； datadir：数据文件存放位置
-
-[mysqld]
-# basedir = D:\Install\DB\mysql-8 # 可以不用配置
-datadir = D:\Install\DB\mysql-8\data
-port = 3306
-
-# Windows 不需要此配置
-# Linux 可启用这三个配置，用于启动多个实例，客户端命令加参：`-S /tmp/mysql-8808.sock`
-# socket = /tmp/mysql-3306.sock   
-# mysqlx-port = 33080
-# mysqlx-socket = /tmp/mysqlx-33080.sock
-
-default_authentication_plugin = mysql_native_password # 默认使用的认证插件
-
-max_connections = 200 # 允许最大连接数
-max_connect_errors = 10 # 允许连接失败的次数
-default-storage-engine = INNODB # 创建新表时将使用的默认存储引擎
-
-sql_mode = NO_ENGINE_SUBSTITUTION,STRICT_TRANS_TABLES 
-
-character-set-server = utf8mb4
-
-performance_schema_max_table_instances = 600
-table_definition_cache = 400
-table_open_cache = 256
-
-
-[client]    # [mysql]
-default-character-set = utf8mb4
-user = root
-# password = "mysqlpass"           # 测试不行
-# socket = /tmp/mysql-3306.sock    # 测试不行
-```
+- 内容参考：[win-my.ini](../win-my.ini)
 
 ### 初始化（管理员权限操作）
 - `mysqld --initialize --console`
