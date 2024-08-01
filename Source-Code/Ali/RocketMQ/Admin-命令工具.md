@@ -293,6 +293,7 @@ public class MQClientInstance {
                     ...
 
                     this.mQClientAPIImpl.start();   // 初始化客户端，ref: sign_m_340
+                    this.pullMessageService.start();// 启动拉取消息服务 (相当于启动拉取线程)
                     ... // 启动其他服务的线程或线程池
 
                     this.serviceState = ServiceState.RUNNING;   // 设置状态
