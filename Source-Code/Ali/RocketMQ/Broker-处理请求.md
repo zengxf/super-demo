@@ -11,8 +11,9 @@ mqadmin updateTopic -b 127.0.0.1:10911 -t TopicA
 
 ---
 ## 请求处理
-- 入口流程参考：[命名服务处理请求-请求处理 sign_m_110 sign_m_130 sign_m_131](./命名服务处理请求.md#请求处理)
-- 异步请求执行体参考：[命名服务处理请求-请求处理 sign_m_132](./命名服务处理请求.md#请求处理)
+- 入口流程参考：[命名服务处理请求#请求处理 sign_m_110 sign_m_130 sign_m_131](./命名服务处理请求.md#请求处理)
+- 异步请求执行体参考：[命名服务处理请求#请求处理 sign_m_132](./命名服务处理请求.md#请求处理)
+- 处理器注册参考：[Broker-启动#初始化控制器 sign_m_125](./Broker-启动.md#初始化控制器)
 
 - `org.apache.rocketmq.remoting.netty.NettyRemotingAbstract`
 ```java
@@ -21,6 +22,7 @@ public abstract class NettyRemotingAbstract {
 
     // sign_m_131  处理请求命令
     public void processRequestCommand(final ChannelHandlerContext ctx, final RemotingCommand cmd) {
+        // 处理器注册参考：[Broker-启动#初始化控制器 sign_m_125]
         final Pair<NettyRequestProcessor, ExecutorService> matched = this.processorTable.get(cmd.getCode()); // 配置了 26 个 (17 没配置)
 
         // code 为 17, pair 对象类型为 < AdminBrokerProcessor : FutureTaskExtThreadPoolExecutor >
