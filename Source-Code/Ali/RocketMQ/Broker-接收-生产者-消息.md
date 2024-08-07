@@ -42,10 +42,9 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
 
 
     public RemotingCommand sendMessage(
-        ChannelHandlerContext ctx, RemotingCommand request, SendMessageContext sendMessageContext, 
-        SendMessageRequestHeader requestHeader, TopicQueueMappingContext mappingContext, 
+        ChannelHandlerContext ctx, RemotingCommand request, ..., 
         SendMessageCallback sendMessageCallback
-    ) throws RemotingCommandException {
+    ) throws ... {
         final RemotingCommand response = preSend(ctx, request, requestHeader);
         ... // check
 
@@ -58,64 +57,31 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
 
         MessageExtBrokerInner msgInner = new MessageExtBrokerInner();
         msgInner.setTopic(requestHeader.getTopic());
-        msgInner.setQueueId(queueIdInt);
-
-        Map<String, String> oriProps = MessageDecoder.string2messageProperties(requestHeader.getProperties());
-        if (!handleRetryAndDLQ(requestHeader, response, request, msgInner, topicConfig, oriProps)) {
-            return response;
-        }
-
         msgInner.setBody(body);
-        msgInner.setFlag(requestHeader.getFlag());
         ... // check
-
-        MessageAccessor.setProperties(msgInner, oriProps);
-        ... // check
-
-        msgInner.setTagsCode(MessageExtBrokerInner.tagsString2tagsCode(topicConfig.getTopicFilterType(), msgInner.getTags()));
-        msgInner.setBornTimestamp(requestHeader.getBornTimestamp());
-        msgInner.setBornHost(ctx.channel().remoteAddress());
         msgInner.setStoreHost(this.getStoreHost());
-        msgInner.setReconsumeTimes(requestHeader.getReconsumeTimes() == null ? 0 : requestHeader.getReconsumeTimes());
-        String clusterName = this.brokerController.getBrokerConfig().getBrokerClusterName();
-        MessageAccessor.putProperty(msgInner, MessageConst.PROPERTY_CLUSTER, clusterName);
+        ... // 填充 msg
 
-        msgInner.setPropertiesString(MessageDecoder.messageProperties2String(msgInner.getProperties()));
-
-        String traFlag = oriProps.get(MessageConst.PROPERTY_TRANSACTION_PREPARED);
         boolean sendTransactionPrepareMessage ... = false;  // 默认非事务
-
-        long beginTimeMillis = this.brokerController.getMessageStore().now();
 
         if (brokerController.getBrokerConfig().isAsyncSendEnable()) {
             CompletableFuture<PutMessageResult> asyncPutMessageFuture;
-            if (sendTransactionPrepareMessage) {
+            if (sendTransactionPrepareMessage) {    // 事务方式存
                 asyncPutMessageFuture = this.brokerController.getTransactionalMessageService().asyncPrepareMessage(msgInner);
-            } else {    // 非事务存消息
+            } else {    // 进入此逻辑 (非事务存消息)
                 asyncPutMessageFuture = this.brokerController.getMessageStore().asyncPutMessage(msgInner);
             }
 
             final int finalQueueIdInt = queueIdInt;
             final MessageExtBrokerInner finalMsgInner = msgInner;
             asyncPutMessageFuture.thenAcceptAsync(putMessageResult -> {
-                RemotingCommand responseFuture =
-                    handlePutMessageResult(putMessageResult, response, request, finalMsgInner, responseHeader, sendMessageContext,
-                        ctx, finalQueueIdInt, beginTimeMillis, mappingContext, BrokerMetricsManager.getMessageType(requestHeader));
-                if (responseFuture != null) {
-                    doResponse(ctx, request, responseFuture);
-                }
-
-                // record the transaction metrics, responseFuture == null means put successfully
-                if (sendTransactionPrepareMessage && (responseFuture == null || responseFuture.getCode() == ResponseCode.SUCCESS)) {
-                    this.brokerController.getTransactionalMessageService().getTransactionMetrics().addAndGet(msgInner.getProperty(MessageConst.PROPERTY_REAL_TOPIC), 1);
-                }
-
-                sendMessageCallback.onComplete(sendMessageContext, response);
+                ... // 处理响应结果
+                ... // 记录事务指标
+                sendMessageCallback.onComplete(sendMessageContext, response);   // 回调，响应结果钩子处理
             }, this.brokerController.getPutMessageFutureExecutor());
             
             return null;    // 返回 null 以释放发送消息线程
         } 
-        
         ... // else 同步处理
     }
 }
