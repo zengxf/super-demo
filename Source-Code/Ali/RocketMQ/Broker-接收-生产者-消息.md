@@ -10,8 +10,10 @@
 ## 处理
 - `org.apache.rocketmq.broker.processor.SendMessageProcessor`
 ```java
+// sign_c_110
 public class SendMessageProcessor extends AbstractSendMessageProcessor implements NettyRequestProcessor {
 
+    // sign_m_110
     @Override
     public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request) throws ... {
         switch (request.getCode()) {
