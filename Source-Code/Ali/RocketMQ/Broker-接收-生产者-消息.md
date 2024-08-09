@@ -128,7 +128,6 @@ public class CommitLog implements Swappable {
         PutMessageThreadLocal putMessageThreadLocal = this.putMessageThreadLocal.get();
         updateMaxMessageSize(putMessageThreadLocal);
         String topicQueueKey = generateKey(..., msg);   // 格式: Topic-QueueId
-        long elapsedTimeInLock = 0;
         MappedFile unlockMappedFile = null;
         MappedFile mappedFile = this.mappedFileQueue.getLastMappedFile();   // .../commitlog/00000000000000000000
 
@@ -144,19 +143,10 @@ public class CommitLog implements Swappable {
 
         topicQueueLock.lock(topicQueueKey);
         try {
-            boolean needAssignOffset = true;
-            if (defaultMessageStore.getMessageStoreConfig().isDuplicationEnable()
-                && defaultMessageStore.getMessageStoreConfig().getBrokerRole() != BrokerRole.SLAVE) {
-                needAssignOffset = false;
-            }
-            if (needAssignOffset) {
-                defaultMessageStore.assignOffset(msg);
-            }
+            ... // 处理消费偏移量
 
             PutMessageResult encodeResult = putMessageThreadLocal.getEncoder().encode(msg);
-            if (encodeResult != null) {
-                return CompletableFuture.completedFuture(encodeResult);
-            }
+            ...
             msg.setEncodedBuff(putMessageThreadLocal.getEncoder().getEncoderBuffer());
             PutMessageContext putMessageContext = new PutMessageContext(topicQueueKey);
 
@@ -164,64 +154,23 @@ public class CommitLog implements Swappable {
             try {
                 long beginLockTimestamp = this.defaultMessageStore.getSystemClock().now();
                 this.beginTimeInLock = beginLockTimestamp;
-
-                // Here settings are stored timestamp, in order to ensure an orderly
-                // global
                 if (!defaultMessageStore.getMessageStoreConfig().isDuplicationEnable()) {
                     msg.setStoreTimestamp(beginLockTimestamp);
                 }
-
-                if (null == mappedFile || mappedFile.isFull()) {
-                    mappedFile = this.mappedFileQueue.getLastMappedFile(0); // Mark: NewFile may be cause noise
-                    if (isCloseReadAhead()) {
-                        setFileReadMode(mappedFile, LibC.MADV_RANDOM);
-                    }
-                }
-                if (null == mappedFile) {
-                    log.error("create mapped file1 error, topic: " + msg.getTopic() + " clientAddr: " + msg.getBornHostString());
-                    beginTimeInLock = 0;
-                    return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.CREATE_MAPPED_FILE_FAILED, null));
-                }
+                ... // check
 
                 result = mappedFile.appendMessage(msg, this.appendMessageCallback, putMessageContext);
                 switch (result.getStatus()) {
                     case PUT_OK:
                         onCommitLogAppend(msg, result, mappedFile);
                         break;
-                    case END_OF_FILE:
-                        onCommitLogAppend(msg, result, mappedFile);
-                        unlockMappedFile = mappedFile;
-                        // Create a new file, re-write the message
-                        mappedFile = this.mappedFileQueue.getLastMappedFile(0);
-                        if (null == mappedFile) {
-                            // XXX: warn and notify me
-                            log.error("create mapped file2 error, topic: " + msg.getTopic() + " clientAddr: " + msg.getBornHostString());
-                            beginTimeInLock = 0;
-                            return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.CREATE_MAPPED_FILE_FAILED, result));
-                        }
-                        if (isCloseReadAhead()) {
-                            setFileReadMode(mappedFile, LibC.MADV_RANDOM);
-                        }
-                        result = mappedFile.appendMessage(msg, this.appendMessageCallback, putMessageContext);
-                        if (AppendMessageStatus.PUT_OK.equals(result.getStatus())) {
-                            onCommitLogAppend(msg, result, mappedFile);
-                        }
-                        break;
-                    case MESSAGE_SIZE_EXCEEDED:
-                    case PROPERTIES_SIZE_EXCEEDED:
-                        beginTimeInLock = 0;
-                        return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, result));
-                    case UNKNOWN_ERROR:
-                    default:
-                        beginTimeInLock = 0;
-                        return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.UNKNOWN_ERROR, result));
+                    ... // END_OF_FILE:
+                    ... // 其他异常处理
                 }
+                ...
 
-                elapsedTimeInLock = this.defaultMessageStore.getSystemClock().now() - beginLockTimestamp;
-                beginTimeInLock = 0;
-            } finally {
-                putMessageLock.unlock();
-            }
+            } ... // finally
+
             // Increase queue offset when messages are successfully written
             if (AppendMessageStatus.PUT_OK.equals(result.getStatus())) {
                 this.defaultMessageStore.increaseOffset(msg, getMessageNum(msg));
@@ -240,4 +189,155 @@ public class CommitLog implements Swappable {
         return handleDiskFlushAndHA(putMessageResult, msg, needAckNums, needHandleHA);
     }
 }
+```
+
+- `org.apache.rocketmq.store.logfile.DefaultMappedFile`
+```java
+
+public class DefaultMappedFile extends AbstractMappedFile {
+
+    @Override
+    public AppendMessageResult appendMessage(
+        MessageExtBrokerInner msg, AppendMessageCallback cb, PutMessageContext putMessageContext
+    ) {
+        return appendMessagesInner(msg, cb, putMessageContext);
+    }
+
+    public AppendMessageResult appendMessagesInner(
+        MessageExt messageExt,  AppendMessageCallback cb, PutMessageContext putMessageContext
+    ) {
+        ... // check
+        int currentPos = WROTE_POSITION_UPDATER.get(this);
+
+        if (currentPos < this.fileSize) {
+            ByteBuffer byteBuffer = appendMessageBuffer().slice();  // 文件的映射 buffer
+            byteBuffer.position(currentPos);                        // 设置要追加的位置
+
+            AppendMessageResult result;
+            if (messageExt instanceof MessageExtBatch && ...) {
+                ... // 批处理
+            } else if (messageExt instanceof MessageExtBrokerInner) {   // 单消息处理
+                result = cb.doAppend(
+                    this.getFileFromOffset(), byteBuffer, this.fileSize - currentPos,
+                    (MessageExtBrokerInner) messageExt, putMessageContext
+                );
+            } ... // else 
+
+            WROTE_POSITION_UPDATER.addAndGet(this, result.getWroteBytes()); // 更新位置记录
+            return result;
+        }
+
+        ... // 返回错误标识
+    }
+
+}
+```
+
+- `org.apache.rocketmq.store.CommitLog.DefaultAppendMessageCallback`
+```java
+    class DefaultAppendMessageCallback implements AppendMessageCallback {
+
+        public AppendMessageResult doAppend(final long fileFromOffset, final ByteBuffer byteBuffer, final int maxBlank,
+            final MessageExtBrokerInner msgInner, PutMessageContext putMessageContext) {
+            // STORETIMESTAMP + STOREHOSTADDRESS + OFFSET <br>
+
+            ByteBuffer preEncodeBuffer = msgInner.getEncodedBuff();
+            boolean isMultiDispatchMsg = messageStoreConfig.isEnableMultiDispatch() && CommitLog.isMultiDispatchMsg(msgInner);
+            if (isMultiDispatchMsg) {
+                AppendMessageResult appendMessageResult = handlePropertiesForLmqMsg(preEncodeBuffer, msgInner);
+                if (appendMessageResult != null) {
+                    return appendMessageResult;
+                }
+            }
+
+            final int msgLen = preEncodeBuffer.getInt(0);
+            preEncodeBuffer.position(0);
+            preEncodeBuffer.limit(msgLen);
+
+            // PHY OFFSET
+            long wroteOffset = fileFromOffset + byteBuffer.position();
+
+            Supplier<String> msgIdSupplier = () -> {
+                int sysflag = msgInner.getSysFlag();
+                int msgIdLen = (sysflag & MessageSysFlag.STOREHOSTADDRESS_V6_FLAG) == 0 ? 4 + 4 + 8 : 16 + 4 + 8;
+                ByteBuffer msgIdBuffer = ByteBuffer.allocate(msgIdLen);
+                MessageExt.socketAddress2ByteBuffer(msgInner.getStoreHost(), msgIdBuffer);
+                msgIdBuffer.clear();//because socketAddress2ByteBuffer flip the buffer
+                msgIdBuffer.putLong(msgIdLen - 8, wroteOffset);
+                return UtilAll.bytes2string(msgIdBuffer.array());
+            };
+
+            // Record ConsumeQueue information
+            Long queueOffset = msgInner.getQueueOffset();
+
+            // this msg maybe an inner-batch msg.
+            short messageNum = getMessageNum(msgInner);
+
+            // Transaction messages that require special handling
+            final int tranType = MessageSysFlag.getTransactionValue(msgInner.getSysFlag());
+            switch (tranType) {
+                // Prepared and Rollback message is not consumed, will not enter the consume queue
+                case MessageSysFlag.TRANSACTION_PREPARED_TYPE:
+                case MessageSysFlag.TRANSACTION_ROLLBACK_TYPE:
+                    queueOffset = 0L;
+                    break;
+                case MessageSysFlag.TRANSACTION_NOT_TYPE:
+                case MessageSysFlag.TRANSACTION_COMMIT_TYPE:
+                default:
+                    break;
+            }
+
+            // Determines whether there is sufficient free space
+            if ((msgLen + END_FILE_MIN_BLANK_LENGTH) > maxBlank) {
+                this.msgStoreItemMemory.clear();
+                // 1 TOTALSIZE
+                this.msgStoreItemMemory.putInt(maxBlank);
+                // 2 MAGICCODE
+                this.msgStoreItemMemory.putInt(CommitLog.BLANK_MAGIC_CODE);
+                // 3 The remaining space may be any value
+                // Here the length of the specially set maxBlank
+                final long beginTimeMills = CommitLog.this.defaultMessageStore.now();
+                byteBuffer.put(this.msgStoreItemMemory.array(), 0, 8);
+                return new AppendMessageResult(AppendMessageStatus.END_OF_FILE, wroteOffset,
+                    maxBlank, /* only wrote 8 bytes, but declare wrote maxBlank for compute write position */
+                    msgIdSupplier, msgInner.getStoreTimestamp(),
+                    queueOffset, CommitLog.this.defaultMessageStore.now() - beginTimeMills);
+            }
+
+            int pos = 4 + 4 + 4 + 4 + 4;
+            // 6 QUEUEOFFSET
+            preEncodeBuffer.putLong(pos, queueOffset);
+            pos += 8;
+            // 7 PHYSICALOFFSET
+            preEncodeBuffer.putLong(pos, fileFromOffset + byteBuffer.position());
+            int ipLen = (msgInner.getSysFlag() & MessageSysFlag.BORNHOST_V6_FLAG) == 0 ? 4 + 4 : 16 + 4;
+            // 8 SYSFLAG, 9 BORNTIMESTAMP, 10 BORNHOST, 11 STORETIMESTAMP
+            pos += 8 + 4 + 8 + ipLen;
+            // refresh store time stamp in lock
+            preEncodeBuffer.putLong(pos, msgInner.getStoreTimestamp());
+            if (enabledAppendPropCRC) {
+                // 18 CRC32
+                int checkSize = msgLen - crc32ReservedLength;
+                ByteBuffer tmpBuffer = preEncodeBuffer.duplicate();
+                tmpBuffer.limit(tmpBuffer.position() + checkSize);
+                int crc32 = UtilAll.crc32(tmpBuffer);
+                tmpBuffer.limit(tmpBuffer.position() + crc32ReservedLength);
+                MessageDecoder.createCrc32(tmpBuffer, crc32);
+            }
+
+            final long beginTimeMills = CommitLog.this.defaultMessageStore.now();
+            CommitLog.this.getMessageStore().getPerfCounter().startTick("WRITE_MEMORY_TIME_MS");
+            // Write messages to the queue buffer
+            byteBuffer.put(preEncodeBuffer);
+            CommitLog.this.getMessageStore().getPerfCounter().endTick("WRITE_MEMORY_TIME_MS");
+            msgInner.setEncodedBuff(null);
+
+            if (isMultiDispatchMsg) {
+                CommitLog.this.multiDispatch.updateMultiQueueOffset(msgInner);
+            }
+
+            return new AppendMessageResult(AppendMessageStatus.PUT_OK, wroteOffset, msgLen, msgIdSupplier,
+                msgInner.getStoreTimestamp(), queueOffset, CommitLog.this.defaultMessageStore.now() - beginTimeMills, messageNum);
+        }
+    }
 ```
