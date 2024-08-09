@@ -10,31 +10,31 @@
 ## 处理
 - `org.apache.rocketmq.broker.processor.SendMessageProcessor`
 ```java
-// sign_c_110
+// sign_c_110  客户端发消息处理器
 public class SendMessageProcessor extends AbstractSendMessageProcessor implements NettyRequestProcessor {
 
-    // sign_m_110
+    // sign_m_110  处理请求 (保存消息)
     @Override
     public RemotingCommand processRequest(ChannelHandlerContext ctx, RemotingCommand request) throws ... {
         switch (request.getCode()) {
             case RequestCode.CONSUMER_SEND_MSG_BACK:    // 36
                 return this.consumerSendMsgBack(ctx, request);
             default:    // code 为 SEND_MESSAGE_V2 (310)，进入此逻辑
-                SendMessageRequestHeader requestHeader = parseRequestHeader(request);
+                SendMessageRequestHeader requestHeader = parseRequestHeader(request);   // 解析请求头
                 ... // 校验
 
-                SendMessageContext sendMessageContext = buildMsgContext(ctx, requestHeader, request);
+                SendMessageContext sendMessageContext = buildMsgContext(ctx, requestHeader, request);   // 构建消息上下文
                 ... // 发送前对消息进行钩子处理
 
                 RemotingCommand response;
                 ...
 
                 if (requestHeader.isBatch()) {
-                    response = this.sendBatchMessage(ctx, request, ...);
+                    response = this.sendBatchMessage(ctx, request, ...);    // 处理批量消息 (略)
                 } else {    // (非批量) 进入此逻辑
-                    response = this.sendMessage(
+                    response = this.sendMessage(    // 单条消息处理，ref: sign_m_111
                         ctx, request, ...,
-                        (ctx12, response12) -> executeSendMessageHookAfter(response12, ctx12)
+                        (ctx12, response12) -> executeSendMessageHookAfter(response12, ctx12)   // 设置结果钩子处理
                     );
                 }
 
@@ -42,12 +42,12 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         }
     }
 
-
+    // sign_m_111  处理发送来的消息
     public RemotingCommand sendMessage(
         ChannelHandlerContext ctx, RemotingCommand request, ..., 
         SendMessageCallback sendMessageCallback
     ) throws ... {
-        final RemotingCommand response = preSend(ctx, request, requestHeader);
+        final RemotingCommand response = preSend(ctx, request, requestHeader);  // 初始化响应对象
         ... // check
 
         final SendMessageResponseHeader responseHeader = (SendMessageResponseHeader) response.readCustomHeader();
@@ -77,7 +77,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
             final int finalQueueIdInt = queueIdInt;
             final MessageExtBrokerInner finalMsgInner = msgInner;
             asyncPutMessageFuture.thenAcceptAsync(putMessageResult -> {
-                ... // 处理响应结果
+                ... // 按需处理响应结果
                 ... // 记录事务指标
                 sendMessageCallback.onComplete(sendMessageContext, response);   // 回调，响应结果钩子处理
             }, this.brokerController.getPutMessageFutureExecutor());
@@ -85,6 +85,159 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
             return null;    // 返回 null 以释放发送消息线程
         } 
         ... // else 同步处理
+    }
+}
+```
+
+
+---
+## 存储
+- `org.apache.rocketmq.store.DefaultMessageStore`
+```java
+public class DefaultMessageStore implements MessageStore {
+
+    @Override
+    public CompletableFuture<PutMessageResult> asyncPutMessage(MessageExtBrokerInner msg) {
+        ... // 钩子前处理
+        ... // check
+
+        CompletableFuture<PutMessageResult> putResultFuture = this.commitLog.asyncPutMessage(msg);
+
+        putResultFuture.thenAccept(result -> {
+            ... // 记录用时
+            ... // 有问题，追加异常计数
+        });
+
+        return putResultFuture;
+    }
+}
+```
+
+- `org.apache.rocketmq.store.CommitLog`
+```java
+public class CommitLog implements Swappable {
+
+    public CompletableFuture<PutMessageResult> asyncPutMessage(final MessageExtBrokerInner msg) {
+        ... // 设置存储时间和内容 CRC32
+        ... // 设置版本
+        ... // 设置 IPv6 标识
+
+        // 返回结果
+        AppendMessageResult result = null;
+
+        PutMessageThreadLocal putMessageThreadLocal = this.putMessageThreadLocal.get();
+        updateMaxMessageSize(putMessageThreadLocal);
+        String topicQueueKey = generateKey(..., msg);   // 格式: Topic-QueueId
+        long elapsedTimeInLock = 0;
+        MappedFile unlockMappedFile = null;
+        MappedFile mappedFile = this.mappedFileQueue.getLastMappedFile();   // .../commitlog/00000000000000000000
+
+        long currOffset = 0;    // 写的偏移量
+        if (mappedFile != null) {
+            currOffset = mappedFile.getFileFromOffset()         // 文件名的解析值 (当前为 0)
+                            + mappedFile.getWrotePosition();    // 当前写入位置
+        }
+
+        int needAckNums = this.defaultMessageStore.getMessageStoreConfig().getInSyncReplicas();
+        boolean needHandleHA = needHandleHA(msg);
+        ... // HA 校验与计算
+
+        topicQueueLock.lock(topicQueueKey);
+        try {
+            boolean needAssignOffset = true;
+            if (defaultMessageStore.getMessageStoreConfig().isDuplicationEnable()
+                && defaultMessageStore.getMessageStoreConfig().getBrokerRole() != BrokerRole.SLAVE) {
+                needAssignOffset = false;
+            }
+            if (needAssignOffset) {
+                defaultMessageStore.assignOffset(msg);
+            }
+
+            PutMessageResult encodeResult = putMessageThreadLocal.getEncoder().encode(msg);
+            if (encodeResult != null) {
+                return CompletableFuture.completedFuture(encodeResult);
+            }
+            msg.setEncodedBuff(putMessageThreadLocal.getEncoder().getEncoderBuffer());
+            PutMessageContext putMessageContext = new PutMessageContext(topicQueueKey);
+
+            putMessageLock.lock(); //spin or ReentrantLock ,depending on store config
+            try {
+                long beginLockTimestamp = this.defaultMessageStore.getSystemClock().now();
+                this.beginTimeInLock = beginLockTimestamp;
+
+                // Here settings are stored timestamp, in order to ensure an orderly
+                // global
+                if (!defaultMessageStore.getMessageStoreConfig().isDuplicationEnable()) {
+                    msg.setStoreTimestamp(beginLockTimestamp);
+                }
+
+                if (null == mappedFile || mappedFile.isFull()) {
+                    mappedFile = this.mappedFileQueue.getLastMappedFile(0); // Mark: NewFile may be cause noise
+                    if (isCloseReadAhead()) {
+                        setFileReadMode(mappedFile, LibC.MADV_RANDOM);
+                    }
+                }
+                if (null == mappedFile) {
+                    log.error("create mapped file1 error, topic: " + msg.getTopic() + " clientAddr: " + msg.getBornHostString());
+                    beginTimeInLock = 0;
+                    return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.CREATE_MAPPED_FILE_FAILED, null));
+                }
+
+                result = mappedFile.appendMessage(msg, this.appendMessageCallback, putMessageContext);
+                switch (result.getStatus()) {
+                    case PUT_OK:
+                        onCommitLogAppend(msg, result, mappedFile);
+                        break;
+                    case END_OF_FILE:
+                        onCommitLogAppend(msg, result, mappedFile);
+                        unlockMappedFile = mappedFile;
+                        // Create a new file, re-write the message
+                        mappedFile = this.mappedFileQueue.getLastMappedFile(0);
+                        if (null == mappedFile) {
+                            // XXX: warn and notify me
+                            log.error("create mapped file2 error, topic: " + msg.getTopic() + " clientAddr: " + msg.getBornHostString());
+                            beginTimeInLock = 0;
+                            return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.CREATE_MAPPED_FILE_FAILED, result));
+                        }
+                        if (isCloseReadAhead()) {
+                            setFileReadMode(mappedFile, LibC.MADV_RANDOM);
+                        }
+                        result = mappedFile.appendMessage(msg, this.appendMessageCallback, putMessageContext);
+                        if (AppendMessageStatus.PUT_OK.equals(result.getStatus())) {
+                            onCommitLogAppend(msg, result, mappedFile);
+                        }
+                        break;
+                    case MESSAGE_SIZE_EXCEEDED:
+                    case PROPERTIES_SIZE_EXCEEDED:
+                        beginTimeInLock = 0;
+                        return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.MESSAGE_ILLEGAL, result));
+                    case UNKNOWN_ERROR:
+                    default:
+                        beginTimeInLock = 0;
+                        return CompletableFuture.completedFuture(new PutMessageResult(PutMessageStatus.UNKNOWN_ERROR, result));
+                }
+
+                elapsedTimeInLock = this.defaultMessageStore.getSystemClock().now() - beginLockTimestamp;
+                beginTimeInLock = 0;
+            } finally {
+                putMessageLock.unlock();
+            }
+            // Increase queue offset when messages are successfully written
+            if (AppendMessageStatus.PUT_OK.equals(result.getStatus())) {
+                this.defaultMessageStore.increaseOffset(msg, getMessageNum(msg));
+            }
+        } 
+        ... // catch finally
+        ... // log
+
+        if (null != unlockMappedFile && this.defaultMessageStore.getMessageStoreConfig().isWarmMapedFileEnable()) {
+            this.defaultMessageStore.unlockMappedFile(unlockMappedFile);
+        }
+
+        PutMessageResult putMessageResult = new PutMessageResult(PutMessageStatus.PUT_OK, result);
+        ... // 统计
+
+        return handleDiskFlushAndHA(putMessageResult, msg, needAckNums, needHandleHA);
     }
 }
 ```
