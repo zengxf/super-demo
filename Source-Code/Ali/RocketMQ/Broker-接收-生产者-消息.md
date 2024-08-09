@@ -71,7 +71,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
             if (sendTransactionPrepareMessage) {    // 事务方式存
                 asyncPutMessageFuture = this.brokerController.getTransactionalMessageService().asyncPrepareMessage(msgInner);
             } else {    // 进入此逻辑 (非事务存消息)
-                asyncPutMessageFuture = this.brokerController.getMessageStore().asyncPutMessage(msgInner);
+                asyncPutMessageFuture = this.brokerController.getMessageStore().asyncPutMessage(msgInner);  // 使用默认消息存储器保存，ref: sign_m_210
             }
 
             final int finalQueueIdInt = queueIdInt;
@@ -94,14 +94,16 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
 ## 存储
 - `org.apache.rocketmq.store.DefaultMessageStore`
 ```java
+// sign_c_210  默认消息存储器
 public class DefaultMessageStore implements MessageStore {
 
+    // sign_m_210  异步追加消息
     @Override
     public CompletableFuture<PutMessageResult> asyncPutMessage(MessageExtBrokerInner msg) {
         ... // 钩子前处理
         ... // check
 
-        CompletableFuture<PutMessageResult> putResultFuture = this.commitLog.asyncPutMessage(msg);
+        CompletableFuture<PutMessageResult> putResultFuture = this.commitLog.asyncPutMessage(msg);  // 进行日志记录，ref: sign_m_220
 
         putResultFuture.thenAccept(result -> {
             ... // 记录用时
@@ -115,8 +117,10 @@ public class DefaultMessageStore implements MessageStore {
 
 - `org.apache.rocketmq.store.CommitLog`
 ```java
+// sign_c_220  提交日志记录器
 public class CommitLog implements Swappable {
 
+    // sign_m_220  记录消息
     public CompletableFuture<PutMessageResult> asyncPutMessage(final MessageExtBrokerInner msg) {
         ... // 设置存储时间和内容 CRC32
         ... // 设置版本
@@ -129,7 +133,7 @@ public class CommitLog implements Swappable {
         updateMaxMessageSize(putMessageThreadLocal);
         String topicQueueKey = generateKey(..., msg);   // 格式: Topic-QueueId
         MappedFile unlockMappedFile = null;
-        MappedFile mappedFile = this.mappedFileQueue.getLastMappedFile();   // .../commitlog/00000000000000000000
+        MappedFile mappedFile = this.mappedFileQueue.getLastMappedFile();   // 日志文件，路径: .../commitlog/00000000000000000000
 
         long currOffset = 0;    // 写的偏移量
         if (mappedFile != null) {
@@ -150,7 +154,7 @@ public class CommitLog implements Swappable {
             msg.setEncodedBuff(putMessageThreadLocal.getEncoder().getEncoderBuffer());
             PutMessageContext putMessageContext = new PutMessageContext(topicQueueKey);
 
-            putMessageLock.lock(); //spin or ReentrantLock ,depending on store config
+            putMessageLock.lock();  // 加锁
             try {
                 long beginLockTimestamp = this.defaultMessageStore.getSystemClock().now();
                 this.beginTimeInLock = beginLockTimestamp;
@@ -159,7 +163,7 @@ public class CommitLog implements Swappable {
                 }
                 ... // check
 
-                result = mappedFile.appendMessage(msg, this.appendMessageCallback, putMessageContext);
+                result = mappedFile.appendMessage(msg, this.appendMessageCallback, putMessageContext);  // 追加消息，ref: sign_m_230
                 switch (result.getStatus()) {
                     case PUT_OK:
                         onCommitLogAppend(msg, result, mappedFile);
@@ -193,9 +197,10 @@ public class CommitLog implements Swappable {
 
 - `org.apache.rocketmq.store.logfile.DefaultMappedFile`
 ```java
-
+// sign_c_230  默认文件映射
 public class DefaultMappedFile extends AbstractMappedFile {
 
+    // sign_m_230  追加单条消息
     @Override
     public AppendMessageResult appendMessage(
         MessageExtBrokerInner msg, AppendMessageCallback cb, PutMessageContext putMessageContext
@@ -203,6 +208,7 @@ public class DefaultMappedFile extends AbstractMappedFile {
         return appendMessagesInner(msg, cb, putMessageContext);
     }
 
+    // sign_m_231  追加消息
     public AppendMessageResult appendMessagesInner(
         MessageExt messageExt,  AppendMessageCallback cb, PutMessageContext putMessageContext
     ) {
@@ -216,8 +222,8 @@ public class DefaultMappedFile extends AbstractMappedFile {
             AppendMessageResult result;
             if (messageExt instanceof MessageExtBatch && ...) {
                 ... // 批处理
-            } else if (messageExt instanceof MessageExtBrokerInner) {   // 单消息处理
-                result = cb.doAppend(
+            } else if (messageExt instanceof MessageExtBrokerInner) {       // 单消息处理
+                result = cb.doAppend(   // 回调处理，ref: sign_m_240
                     this.getFileFromOffset(), byteBuffer, this.fileSize - currentPos,
                     (MessageExtBrokerInner) messageExt, putMessageContext
                 );
@@ -235,8 +241,10 @@ public class DefaultMappedFile extends AbstractMappedFile {
 
 - `org.apache.rocketmq.store.CommitLog.DefaultAppendMessageCallback`
 ```java
+    // sign_c_240  消息追加回调 (CommitLog 内部类)
     class DefaultAppendMessageCallback implements AppendMessageCallback {
 
+        // sign_m_240  回调处理
         public AppendMessageResult doAppend(final long fileFromOffset, final ByteBuffer byteBuffer, final int maxBlank,
             final MessageExtBrokerInner msgInner, PutMessageContext putMessageContext) {
             // STORETIMESTAMP + STOREHOSTADDRESS + OFFSET <br>
