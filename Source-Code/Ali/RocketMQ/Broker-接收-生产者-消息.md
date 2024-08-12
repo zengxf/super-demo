@@ -250,102 +250,37 @@ public class DefaultMappedFile extends AbstractMappedFile {
             // STORETIMESTAMP + STOREHOSTADDRESS + OFFSET <br>
 
             ByteBuffer preEncodeBuffer = msgInner.getEncodedBuff();
-            boolean isMultiDispatchMsg = messageStoreConfig.isEnableMultiDispatch() && CommitLog.isMultiDispatchMsg(msgInner);
-            if (isMultiDispatchMsg) {
-                AppendMessageResult appendMessageResult = handlePropertiesForLmqMsg(preEncodeBuffer, msgInner);
-                if (appendMessageResult != null) {
-                    return appendMessageResult;
-                }
-            }
+            ... // 广播消息处理 (微消息队列 LMQ (Light MQ) - MQTT)
 
             final int msgLen = preEncodeBuffer.getInt(0);
             preEncodeBuffer.position(0);
             preEncodeBuffer.limit(msgLen);
-
-            // PHY OFFSET
-            long wroteOffset = fileFromOffset + byteBuffer.position();
+            ...
 
             Supplier<String> msgIdSupplier = () -> {
-                int sysflag = msgInner.getSysFlag();
-                int msgIdLen = (sysflag & MessageSysFlag.STOREHOSTADDRESS_V6_FLAG) == 0 ? 4 + 4 + 8 : 16 + 4 + 8;
                 ByteBuffer msgIdBuffer = ByteBuffer.allocate(msgIdLen);
-                MessageExt.socketAddress2ByteBuffer(msgInner.getStoreHost(), msgIdBuffer);
-                msgIdBuffer.clear();//because socketAddress2ByteBuffer flip the buffer
-                msgIdBuffer.putLong(msgIdLen - 8, wroteOffset);
+                ...
                 return UtilAll.bytes2string(msgIdBuffer.array());
             };
 
-            // Record ConsumeQueue information
+            // 记录消费队列信息
             Long queueOffset = msgInner.getQueueOffset();
-
             // this msg maybe an inner-batch msg.
             short messageNum = getMessageNum(msgInner);
 
-            // Transaction messages that require special handling
-            final int tranType = MessageSysFlag.getTransactionValue(msgInner.getSysFlag());
-            switch (tranType) {
-                // Prepared and Rollback message is not consumed, will not enter the consume queue
-                case MessageSysFlag.TRANSACTION_PREPARED_TYPE:
-                case MessageSysFlag.TRANSACTION_ROLLBACK_TYPE:
-                    queueOffset = 0L;
-                    break;
-                case MessageSysFlag.TRANSACTION_NOT_TYPE:
-                case MessageSysFlag.TRANSACTION_COMMIT_TYPE:
-                default:
-                    break;
-            }
+            ... // 事务消息处理
+            ... // 文件空闲空间判断处理 (超过 1G 则做其他处理)
+            ... // preEncodeBuffer 的其他特殊填充
 
-            // Determines whether there is sufficient free space
-            if ((msgLen + END_FILE_MIN_BLANK_LENGTH) > maxBlank) {
-                this.msgStoreItemMemory.clear();
-                // 1 TOTALSIZE
-                this.msgStoreItemMemory.putInt(maxBlank);
-                // 2 MAGICCODE
-                this.msgStoreItemMemory.putInt(CommitLog.BLANK_MAGIC_CODE);
-                // 3 The remaining space may be any value
-                // Here the length of the specially set maxBlank
-                final long beginTimeMills = CommitLog.this.defaultMessageStore.now();
-                byteBuffer.put(this.msgStoreItemMemory.array(), 0, 8);
-                return new AppendMessageResult(AppendMessageStatus.END_OF_FILE, wroteOffset,
-                    maxBlank, /* only wrote 8 bytes, but declare wrote maxBlank for compute write position */
-                    msgIdSupplier, msgInner.getStoreTimestamp(),
-                    queueOffset, CommitLog.this.defaultMessageStore.now() - beginTimeMills);
-            }
-
-            int pos = 4 + 4 + 4 + 4 + 4;
-            // 6 QUEUEOFFSET
-            preEncodeBuffer.putLong(pos, queueOffset);
-            pos += 8;
-            // 7 PHYSICALOFFSET
-            preEncodeBuffer.putLong(pos, fileFromOffset + byteBuffer.position());
-            int ipLen = (msgInner.getSysFlag() & MessageSysFlag.BORNHOST_V6_FLAG) == 0 ? 4 + 4 : 16 + 4;
-            // 8 SYSFLAG, 9 BORNTIMESTAMP, 10 BORNHOST, 11 STORETIMESTAMP
-            pos += 8 + 4 + 8 + ipLen;
-            // refresh store time stamp in lock
-            preEncodeBuffer.putLong(pos, msgInner.getStoreTimestamp());
-            if (enabledAppendPropCRC) {
-                // 18 CRC32
-                int checkSize = msgLen - crc32ReservedLength;
-                ByteBuffer tmpBuffer = preEncodeBuffer.duplicate();
-                tmpBuffer.limit(tmpBuffer.position() + checkSize);
-                int crc32 = UtilAll.crc32(tmpBuffer);
-                tmpBuffer.limit(tmpBuffer.position() + crc32ReservedLength);
-                MessageDecoder.createCrc32(tmpBuffer, crc32);
-            }
-
-            final long beginTimeMills = CommitLog.this.defaultMessageStore.now();
-            CommitLog.this.getMessageStore().getPerfCounter().startTick("WRITE_MEMORY_TIME_MS");
-            // Write messages to the queue buffer
-            byteBuffer.put(preEncodeBuffer);
-            CommitLog.this.getMessageStore().getPerfCounter().endTick("WRITE_MEMORY_TIME_MS");
+            ...
+            byteBuffer.put(preEncodeBuffer);    // 追加到目标 buf
             msgInner.setEncodedBuff(null);
+            ...
 
-            if (isMultiDispatchMsg) {
-                CommitLog.this.multiDispatch.updateMultiQueueOffset(msgInner);
-            }
-
-            return new AppendMessageResult(AppendMessageStatus.PUT_OK, wroteOffset, msgLen, msgIdSupplier,
-                msgInner.getStoreTimestamp(), queueOffset, CommitLog.this.defaultMessageStore.now() - beginTimeMills, messageNum);
+            return new AppendMessageResult(
+                AppendMessageStatus.PUT_OK, ..., msgIdSupplier,
+                ..., queueOffset, ..., messageNum
+            );
         }
     }
 ```
