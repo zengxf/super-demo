@@ -112,6 +112,12 @@ public class DefaultMessageStore implements MessageStore {
 
         return putResultFuture;
     }
+
+    // sign_m_211  提交日志追加
+    @Override
+    public void onCommitLogAppend(MessageExtBrokerInner msg, AppendMessageResult result, MappedFile commitLogFile) {
+        // empty
+    }
 }
 ```
 
@@ -163,22 +169,20 @@ public class CommitLog implements Swappable {
                 }
                 ... // check
 
-                result = mappedFile.appendMessage(msg, this.appendMessageCallback, putMessageContext);  // 追加消息，ref: sign_m_230
+                result = mappedFile.appendMessage(msg, this.appendMessageCallback, putMessageContext);  // 追加消息 (只是到内存)，ref: sign_m_230
                 switch (result.getStatus()) {
                     case PUT_OK:
-                        onCommitLogAppend(msg, result, mappedFile);
+                        onCommitLogAppend(msg, result, mappedFile); // 追加消息，ref: sign_m_221
                         break;
                     ... // END_OF_FILE:
                     ... // 其他异常处理
                 }
                 ...
 
-            } ... // finally
-
-            // Increase queue offset when messages are successfully written
-            if (AppendMessageStatus.PUT_OK.equals(result.getStatus())) {
-                this.defaultMessageStore.increaseOffset(msg, getMessageNum(msg));
             }
+            ... // finally
+
+            ... // 消息成功写入后增加队列偏移量
         } 
         ... // catch finally
         ... // log
@@ -190,8 +194,35 @@ public class CommitLog implements Swappable {
         PutMessageResult putMessageResult = new PutMessageResult(PutMessageStatus.PUT_OK, result);
         ... // 统计
 
-        return handleDiskFlushAndHA(putMessageResult, msg, needAckNums, needHandleHA);
+        return handleDiskFlushAndHA(putMessageResult, msg, needAckNums, needHandleHA);  // 刷新到磁盘，ref: sign_m_222
     }
+
+    // sign_m_221  追加消息
+    protected void onCommitLogAppend(MessageExtBrokerInner msg, AppendMessageResult result, MappedFile commitLogFile) {
+        this.getMessageStore().onCommitLogAppend(msg, result, commitLogFile);       // 提交日志追加 (空实现)，ref: sign_m_211
+    }
+
+    // sign_m_222  刷新到磁盘 (并做 HA 处理)
+    private CompletableFuture<PutMessageResult> handleDiskFlushAndHA(PutMessageResult putMessageResult, MessageExt messageExt, ...) {
+        CompletableFuture<PutMessageStatus> flushResultFuture = handleDiskFlush(    // 刷新到磁盘，ref: sign_m_223
+            putMessageResult.getAppendMessageResult(), messageExt
+        );
+        CompletableFuture<PutMessageStatus> replicaResultFuture;
+        if (!needHandleHA) {    // 不需 HA，直接返回 OK
+            replicaResultFuture = CompletableFuture.completedFuture(PutMessageStatus.PUT_OK);
+        } ...   // else
+
+        return flushResultFuture.thenCombine(replicaResultFuture, (flushStatus, replicaStatus) -> {
+            ... // 组合结果状态 (只要一个不是 OK，就返回异常状态)
+            return putMessageResult;
+        });
+    }
+
+    // sign_m_223  刷新到磁盘
+    private CompletableFuture<PutMessageStatus> handleDiskFlush(AppendMessageResult result, MessageExt messageExt) {
+        return this.flushManager.handleDiskFlush(result, messageExt);   // 磁盘刷新，ref: sign_m_250
+    }
+
 }
 ```
 
@@ -278,9 +309,140 @@ public class DefaultMappedFile extends AbstractMappedFile {
             ...
 
             return new AppendMessageResult(
-                AppendMessageStatus.PUT_OK, ..., msgIdSupplier,
-                ..., queueOffset, ..., messageNum
+                AppendMessageStatus.PUT_OK, ..., msgIdSupplier, ..., queueOffset, ..., messageNum
             );
         }
     }
+```
+
+- `org.apache.rocketmq.store.CommitLog.DefaultFlushManager`
+```java
+    // sign_c_250  刷新管理器 (CommitLog 内部类)
+    class DefaultFlushManager implements FlushManager {
+
+        // sign_m_250  磁盘刷新
+        @Override
+        public CompletableFuture<PutMessageStatus> handleDiskFlush(AppendMessageResult result, MessageExt messageExt) {
+            if (FlushDiskType.SYNC_FLUSH == ... .defaultMessageStore.getMessageStoreConfig().getFlushDiskType()) {
+                ... // 同步刷新
+            }
+            else {  // 异步刷新
+                if (!CommitLog.this.defaultMessageStore.isTransientStorePoolEnable()) { // 非事务存储
+                    flushCommitLogService.wakeup(); // 实例类为 CommitLog.FlushRealTimeService, ref: sign_c_260 | sign_m_260
+                }  ... // else
+                return CompletableFuture.completedFuture(PutMessageStatus.PUT_OK);
+            }
+        }
+    }
+```
+
+- `org.apache.rocketmq.store.CommitLog.FlushRealTimeService`
+```java
+    // sign_c_260  实时刷新磁盘线程
+    class FlushRealTimeService extends FlushCommitLogService {  // FlushCommitLogService extends ServiceThread, 相当于线程
+
+        // sign_m_260  (刷新磁盘) 线程执行体
+        @Override
+        public void run() {
+            while (!this.isStopped()) {
+                ...
+
+                try {
+                    ...
+
+                    CommitLog.this.mappedFileQueue.flush(flushPhysicQueueLeastPages);   // 刷新，ref: sign_m_310
+                    ... // 记录 (物理) 时间戳、打印
+
+                } ...   // catch
+            }
+
+            ... // 关机时再刷新下处理
+        }
+    }
+```
+
+
+## 持久化
+- `org.apache.rocketmq.store.MappedFileQueue`
+```java
+// sign_c_310  文件队列
+public class MappedFileQueue implements Swappable {
+
+    // sign_m_310  刷新
+    public boolean flush(final int flushLeastPages) {
+        boolean result = true;
+        MappedFile mappedFile = this.findMappedFileByOffset(...);   // 查找目标写入文件，ref: sign_m_311
+        if (mappedFile != null) {
+            int offset = mappedFile.flush(flushLeastPages);         // 刷新文件，ref: sign_m_320
+            ...
+        }
+
+        return result;
+    }
+
+    // sign_m_311  查找目标写入文件
+    public MappedFile findMappedFileByOffset(final long offset, final boolean returnFirstOnNotFound) {
+        try {
+            MappedFile firstMappedFile = this.getFirstMappedFile();
+            MappedFile lastMappedFile = this.getLastMappedFile();
+            if (firstMappedFile != null && lastMappedFile != null) {
+                if (offset < firstMappedFile.getFileFromOffset() || ...) {
+                    ... // log
+                } else {
+                    int index = (int) ((offset / this.mappedFileSize) - (... /* = 0 */ ));   // = 0
+                    MappedFile targetFile = ... this.mappedFiles.get(index);
+
+                    if (targetFile != null && offset >= targetFile.getFileFromOffset()
+                        && offset < targetFile.getFileFromOffset() + this.mappedFileSize
+                    ) { // 偏移量在文件范围内
+                        return targetFile;  // 返回当前文件
+                    }
+                    ...
+                }
+                ...
+            }
+        } ... // catch
+
+        return null;
+    }
+}
+```
+
+- `org.apache.rocketmq.store.logfile.DefaultMappedFile`
+```java
+// sign_c_320  映射文件
+public class DefaultMappedFile extends AbstractMappedFile {
+    protected String fileName;  // = "$\store\commitlog\00000000000000000000"
+    protected MappedByteBuffer mappedByteBuffer;
+
+    private void init(final String fileName, final int fileSize) throws ... {
+        ...
+        try {
+            this.fileChannel = new RandomAccessFile(this.file, "rw").getChannel();
+            this.mappedByteBuffer = this.fileChannel.map(MapMode.READ_WRITE, 0, fileSize);  // 直接做了映射 (fileSize = 1G)
+        }
+        ...
+    }
+
+
+    // sign_m_320  刷新文件
+    @Override
+    public int flush(final int flushLeastPages) {
+        if (this.isAbleToFlush(flushLeastPages)) {
+            if (this.hold()) {
+                ...
+                try {
+                    if (writeBuffer != null || this.fileChannel.position() != 0) {
+                    } else {                            // writeBuffer 为 null, 进入此逻辑
+                        this.mappedByteBuffer.force();  // 强制刷新到磁盘
+                    }
+                    this.lastFlushTime = System.currentTimeMillis();    // 记录时间
+                }
+                ...
+            } 
+            ... // else
+        }
+        return this.getFlushedPosition();
+    }
+}
 ```
