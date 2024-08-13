@@ -71,7 +71,8 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
             if (sendTransactionPrepareMessage) {    // 事务方式存
                 asyncPutMessageFuture = this.brokerController.getTransactionalMessageService().asyncPrepareMessage(msgInner);
             } else {    // 进入此逻辑 (非事务存消息)
-                asyncPutMessageFuture = this.brokerController.getMessageStore().asyncPutMessage(msgInner);  // 使用默认消息存储器保存，ref: sign_m_210
+                //         使用默认消息存储器保存，ref: sign_m_210
+                asyncPutMessageFuture = this.brokerController.getMessageStore().asyncPutMessage(msgInner);
             }
 
             final int finalQueueIdInt = queueIdInt;
@@ -247,7 +248,7 @@ public class DefaultMappedFile extends AbstractMappedFile {
         int currentPos = WROTE_POSITION_UPDATER.get(this);
 
         if (currentPos < this.fileSize) {
-            ByteBuffer byteBuffer = appendMessageBuffer().slice();  // 文件的映射 buffer
+            ByteBuffer byteBuffer = appendMessageBuffer().slice();  // 使用文件映射 Buffer, ref: sign_m_232
             byteBuffer.position(currentPos);                        // 设置要追加的位置
 
             AppendMessageResult result;
@@ -266,6 +267,12 @@ public class DefaultMappedFile extends AbstractMappedFile {
 
         ... // 返回错误标识
     }
+    
+    // sign_m_232  查找用于追加消息的 Buf
+    protected ByteBuffer appendMessageBuffer() {
+        ...
+        return writeBuffer != null ? writeBuffer : this.mappedByteBuffer;   // writeBuffer 为 null，返回 mappedByteBuffer
+    }
 
 }
 ```
@@ -276,9 +283,10 @@ public class DefaultMappedFile extends AbstractMappedFile {
     class DefaultAppendMessageCallback implements AppendMessageCallback {
 
         // sign_m_240  回调处理
-        public AppendMessageResult doAppend(final long fileFromOffset, final ByteBuffer byteBuffer, final int maxBlank,
-            final MessageExtBrokerInner msgInner, PutMessageContext putMessageContext) {
-            // STORETIMESTAMP + STOREHOSTADDRESS + OFFSET <br>
+        public AppendMessageResult doAppend(
+            ..., final ByteBuffer byteBuffer, 
+            ..., final MessageExtBrokerInner msgInner, ...
+        ) {
 
             ByteBuffer preEncodeBuffer = msgInner.getEncodedBuff();
             ... // 广播消息处理 (微消息队列 LMQ (Light MQ) - MQTT)
@@ -446,3 +454,9 @@ public class DefaultMappedFile extends AbstractMappedFile {
     }
 }
 ```
+
+
+---
+## 总结
+- 保存消息，是直接用映射 Buffer 的切片(`slice`)进行保存，参考：`sign_m_231`
+- 单独线程实时刷新到磁盘(`force`)，参考：`sign_m_260 | sign_m_320`
