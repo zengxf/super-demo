@@ -33,10 +33,11 @@ http {
         server_name  localhost;     # zxf68.fa
         
         root  html;
+        # root  html/dist;  # 也可直接用相对路径
         # root  D:/Install/Web/nginx-1.26.2/html/dist;
 
         location / {
-            try_files $uri /index.html; # 支持 React 路由，否则会出错 404
+            try_files $uri /index.html; # 用于支持 React 路由，否则 404
         }
     }
 } # http end
