@@ -1,4 +1,4 @@
-# Arhtas 实战
+# Arhtas-实践
 
 ## ref
 - **快速入门** https://arthas.aliyun.com/doc/quick-start.html
@@ -155,6 +155,18 @@ mapped - 'non-volatile memory'                     0K               0K          
 - cmd `ognl -x 3 '@test.utils.UserUtils@getUsers(1, "xx-")'`
 ![x](https://s1.ax1x.com/2023/05/08/p9wjvgs.png)
 ```js
+// 设置静态变量
+ognl -x 3 '#field=@xx.UseTimeStats@class.getDeclaredField("ENABLE"),#field.set(null,true)'
+/*
+    若执行 ognl 表达式，出现 ClassNotFoundException
+    参考: https://blog.csdn.net/w605283073/article/details/106535170
+*/
+// 查找 ClassLoader
+sc -d com.kyexpress.ims.site.provider.utils.stats.UseTimeStats
+// 找到 classLoaderHash，如： classLoaderHash 41a2befb ，则用 -c 参数设置后再试
+ognl -c 41a2befb -x 3 '#field=@xx.UseTimeStats@class.getDeclaredField("ENABLE"),#field.set(null,true)'
+
+
 // 调用静态函数
 [arthas@23600]$ ognl '@java.lang.System@out.println("hello")'
 null
