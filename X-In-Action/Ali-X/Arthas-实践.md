@@ -162,7 +162,7 @@ ognl -x 3 '#field=@xx.UseTimeStats@class.getDeclaredField("ENABLE"),#field.set(n
     参考: https://blog.csdn.net/w605283073/article/details/106535170
 */
 // 查找 ClassLoader
-sc -d com.kyexpress.ims.site.provider.utils.stats.UseTimeStats
+sc -d ...stats.UseTimeStats
 // 找到 classLoaderHash，如： classLoaderHash 41a2befb ，则用 -c 参数设置后再试
 ognl -c 41a2befb -x 3 '#field=@xx.UseTimeStats@class.getDeclaredField("ENABLE"),#field.set(null,true)'
 
