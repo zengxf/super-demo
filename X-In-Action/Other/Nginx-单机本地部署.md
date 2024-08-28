@@ -20,24 +20,29 @@ events {
 }
 
 http {
-    include       mime.types;
-    default_type  application/octet-stream;
+    include             mime.types;
+    default_type        application/octet-stream;
 
     sendfile            on;
     keepalive_timeout   65;
-    #gzip  on;
+    gzip                on;
 
     # http://localhost/  或  http://zxf68.fa:888/ 
     server {
-        listen       80;            # 888
-        server_name  localhost;     # zxf68.fa
+        listen          80;            # 888
+        server_name     localhost;     # zxf68.fa
         
         root  html;
-        # root  html/dist;  # 也可直接用相对路径
-        # root  D:/Install/Web/nginx-1.26.2/html/dist;
+        # root  html/dist;                              # 也可直接用相对路径
+        # root  D:/Install/Web/nginx-1.26.2/html/dist;  # 或绝对路径
 
         location / {
-            try_files $uri /index.html; # 用于支持 React 路由，否则 404
+            try_files $uri /index.html;   # 用于支持 React 路由，否则 404
+        }
+        location ~ ^/api/ {
+            proxy_pass         http://localhost:8899;
+            proxy_set_header   Host             $host;
+            proxy_set_header   X-Real-IP        $remote_addr;
         }
     }
 } # http end
