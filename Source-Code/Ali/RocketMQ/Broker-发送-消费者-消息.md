@@ -81,18 +81,18 @@ public class PullMessageProcessor implements NettyRequestProcessor {
 
         GetMessageResult getMessageResult = null;
         if (useResetOffsetFeature && null != resetOffset) { ... // 不进入此，略
-        } else {    // 进入此逻辑
-            long broadcastInitOffset = queryBroadcastPullInitOffset(topic, group, queueId, requestHeader, channel);         // -1
+        } else {        // 进入此逻辑
+            long broadcastInitOffset = queryBroadcastPullInitOffset(topic, group, queueId, requestHeader, channel);         // = -1
             if (broadcastInitOffset >= 0) { ... // 不进入此，略
-            } else {
+            } else {    // 进入此
                 SubscriptionData finalSubscriptionData = subscriptionData;
                 RemotingCommand finalResponse = response;
                 messageStore
-                    .getMessageAsync(group, topic, queueId, requestHeader.getQueueOffset(), ...)    // 异步获取消息 TODO
+                    .getMessageAsync(group, topic, queueId, requestHeader.getQueueOffset(), ...)    // 异步获取消息，ref: sign_m_120
                     .thenApply(result -> {
                         ... // 校验 result
                         brokerController.getColdDataCgCtrService().coldAcc(...);
-                        return pullMessageResultHandler.handle(                                     // 处理拉取 TODO
+                        return pullMessageResultHandler.handle(                                     // 处理拉取的消息，ref: sign_m_130
                             result, request, requestHeader, channel, ...
                         );
                     })
@@ -109,7 +109,10 @@ public class PullMessageProcessor implements NettyRequestProcessor {
 
 - `org.apache.rocketmq.store.DefaultMessageStore`
 ```java
+// sign_c_120  消息存储
 public class DefaultMessageStore implements MessageStore {
+
+    // sign_m_120  异步获取消息
     @Override
     public CompletableFuture<GetMessageResult> getMessageAsync(
         String group, String topic, int queueId, long offset, ...
@@ -123,99 +126,20 @@ public class DefaultMessageStore implements MessageStore {
 
 - `org.apache.rocketmq.broker.processor.DefaultPullMessageResultHandler`
 ```java
+// sign_c_130  消息拉取处理器
 public class DefaultPullMessageResultHandler implements PullMessageResultHandler {
 
+    // sign_m_130  拉取的消息处理
     @Override
-    public RemotingCommand handle(final GetMessageResult getMessageResult,
-        final RemotingCommand request,
-        final PullMessageRequestHeader requestHeader,
+    public RemotingCommand handle(
         final Channel channel,
-        final SubscriptionData subscriptionData,
-        final SubscriptionGroupConfig subscriptionGroupConfig,
-        final boolean brokerAllowSuspend,
-        final MessageFilter messageFilter,
         RemotingCommand response,
-        TopicQueueMappingContext mappingContext,
-        long beginTimeMills
+        ...
     ) {
-        PullMessageProcessor processor = brokerController.getPullMessageProcessor();
-        final String clientAddress = RemotingHelper.parseChannelRemoteAddr(channel);
-        TopicConfig topicConfig = this.brokerController.getTopicConfigManager().selectTopicConfig(requestHeader.getTopic());
-        processor.composeResponseHeader(requestHeader, getMessageResult, topicConfig.getTopicSysFlag(),
-            subscriptionGroupConfig, response, clientAddress);
-        try {
-            processor.executeConsumeMessageHookBefore(request, requestHeader, getMessageResult, brokerAllowSuspend, response.getCode());
-        } ... // catch
-
-        //rewrite the response for the static topic
-        final PullMessageResponseHeader responseHeader = (PullMessageResponseHeader) response.readCustomHeader();
-        RemotingCommand rewriteResult = processor.rewriteResponseForStaticTopic(requestHeader, responseHeader, mappingContext, response.getCode());
-        if (rewriteResult != null) {
-            response = rewriteResult;
-        }
-
-        processor.updateBroadcastPulledOffset(requestHeader.getTopic(), requestHeader.getConsumerGroup(),
-            requestHeader.getQueueId(), requestHeader, channel, response, getMessageResult.getNextBeginOffset());
-        processor.tryCommitOffset(brokerAllowSuspend, requestHeader, getMessageResult.getNextBeginOffset(),
-            clientAddress);
+        ...
 
         switch (response.getCode()) {
-            case ResponseCode.SUCCESS:
-                this.brokerController.getBrokerStatsManager().incGroupGetNums(requestHeader.getConsumerGroup(), requestHeader.getTopic(),
-                    getMessageResult.getMessageCount());
-
-                this.brokerController.getBrokerStatsManager().incGroupGetSize(requestHeader.getConsumerGroup(), requestHeader.getTopic(),
-                    getMessageResult.getBufferTotalSize());
-
-                this.brokerController.getBrokerStatsManager().incBrokerGetNums(requestHeader.getTopic(), getMessageResult.getMessageCount());
-
-                if (!BrokerMetricsManager.isRetryOrDlqTopic(requestHeader.getTopic())) {
-                    Attributes attributes = BrokerMetricsManager.newAttributesBuilder()
-                        .put(LABEL_TOPIC, requestHeader.getTopic())
-                        .put(LABEL_CONSUMER_GROUP, requestHeader.getConsumerGroup())
-                        .put(LABEL_IS_SYSTEM, TopicValidator.isSystemTopic(requestHeader.getTopic()) || MixAll.isSysConsumerGroup(requestHeader.getConsumerGroup()))
-                        .build();
-                    BrokerMetricsManager.messagesOutTotal.add(getMessageResult.getMessageCount(), attributes);
-                    BrokerMetricsManager.throughputOutTotal.add(getMessageResult.getBufferTotalSize(), attributes);
-                }
-
-                if (!channelIsWritable(channel, requestHeader)) {
-                    getMessageResult.release();
-                    //ignore pull request
-                    return null;
-                }
-
-                if (this.brokerController.getBrokerConfig().isTransferMsgByHeap()) {
-                    final byte[] r = this.readGetMessageResult(getMessageResult, requestHeader.getConsumerGroup(), requestHeader.getTopic(), requestHeader.getQueueId());
-                    this.brokerController.getBrokerStatsManager().incGroupGetLatency(requestHeader.getConsumerGroup(),
-                        requestHeader.getTopic(), requestHeader.getQueueId(),
-                        (int) (this.brokerController.getMessageStore().now() - beginTimeMills));
-                    response.setBody(r);
-                    return response;
-                } else {
-                    try {
-                        FileRegion fileRegion =
-                            new ManyMessageTransfer(response.encodeHeader(getMessageResult.getBufferTotalSize()), getMessageResult);
-                        RemotingCommand finalResponse = response;
-                        channel.writeAndFlush(fileRegion)
-                            .addListener((ChannelFutureListener) future -> {
-                                getMessageResult.release();
-                                Attributes attributes = RemotingMetricsManager.newAttributesBuilder()
-                                    .put(LABEL_REQUEST_CODE, RemotingHelper.getRequestCodeDesc(request.getCode()))
-                                    .put(LABEL_RESPONSE_CODE, RemotingHelper.getResponseCodeDesc(finalResponse.getCode()))
-                                    .put(LABEL_RESULT, RemotingMetricsManager.getWriteAndFlushResult(future))
-                                    .build();
-                                RemotingMetricsManager.rpcLatency.record(request.getProcessTimer().elapsed(TimeUnit.MILLISECONDS), attributes);
-                                if (!future.isSuccess()) {
-                                    log.error("Fail to transfer messages from page cache to {}", channel.remoteAddress(), future.cause());
-                                }
-                            });
-                    } catch (Throwable e) {
-                        log.error("Error occurred when transferring messages from page cache", e);
-                        getMessageResult.release();
-                    }
-                    return null;
-                }
+            ... // case ResponseCode.SUCCESS:
             ... // PULL_NOT_FOUND:
             ... // PULL_RETRY_IMMEDIATELY:
             ... // PULL_OFFSET_MOVED:
