@@ -1,9 +1,9 @@
-# RocketMQ-Broker-发送-消费者-消息
+# RocketMQ-Broker-发送-消费者-Pull-消息
 
 
 ---
 ## 参考
-- 客户端收消息参考：[客户端-消费者-收消息#拉消息 sign_c_340](./客户端-消费者-收消息.md#拉消息)
+- 客户端收消息参考：[客户端-消费者-Push-收消息#拉消息 sign_c_340](./客户端-消费者-Push-收消息.md#拉消息)
 - 处理器注册参考：[Broker-启动#初始化控制器 sign_m_125](./Broker-启动.md#初始化控制器)
 
 
@@ -118,7 +118,7 @@ public class DefaultMessageStore implements MessageStore {
         String group, String topic, int queueId, long offset, ...
     ) {
         return CompletableFuture.completedFuture(
-            getMessage(group, topic, queueId, offset, ...)
+            getMessage(group, topic, queueId, offset, ...)  // 提取消息 (关键点)
         );
     }
 }

@@ -1,4 +1,4 @@
-# RocketMQ-客户端-消费者-收消息
+# RocketMQ-客户端-消费者-Push-收消息
 
 
 ---
@@ -543,4 +543,4 @@ public class ConsumeMessageConcurrentlyService implements ConsumeMessageService 
 ## 总结
 - 主动拉数据，发送请求是：`RequestCode.PULL_MESSAGE (11)` (参考: sign_m_340)
   - Broker 对应的处理器为: `PullMessageProcessor`
-  - 参考：[Broker-发送-消费者-消息#处理 sign_m_110](./Broker-发送-消费者-消息.md#处理)
+  - 参考：[Broker-发送-消费者-Pull-消息#处理 sign_m_110](./Broker-发送-消费者-Pull-消息.md#处理)
