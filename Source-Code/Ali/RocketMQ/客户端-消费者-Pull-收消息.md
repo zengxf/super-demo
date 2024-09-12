@@ -24,7 +24,7 @@ public class Consumer3 {
         System.out.printf("Consumer Started. %n");
 
         for (int i = 0; i < 2; i++) {
-            List<MessageExt> msgList = consumer.poll();
+            List<MessageExt> msgList = consumer.poll(); // 轮询拉消息，ref: sign_m_310
             String msg = msgList.stream()
                     .map(item -> String.format("  msg-item: [%s]. %n", new String(item.getBody())))
                     .collect(Collectors.joining());
@@ -157,5 +157,59 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
         ...
     }
 
+}
+```
+
+
+---
+## 轮询
+- `org.apache.rocketmq.client.consumer.DefaultLitePullConsumer`
+```java
+// sign_c_310
+public class DefaultLitePullConsumer extends ClientConfig implements LitePullConsumer {
+
+    // sign_m_310  轮询消息
+    @Override
+    public List<MessageExt> poll() {
+        return defaultLitePullConsumerImpl.poll(    // 轮询消息，ref: sign_m_320
+            this.getPollTimeoutMillis()             // 5s
+        );
+    }
+}
+```
+
+- `org.apache.rocketmq.client.impl.consumer.DefaultLitePullConsumerImpl`
+```java
+// sign_c_320
+public class DefaultLitePullConsumerImpl implements MQConsumerInner {
+
+    // sign_m_320   限时轮询消息
+    public synchronized List<MessageExt> poll(long timeout) {
+        try {
+            ... // check
+
+            if (defaultLitePullConsumer.isAutoCommit()) {
+                maybeAutoCommit();  // 记录消费偏移量
+            }
+
+            long endTime = System.currentTimeMillis() + timeout;
+            ConsumeRequest consumeRequest = consumeRequestCache.poll(   // JUC 队列，数据来自定时任务，ref: 
+                endTime - System.currentTimeMillis(), TimeUnit.MILLISECONDS
+            );
+            ...
+
+            if (consumeRequest != null && !consumeRequest.getProcessQueue().isDropped()) {
+                List<MessageExt> messages = consumeRequest.getMessageExts();    // 获取请求里面的消息
+                
+                ... // 偏移量和其他处理
+                ... // 钩子处理
+
+                consumeRequest.getProcessQueue().setLastConsumeTimestamp(System.currentTimeMillis());
+                return messages;
+            }
+        } ... // catch
+        
+        return Collections.emptyList();
+    }
 }
 ```
