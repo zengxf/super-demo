@@ -193,7 +193,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
             }
 
             long endTime = System.currentTimeMillis() + timeout;
-            ConsumeRequest consumeRequest = consumeRequestCache.poll(   // JUC 队列，数据来自定时任务，ref: sign_m_314
+            ConsumeRequest consumeRequest = consumeRequestCache.poll(   // JUC 队列，数据来自定时任务，ref: sign_m_414
                 endTime - System.currentTimeMillis(), TimeUnit.MILLISECONDS
             );
             ...
@@ -216,8 +216,8 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
 
 
 ---
-## 定时拉取任务
-- 启动
+## 拉取
+- 定时拉取任务启动
   - 负载均衡处理任务启动时，会调用客户端实例做尝试处理
   - 队列变更时，调用相应的监听器进行处理
   - 监听器处理时，会启动拉取任务 (ref: `sign_c_420`)
@@ -226,7 +226,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
 // new RuntimeException("定时拉取任务启动调用栈").printStackTrace();
 
 java.lang.RuntimeException: 定时拉取任务启动调用栈
-	at *.consumer.DefaultLitePullConsumerImpl.startPullTask(DefaultLitePullConsumerImpl.java:446)   // ref: sign_m_310
+	at *.consumer.DefaultLitePullConsumerImpl.startPullTask(DefaultLitePullConsumerImpl.java:446)   // ref: sign_m_410
 	at *.consumer.DefaultLitePullConsumerImpl.updatePullTask(DefaultLitePullConsumerImpl.java:237)
 	at *.consumer.DefaultLitePullConsumerImpl.updateAssignQueueAndStartPullTask(DefaultLitePullConsumerImpl.java:256)
 	at *.consumer.DefaultLitePullConsumerImpl$MessageQueueListenerImpl.messageQueueChanged(DefaultLitePullConsumerImpl.java:243)
@@ -244,7 +244,7 @@ java.lang.RuntimeException: 定时拉取任务启动调用栈
 // sign_c_410
 public class DefaultLitePullConsumerImpl implements MQConsumerInner {
 
-    // sign_m_410
+    // sign_m_410  启动拉取任务
     private void startPullTask(Collection<MessageQueue> mqSet) {
         for (MessageQueue messageQueue : mqSet) {
             if (!this.taskTable.containsKey(messageQueue)) {
@@ -255,14 +255,14 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
         }
     }
 
-    // sign_m_411
+    // sign_m_411  拉取消息
     private PullResult pull(MessageQueue mq, SubscriptionData subscriptionData, long offset, int maxNums) throws ... {
-        return pull(mq, subscriptionData, offset, maxNums, this.defaultLitePullConsumer.getConsumerPullTimeoutMillis());    // ref: sign_m_312
+        return pull(mq, subscriptionData, offset, maxNums, this.defaultLitePullConsumer.getConsumerPullTimeoutMillis());    // ref: sign_m_412
     }
 
     // sign_m_412
     private PullResult pull(MessageQueue mq, SubscriptionData subscriptionData, long offset, int maxNums, long timeout) throws ... {
-        return this.pullSyncImpl(mq, subscriptionData, offset, maxNums, true, timeout); // ref: sign_m_313
+        return this.pullSyncImpl(mq, subscriptionData, offset, maxNums, true, timeout); // ref: sign_m_413
     }
 
     // sign_m_413
@@ -273,7 +273,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
         ... // check
         ...
 
-        PullResult pullResult = this.pullAPIWrapper.pullKernelImpl(
+        PullResult pullResult = this.pullAPIWrapper.pullKernelImpl( // 拉取，ref: sign_m_430
             mq, ..., CommunicationMode.SYNC, null
         );
         this.pullAPIWrapper.processPullResult(mq, pullResult, subscriptionData);
@@ -321,7 +321,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
                         subscriptionData = rebalanceImpl.getSubscriptionInner().get(topic);
                     } ... // else
 
-                    PullResult pullResult = pull(   // 拉取数据，ref: sign_m_311
+                    PullResult pullResult = pull(   // 拉取数据，ref: sign_m_411
                         messageQueue, subscriptionData, offset, defaultLitePullConsumer.getPullBatchSize()
                     );
                     ...
@@ -332,7 +332,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
                             synchronized (objLock) {
                                 if (pullResult.getMsgFoundList() != null && !... .isEmpty() && ...) {
                                     ...
-                                    // 提交请求 (相当于记录拉取的消息). ref: sign_m_314
+                                    // 提交请求 (相当于记录拉取的消息). ref: sign_m_414
                                     submitConsumeRequest(new ConsumeRequest(pullResult.getMsgFoundList(), ...));
                                 }
                             }
@@ -350,3 +350,93 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
         }
     }
 ```
+
+- `org.apache.rocketmq.client.impl.consumer.PullAPIWrapper`
+```java
+// sign_c_430
+public class PullAPIWrapper {
+    
+    // sign_m_430  拉取
+    public PullResult pullKernelImpl(MessageQueue mq, ..., Integer.MAX_VALUE, ...) throws ... {
+        return pullKernelImpl(mq, ...); // ref: sign_m_431
+    }
+
+    // sign_m_431  拉取
+    public PullResult pullKernelImpl(final MessageQueue mq, ..., final int maxSizeInBytes, ... ) throws ... {
+        FindBrokerResult findBrokerResult = this.mQClientFactory.findBrokerAddressInSubscribe(...);
+        ...
+
+        if (findBrokerResult != null) {
+            ... // check
+            ...
+
+            PullMessageRequestHeader requestHeader = new PullMessageRequestHeader();
+            requestHeader.setConsumerGroup(this.consumerGroup);
+            requestHeader.setTopic(mq.getTopic());
+            requestHeader.setQueueId(mq.getQueueId());
+            ...
+
+            String brokerAddr = findBrokerResult.getBrokerAddr();
+            ...
+
+            PullResult pullResult = this.mQClientFactory.getMQClientAPIImpl().pullMessage(  // 拉消息，ref: sign_m_440
+                brokerAddr, requestHeader, ...
+            );
+
+            return pullResult;
+        }
+
+        throw new MQClientException(...);
+    }
+}
+```
+
+- `org.apache.rocketmq.client.impl.MQClientAPIImpl`
+  - Broker 处理器注册参考：[Broker-启动#初始化控制器 sign_m_125](./Broker-启动.md#初始化控制器)
+  - 发送请求参考：[Admin-命令工具#连接并发送命令 sign_m_440](./Admin-命令工具.md#连接并发送命令)
+```java
+// sign_c_440
+public class MQClientAPIImpl implements NameServerUpdateCallback {
+
+    // sign_m_440  拉消息
+    public PullResult pullMessage(
+        String addr, ..., CommunicationMode communicationMode, ...
+    ) throws ... {
+        RemotingCommand request;
+        if (PullSysFlag.hasLitePullFlag(requestHeader.getSysFlag())) {
+            /*
+                Broker 处理器注册参考：[Broker-启动#初始化控制器 sign_m_125]
+                LITE_PULL_MESSAGE (361) 对应的处理器为: PullMessageProcessor
+            */
+            request = RemotingCommand.createRequestCommand(RequestCode.LITE_PULL_MESSAGE, requestHeader);
+        } ...
+
+        switch (communicationMode) {
+            case SYNC:
+                return this.pullMessageSync(addr, request, timeoutMillis);  // 发送拉取请求，ref: sign_m_441
+            ... // ONEWAY:
+            ... // ASYNC:
+            ... // default:
+        }
+
+        return null;
+    }
+
+    // sign_m_441  发送拉取请求
+    private PullResult pullMessageSync(
+        String addr, RemotingCommand request, long timeoutMillis
+    ) throws ... {
+        // 同步方式发起 Netty 请求，参考：[Admin-命令工具#连接并发送命令 sign_m_440]
+        RemotingCommand response = this.remotingClient.invokeSync(addr, request, timeoutMillis);
+        assert response != null;
+        return this.processPullResponse(response, addr);
+    }
+}
+```
+
+
+---
+## 总结
+- 主动拉数据，发送请求是：`RequestCode.LITE_PULL_MESSAGE (361)` (参考: sign_m_440)
+  - Broker 对应的处理器为: `PullMessageProcessor`
+  - 参考：[Broker-发送-消费者-Pull-消息#处理 sign_m_110](./Broker-发送-消费者-Pull-消息.md#处理)
