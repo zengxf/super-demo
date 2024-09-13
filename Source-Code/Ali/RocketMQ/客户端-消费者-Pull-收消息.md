@@ -193,7 +193,7 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
             }
 
             long endTime = System.currentTimeMillis() + timeout;
-            ConsumeRequest consumeRequest = consumeRequestCache.poll(   // JUC 队列，数据来自定时任务，ref: 
+            ConsumeRequest consumeRequest = consumeRequestCache.poll(   // JUC 队列，数据来自定时任务，ref: sign_m_314
                 endTime - System.currentTimeMillis(), TimeUnit.MILLISECONDS
             );
             ...
@@ -212,4 +212,141 @@ public class DefaultLitePullConsumerImpl implements MQConsumerInner {
         return Collections.emptyList();
     }
 }
+```
+
+
+---
+## 定时拉取任务
+- 启动
+  - 负载均衡处理任务启动时，会调用客户端实例做尝试处理
+  - 队列变更时，调用相应的监听器进行处理
+  - 监听器处理时，会启动拉取任务 (ref: `sign_c_420`)
+- 调用栈如下：
+```js
+// new RuntimeException("定时拉取任务启动调用栈").printStackTrace();
+
+java.lang.RuntimeException: 定时拉取任务启动调用栈
+	at *.consumer.DefaultLitePullConsumerImpl.startPullTask(DefaultLitePullConsumerImpl.java:446)   // ref: sign_m_310
+	at *.consumer.DefaultLitePullConsumerImpl.updatePullTask(DefaultLitePullConsumerImpl.java:237)
+	at *.consumer.DefaultLitePullConsumerImpl.updateAssignQueueAndStartPullTask(DefaultLitePullConsumerImpl.java:256)
+	at *.consumer.DefaultLitePullConsumerImpl$MessageQueueListenerImpl.messageQueueChanged(DefaultLitePullConsumerImpl.java:243)
+	at *.consumer.RebalanceLitePullImpl.messageQueueChanged(RebalanceLitePullImpl.java:53)
+	at *.consumer.RebalanceImpl.rebalanceByTopic(RebalanceImpl.java:329)
+	at *.consumer.RebalanceImpl.doRebalance(RebalanceImpl.java:250)
+	at *.consumer.DefaultLitePullConsumerImpl.tryRebalance(DefaultLitePullConsumerImpl.java:1127)
+	at *.factory.MQClientInstance.doRebalance(MQClientInstance.java:1069)
+	at *.consumer.RebalanceService.run(RebalanceService.java:51)
+	at java.lang.Thread.run(Thread.java:750)
+```
+
+- `org.apache.rocketmq.client.impl.consumer.DefaultLitePullConsumerImpl`
+```java
+// sign_c_410
+public class DefaultLitePullConsumerImpl implements MQConsumerInner {
+
+    // sign_m_410
+    private void startPullTask(Collection<MessageQueue> mqSet) {
+        for (MessageQueue messageQueue : mqSet) {
+            if (!this.taskTable.containsKey(messageQueue)) {
+                PullTaskImpl pullTask = new PullTaskImpl(messageQueue); // 拉取消息的执行体，ref: sign_m_420
+                this.taskTable.put(messageQueue, pullTask);
+                this.scheduledThreadPoolExecutor.schedule(pullTask, 0, TimeUnit.MILLISECONDS);
+            }
+        }
+    }
+
+    // sign_m_411
+    private PullResult pull(MessageQueue mq, SubscriptionData subscriptionData, long offset, int maxNums) throws ... {
+        return pull(mq, subscriptionData, offset, maxNums, this.defaultLitePullConsumer.getConsumerPullTimeoutMillis());    // ref: sign_m_312
+    }
+
+    // sign_m_412
+    private PullResult pull(MessageQueue mq, SubscriptionData subscriptionData, long offset, int maxNums, long timeout) throws ... {
+        return this.pullSyncImpl(mq, subscriptionData, offset, maxNums, true, timeout); // ref: sign_m_313
+    }
+
+    // sign_m_413
+    private PullResult pullSyncImpl(
+        MessageQueue mq, SubscriptionData subscriptionData, long offset, int maxNums,
+        boolean block, long timeout
+    ) throws ... {
+        ... // check
+        ...
+
+        PullResult pullResult = this.pullAPIWrapper.pullKernelImpl(
+            mq, ..., CommunicationMode.SYNC, null
+        );
+        this.pullAPIWrapper.processPullResult(mq, pullResult, subscriptionData);
+        return pullResult;
+    }
+
+    // sign_m_414
+    private void submitConsumeRequest(ConsumeRequest consumeRequest) {
+        try {
+            consumeRequestCache.put(consumeRequest);
+        } ... // catch
+    }
+}
+```
+
+- `org.apache.rocketmq.client.impl.consumer.DefaultLitePullConsumerImpl.PullTaskImpl`
+```java
+    // sign_c_420  拉取消息的执行体
+    public class PullTaskImpl implements Runnable {
+
+        // sign_m_420  拉取消息的执行体
+        @Override
+        public void run() {
+            if (!this.isCancelled()) {
+                this.currentThread = Thread.currentThread();
+                ... // check
+
+                ProcessQueue processQueue = assignedMessageQueue.getProcessQueue(messageQueue);
+                ... // check
+
+                processQueue.setLastPullTimestamp(System.currentTimeMillis());
+                ... // check
+
+                long offset = 0L;
+                try {
+                    offset = nextPullOffset(messageQueue);  // CONSUME_FROM_FIRST_OFFSET 第一次返回 0
+                } ... // catch
+                ...
+
+                long pullDelayTimeMills = 0;        // 没异常时，相当于立即再执行一次
+                try {
+                    SubscriptionData subscriptionData;
+                    String topic = this.messageQueue.getTopic();
+                    if (subscriptionType == SubscriptionType.SUBSCRIBE) {
+                        subscriptionData = rebalanceImpl.getSubscriptionInner().get(topic);
+                    } ... // else
+
+                    PullResult pullResult = pull(   // 拉取数据，ref: sign_m_311
+                        messageQueue, subscriptionData, offset, defaultLitePullConsumer.getPullBatchSize()
+                    );
+                    ...
+
+                    switch (pullResult.getPullStatus()) {
+                        case FOUND:
+                            final Object objLock = messageQueueLock.fetchLockObject(messageQueue);
+                            synchronized (objLock) {
+                                if (pullResult.getMsgFoundList() != null && !... .isEmpty() && ...) {
+                                    ...
+                                    // 提交请求 (相当于记录拉取的消息). ref: sign_m_314
+                                    submitConsumeRequest(new ConsumeRequest(pullResult.getMsgFoundList(), ...));
+                                }
+                            }
+                            break;
+                        ... // OFFSET_ILLEGAL: default:
+                    }
+                    updatePullOffset(messageQueue, pullResult.getNextBeginOffset(), ...);  // 更新偏移量
+                } ... // catch
+
+                if (!this.isCancelled()) {
+                    // 循环调度
+                    scheduledThreadPoolExecutor.schedule(this, pullDelayTimeMills, TimeUnit.MILLISECONDS);
+                } ...
+            }
+        }
+    }
 ```
