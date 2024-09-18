@@ -111,14 +111,7 @@ public class DefaultMessageStore implements MessageStore {
     @Override
     public GetMessageResult getMessage(final String group, final String topic, ...) {
         ... // check
-
-        Optional<TopicConfig> topicConfig = getTopicConfig(topic);
-        CleanupPolicy policy = CleanupPolicyUtils.getDeletePolicy(topicConfig);
-        ...
-
-        long beginTime = this.getSystemClock().now();
-
-        // TODO ...
+        ... // 其他处理
 
         GetMessageStatus status = GetMessageStatus.NO_MESSAGE_IN_QUEUE;
         long nextBeginOffset = offset;
@@ -126,7 +119,6 @@ public class DefaultMessageStore implements MessageStore {
         long maxOffset = 0;
 
         GetMessageResult getResult = new GetMessageResult();
-
         final long maxOffsetPy = this.commitLog.getMaxOffset();
 
         ConsumeQueueInterface consumeQueue = findConsumeQueue(topic, queueId);
@@ -134,153 +126,101 @@ public class DefaultMessageStore implements MessageStore {
             minOffset = consumeQueue.getMinOffsetInQueue();
             maxOffset = consumeQueue.getMaxOffsetInQueue();
 
-            if (maxOffset == 0) {
-                status = GetMessageStatus.NO_MESSAGE_IN_QUEUE;
-                nextBeginOffset = nextOffsetCorrection(offset, 0);
-            } else if (offset < minOffset) {
-                status = GetMessageStatus.OFFSET_TOO_SMALL;
-                nextBeginOffset = nextOffsetCorrection(offset, minOffset);
-            } else if (offset == maxOffset) {
-                status = GetMessageStatus.OFFSET_OVERFLOW_ONE;
-                nextBeginOffset = nextOffsetCorrection(offset, offset);
-            } else if (offset > maxOffset) {
-                status = GetMessageStatus.OFFSET_OVERFLOW_BADLY;
-                nextBeginOffset = nextOffsetCorrection(offset, maxOffset);
-            } else {
+            ... // check
+            else {
                 final int maxFilterMessageSize = Math.max(this.messageStoreConfig.getMaxFilterMessageSize(), maxMsgNums * consumeQueue.getUnitSize());
-                final boolean diskFallRecorded = this.messageStoreConfig.isDiskFallRecorded();
+                ...
 
-                long maxPullSize = Math.max(maxTotalMsgSize, 100);
-                if (maxPullSize > MAX_PULL_MSG_SIZE) {
-                    LOGGER.warn("The max pull size is too large maxPullSize={} topic={} queueId={}", maxPullSize, topic, queueId);
-                    maxPullSize = MAX_PULL_MSG_SIZE;
-                }
-                status = GetMessageStatus.NO_MATCHED_MESSAGE;
-                long maxPhyOffsetPulling = 0;
-                int cqFileNum = 0;
-
-                while (getResult.getBufferTotalSize() <= 0
-                    && nextBeginOffset < maxOffset
-                    && cqFileNum++ < this.messageStoreConfig.getTravelCqFileNumWhenGetMessage()) {
+                while (getResult.getBufferTotalSize() <= 0 ...) {
                     ReferredIterator<CqUnit> bufferConsumeQueue = null;
 
                     try {
                         bufferConsumeQueue = consumeQueue.iterateFrom(nextBeginOffset, maxMsgNums);
-
-                        if (bufferConsumeQueue == null) {
-                            status = GetMessageStatus.OFFSET_FOUND_NULL;
-                            nextBeginOffset = nextOffsetCorrection(nextBeginOffset, this.consumeQueueStore.rollNextFile(consumeQueue, nextBeginOffset));
-                            LOGGER.warn("consumer request topic: " + topic + ", offset: " + offset + ", minOffset: " + minOffset + ", maxOffset: "
-                                + maxOffset + ", but access logic queue failed. Correct nextBeginOffset to " + nextBeginOffset);
-                            break;
-                        }
+                        ... // check
 
                         long nextPhyFileStartOffset = Long.MIN_VALUE;
-                        while (bufferConsumeQueue.hasNext()
-                            && nextBeginOffset < maxOffset) {
+                        while (bufferConsumeQueue.hasNext() && nextBeginOffset < maxOffset) {
                             CqUnit cqUnit = bufferConsumeQueue.next();
                             long offsetPy = cqUnit.getPos();
                             int sizePy = cqUnit.getSize();
+                            ... // check
 
-                            boolean isInMem = estimateInMemByCommitOffset(offsetPy, maxOffsetPy);
-
-                            if ((cqUnit.getQueueOffset() - offset) * consumeQueue.getUnitSize() > maxFilterMessageSize) {
-                                break;
-                            }
-
-                            if (this.isTheBatchFull(sizePy, cqUnit.getBatchNum(), maxMsgNums, maxPullSize, getResult.getBufferTotalSize(), getResult.getMessageCount(), isInMem)) {
-                                break;
-                            }
-
-                            if (getResult.getBufferTotalSize() >= maxPullSize) {
-                                break;
-                            }
-
-                            maxPhyOffsetPulling = offsetPy;
-
-                            //Be careful, here should before the isTheBatchFull
-                            nextBeginOffset = cqUnit.getQueueOffset() + cqUnit.getBatchNum();
-
-                            if (nextPhyFileStartOffset != Long.MIN_VALUE) {
-                                if (offsetPy < nextPhyFileStartOffset) {
-                                    continue;
-                                }
-                            }
-
-                            if (messageFilter != null
-                                && !messageFilter.isMatchedByConsumeQueue(cqUnit.getValidTagsCodeAsLong(), cqUnit.getCqExtUnit())) {
-                                if (getResult.getBufferTotalSize() == 0) {
-                                    status = GetMessageStatus.NO_MATCHED_MESSAGE;
-                                }
-
-                                continue;
-                            }
-
+                            // 从日志中解析消息，ref: sign_m_210
                             SelectMappedBufferResult selectResult = this.commitLog.getMessage(offsetPy, sizePy);
-                            if (null == selectResult) {
-                                if (getResult.getBufferTotalSize() == 0) {
-                                    status = GetMessageStatus.MESSAGE_WAS_REMOVING;
-                                }
+                            ... // 其他处理
 
-                                nextPhyFileStartOffset = this.commitLog.rollNextFile(offsetPy);
-                                continue;
-                            }
-
-                            if (messageStoreConfig.isColdDataFlowControlEnable() && !MixAll.isSysConsumerGroupForNoColdReadLimit(group) && !selectResult.isInCache()) {
-                                getResult.setColdDataSum(getResult.getColdDataSum() + sizePy);
-                            }
-
-                            if (messageFilter != null
-                                && !messageFilter.isMatchedByCommitLog(selectResult.getByteBuffer().slice(), null)) {
-                                if (getResult.getBufferTotalSize() == 0) {
-                                    status = GetMessageStatus.NO_MATCHED_MESSAGE;
-                                }
-                                // release...
-                                selectResult.release();
-                                continue;
-                            }
                             this.storeStatsService.getGetMessageTransferredMsgCount().add(cqUnit.getBatchNum());
-                            getResult.addMessage(selectResult, cqUnit.getQueueOffset(), cqUnit.getBatchNum());
-                            status = GetMessageStatus.FOUND;
+                            getResult.addMessage(selectResult, cqUnit.getQueueOffset(), cqUnit.getBatchNum());  // 将消息设置进结果
+                            status = GetMessageStatus.FOUND;    // 状态为“找到”
                             nextPhyFileStartOffset = Long.MIN_VALUE;
                         }
                     } ... // catch ... finally
-                    }
                 }
 
-                if (diskFallRecorded) {
-                    long fallBehind = maxOffsetPy - maxPhyOffsetPulling;
-                    brokerStatsManager.recordDiskFallBehindSize(group, topic, queueId, fallBehind);
-                }
-
-                long diff = maxOffsetPy - maxPhyOffsetPulling;
-                long memory = (long) (StoreUtil.TOTAL_PHYSICAL_MEMORY_SIZE
-                    * (this.messageStoreConfig.getAccessMessageInMemoryMaxRatio() / 100.0));
-                getResult.setSuggestPullingFromSlave(diff > memory);
+                ... // 其他处理
             }
-        } else {
-            status = GetMessageStatus.NO_MATCHED_LOGIC_QUEUE;
-            nextBeginOffset = nextOffsetCorrection(offset, 0);
-        }
+        } ... // else
 
         if (GetMessageStatus.FOUND == status) {
-            this.storeStatsService.getGetMessageTimesTotalFound().add(1);
-        } else {
-            this.storeStatsService.getGetMessageTimesTotalMiss().add(1);
-        }
-        long elapsedTime = this.getSystemClock().now() - beginTime;
-        this.storeStatsService.setGetMessageEntireTimeMax(elapsedTime);
-
-        // lazy init no data found.
-        if (getResult == null) {
-            getResult = new GetMessageResult(0);
-        }
+            this.storeStatsService.getGetMessageTimesTotalFound().add(1);   // 计数
+        } 
+        ...
 
         getResult.setStatus(status);
         getResult.setNextBeginOffset(nextBeginOffset);
         getResult.setMaxOffset(maxOffset);
         getResult.setMinOffset(minOffset);
         return getResult;
+    }
+}
+```
+
+
+---
+## 解析消息
+- `org.apache.rocketmq.store.CommitLog`
+```java
+// sign_c_210  日志对象
+public class CommitLog implements Swappable {
+
+    // sign_m_210  解析消息
+    public SelectMappedBufferResult getMessage(final long offset, final int size) {
+        int mappedFileSize = this.defaultMessageStore.getMessageStoreConfig().getMappedFileSizeCommitLog();
+        MappedFile mappedFile = this.mappedFileQueue.findMappedFileByOffset(offset, offset == 0);           // 获取映射文件
+        if (mappedFile != null) {
+            int pos = (int) (offset % mappedFileSize);
+            SelectMappedBufferResult selectMappedBufferResult = mappedFile.selectMappedBuffer(pos, size);   // 解析消息，ref: sign_m_220
+            if (null != selectMappedBufferResult) {
+                selectMappedBufferResult.setInCache(coldDataCheckService.isDataInPageCache(offset));
+                return selectMappedBufferResult;
+            }
+        }
+        return null;
+    }
+}
+```
+
+- `org.apache.rocketmq.store.logfile.DefaultMappedFile`
+```java
+// sign_c_220  
+public class DefaultMappedFile extends AbstractMappedFile {
+
+    // sign_m_220  解析消息
+    @Override
+    public SelectMappedBufferResult selectMappedBuffer(int pos, int size) {
+        int readPosition = getReadPosition();
+        if ((pos + size) <= readPosition) {
+            if (this.hold()) {
+                this.mappedByteBufferAccessCountSinceLastSwap++;
+
+                ByteBuffer byteBuffer = this.mappedByteBuffer.slice();
+                byteBuffer.position(pos);
+                ByteBuffer byteBufferNew = byteBuffer.slice();
+                byteBufferNew.limit(size);
+                return new SelectMappedBufferResult(this.fileFromOffset + pos, byteBufferNew, size, this);  // 封装字节数据返回
+            } ...   // log
+        } ...       // log
+        return null;
     }
 }
 ```
