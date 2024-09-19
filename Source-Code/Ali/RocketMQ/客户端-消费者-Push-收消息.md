@@ -183,7 +183,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                     this.consumeMessagePopService = new ConsumeMessagePopConcurrentlyService(this, this.getMessageListenerInner());
                 }
 
-                this.consumeMessageService.start();         // 启动内部定时任务
+                this.consumeMessageService.start();         // 启动内部定时任务，ref: sign_m_230
                 this.consumeMessagePopService.start();
 
                 boolean registerOK = mQClientFactory.registerConsumer(... .getConsumerGroup(), this);   // 客户端注册
@@ -255,6 +255,9 @@ java.lang.RuntimeException: 栈跟踪1
     at org.apache.rocketmq.client.impl.consumer.ConsumeMessageConcurrentlyService$ConsumeRequest.run(ConsumeMessageConcurrentlyService.java:411)
     ...
 
+
+// ---------------------------
+
 // 拉消息
 // new RuntimeException("栈跟踪L").printStackTrace();
 java.lang.RuntimeException: 栈跟踪L
@@ -265,7 +268,7 @@ java.lang.RuntimeException: 栈跟踪L
     at org.apache.rocketmq.client.impl.consumer.PullAPIWrapper.pullKernelImpl(PullAPIWrapper.java:241)
     at org.apache.rocketmq.client.impl.consumer.DefaultMQPushConsumerImpl.pullMessage(DefaultMQPushConsumerImpl.java:480)
     at org.apache.rocketmq.client.impl.consumer.PullMessageService.pullMessage(PullMessageService.java:109) // 拉消息，ref: sign_m_311
-    at org.apache.rocketmq.client.impl.consumer.PullMessageService.run(PullMessageService.java:135)
+    at org.apache.rocketmq.client.impl.consumer.PullMessageService.run(PullMessageService.java:135)         // 执行体，ref: sign_m_310
     at java.lang.Thread.run(Thread.java:750)
 ```
 
@@ -302,7 +305,7 @@ public class PullMessageService extends ServiceThread {
         final MQConsumerInner consumer = this.mQClientFactory.selectConsumer(pullRequest.getConsumerGroup());
         if (consumer != null) {
             DefaultMQPushConsumerImpl impl = (DefaultMQPushConsumerImpl) consumer;
-            impl.pullMessage(pullRequest);
+            impl.pullMessage(pullRequest);  // 拉取消息，ref: sign_m_320
         } ... // else
     }
 }
