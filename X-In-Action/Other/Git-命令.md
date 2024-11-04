@@ -127,3 +127,21 @@ git gc --aggressive
 // 校验是否修复：
 git fsck
 ```
+
+
+---
+## 暂存
+- https://www.cnblogs.com/tocy/p/git-stash-reference.html
+```shell
+# 暂存并备注
+git stash save "备注1"
+
+# 查看暂存记录
+git stash list
+
+# 重新应用并删除
+git stash pop
+
+# 删除第一个
+git stash drop stash@{0}
+```
