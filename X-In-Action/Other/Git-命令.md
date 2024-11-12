@@ -145,3 +145,16 @@ git stash pop
 # 删除第一个
 git stash drop stash@{0}
 ```
+
+
+---
+## ssh
+```shell
+# 没有就创建 .ssh 目录
+cd ~/.ssh
+
+# 生成 key (直接回车就是了)
+ssh-keygen -t rsa -b 4096 -C "xx@xx.com"
+
+# 将生成的 id_rsa.pub 内容保存到 Git 网站上去
+```
