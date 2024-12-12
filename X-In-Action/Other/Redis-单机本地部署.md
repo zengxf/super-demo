@@ -18,13 +18,16 @@ redis-server.exe redis.windows-service.conf
 pause
 ```
 
-- **redis.windows-service.conf** 配置文件不动
+- **redis.windows-service.conf** 配置文件可不动
 ```shell
 bind 127.0.0.1
 protected-mode yes
 port 6379
-loglevel notice
-logfile "server_log.txt" # 日志文件
+# 可注释下，否则不在 cmd 控制面板中输出日志
+# loglevel notice
+# logfile "server_log.txt" # 日志文件
+# syslog-enabled yes
+# syslog-ident redis
 databases 16
 always-show-logo yes
 ```
