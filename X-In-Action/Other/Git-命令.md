@@ -158,3 +158,19 @@ ssh-keygen -t rsa -b 4096 -C "xx@xx.com"
 
 # 将生成的 id_rsa.pub 内容保存到 Git 网站上去
 ```
+
+
+---
+## 取消暂存
+- 使用 `git add` 将文件添加到暂存区后想要取消（即从暂存区移除）
+- **使用 `git restore`**（Git 2.23+ 推荐）
+```shell
+# 格式
+git restore --staged <file>
+
+# 取消指定文件的暂存：
+git restore --staged example.txt
+
+# 取消所有文件的暂存：
+git restore --staged .
+```
