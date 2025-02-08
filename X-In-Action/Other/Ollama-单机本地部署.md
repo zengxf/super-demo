@@ -23,3 +23,4 @@
 ```shell
 ollama run deepseek-r1:1.5b
 ```
+- 模型名称即为：`deepseek-r1:1.5b`
