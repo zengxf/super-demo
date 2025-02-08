@@ -47,3 +47,25 @@ ollama run deepseek-r1:1.5b
 ollama run ds-r1-1_5b
 ```
 - 模型名称即为: `ds-r1-1_5b:latest`
+
+
+## 命令总结
+- **跟 Docker 命令很类似**
+```shell
+# 1. 运行模型 (Ctrl + d 可退出交互，但继续运行)
+ollama run ds-r1-1_5b
+
+# 2. 查看运行中的模型
+ollama ps
+
+# 3. 停止运行中的模型
+ollama stop ds-r1-1_5b
+
+# -----------------------
+
+# 1. 拉模型
+ollama pull xx
+
+# 2. 查看所有安装的模型
+ollama list
+```
