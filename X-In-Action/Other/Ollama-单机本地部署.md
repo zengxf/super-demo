@@ -38,7 +38,8 @@ ollama run deepseek-r1:1.5b
   1. 新增一个文件夹 `ds-r1`
   2. 创建文件 `ds-r1-1_5b.modelfile`
     - 内容 `FROM ./DeepSeek-R1-Distill-Qwen-1.5B-Q6_K.gguf`
-  3. 构造
+  3. 构造 
+    - 命令行定位到 `ds-r1` 文件夹再执行:
     - `ollama create ds-r1-1_5b -f ds-r1-1_5b.modelfile`
   4. 测试
     - `ollama run ds-r1-1_5b "hi who are u?"`
@@ -63,9 +64,31 @@ ollama stop ds-r1-1_5b
 
 # -----------------------
 
-# 1. 拉模型
+# 1. 拉模型 (拉胯)
 ollama pull xx
 
 # 2. 查看所有安装的模型
 ollama list
+
+# -----------------------
+
+# 1. 创建模型 (下载到本地的)
+ollama create model_name -f model_xx.modelfile
+
+# 2. 查看模型信息
+ollama show ds-r1-1_5b
+
+# 3. 删除模型
+ollama rm model_name
+
+# -----------------------
+
+# 1. 启动服务
+ollama serve
+
+# 2. 查看帮助
+ollama -h
+
+# 2. 查看版本
+ollama -v
 ```
