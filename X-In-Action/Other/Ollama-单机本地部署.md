@@ -12,6 +12,10 @@
 - 测试 `ollama -h`
 
 
+## 访问
+- http://localhost:11434
+
+
 ## 运行
 ### 运行 DeepSeek-R1
 - 进入: https://ollama.com/library/deepseek-r1
