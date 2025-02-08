@@ -1,7 +1,7 @@
 # Ollama-单机本地部署
+- 功能: **本部部署 AI 大模型**
 - 参考: https://www.cnblogs.com/jyzhao/p/18700202/shou-ba-shou-jiao-ni-bu-shu-deepseek-ben-de-mo-xin
 - 参考: https://www.sysgeek.cn/ollama-on-windows/
-- 功能: **本部部署 AI 大模型**
 
 
 ## 下载
