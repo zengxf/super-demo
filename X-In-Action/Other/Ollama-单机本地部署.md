@@ -22,6 +22,11 @@
 2. 选择 Tag （如: `1.5b`）, 复制命令: 
 ```shell
 ollama run deepseek-r1:1.5b
+
+# 从魔塔社区 (https://modelscope.cn) 下载模型的格式   
+ollama run modelscope.cn/{username}/{model}
+# 示例：   
+ollama run modelscope.cn/Qwen/Qwen2.5-3B-Instruct-GGUF:Q3_K_M
 ```
 - 模型名称即为: `deepseek-r1:1.5b`
 - **这种方式，下载慢，易中断，不推荐**
