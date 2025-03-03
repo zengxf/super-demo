@@ -148,7 +148,7 @@ git stash drop stash@{0}
 
 
 ---
-## ssh
+## SSH
 ```shell
 # 没有就创建 .ssh 目录
 cd ~/.ssh
@@ -157,6 +157,24 @@ cd ~/.ssh
 ssh-keygen -t rsa -b 4096 -C "xx@xx.com"
 
 # 将生成的 id_rsa.pub 内容保存到 Git 网站上去
+```
+
+
+---
+## Token
+```shell
+# 使用 Token 操作 (pull, push)
+
+# Token 仅包含 ​push 和 pull 权限
+# GitHub  ->  仅勾选 repo，不勾选其他权限
+# Gitee   ->  仅勾选 projects，不勾选其他权限
+
+# clone
+git clone https://zengxf:ghp_tokens@github.com/zengxf/git-test.git
+git clone https://feng2068:tokens@gitee.com/feng2068/git-test.git
+
+# 使用环境变量 (win cmd)
+git clone https://feng2068:%gitee_token%@gitee.com/feng2068/git-test.git
 ```
 
 
