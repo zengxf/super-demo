@@ -3,8 +3,12 @@
 
 ---
 ## 下载
-- 下载页 https://www.python.org/downloads/
-- 点击 (`Download Python 3.13.2`) https://www.python.org/ftp/python/3.13.2/python-3.13.2-amd64.exe
+- 下载最新
+  - 下载页 https://www.python.org/downloads/
+  - 点击 (`Download Python 3.13.2`) https://www.python.org/ftp/python/3.13.2/python-3.13.2-amd64.exe
+- 下载 (3.11)
+  - 下载页 https://www.python.org/downloads/release/python-3110/
+  - 点击 (`Windows installer (64-bit)`) https://www.python.org/ftp/python/3.11.0/python-3.11.0-amd64.exe
 
 
 ---
