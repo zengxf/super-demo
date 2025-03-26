@@ -43,7 +43,7 @@ Install/Remove of the Service Denied! // 普通用户，权限拒绝安装
 
 // Win + X => 终端管理员(A) => 运行下面的命令
 
-PS C:\Users\656553> cd D:\Install\DB\MySQL\mysql-8.0.37-winx64\bin
+PS %UserProfile%> cd D:\Install\DB\MySQL\mysql-8.0.37-winx64\bin
 
 PS D:\Install\DB\MySQL\mysql-8.0.37-winx64\bin> .\mysqld --install mysql
 Service successfully installed. // 安装成功
