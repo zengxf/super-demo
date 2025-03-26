@@ -106,7 +106,7 @@ Heap dump file created
 
 // dump 到临时文件
 [arthas@6972]$ heapdump
-Dumping heap to C:\Users\656553\AppData\Local\Temp\heapdump2023-05-08-15-2013284160575598095523.hprof ...
+Dumping heap to %LocalAppData%\Temp\heapdump2023-05-08-15-2013284160575598095523.hprof ...
 Heap dump file created
 [arthas@6972]$
 ```
