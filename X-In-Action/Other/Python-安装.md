@@ -21,6 +21,7 @@
 # python 命令
 %LocalAppData%\Programs\Python\Python313\
 # py 命令
+# (可能在 C:\Windows 目录下)
 %LocalAppData%\Programs\Python\Launcher\
 ```
 
@@ -33,6 +34,7 @@
 
 # cmd (Windows)
 where python
+where py
 
 # powershell (Windows)
 get-command python
