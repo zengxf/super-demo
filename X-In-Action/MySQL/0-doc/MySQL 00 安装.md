@@ -4,12 +4,14 @@
 ## Windows 下 MySQL 环境搭建
 - 参考：https://zhuanlan.zhihu.com/p/48531203
 - zip 下载地址：https://dev.mysql.com/downloads/mysql/
-  - 下载 `mysql-8.0.33-winx64.zip`
+  - 下载 `mysql-8.0.44-winx64.zip`
 
 ### 使用 msi 简单快速安装
 - 谷歌：`mysql download windows msi`
 - https://dev.mysql.com/downloads/installer/
-  - 下载 `mysql-installer-community-8.0.33.0.msi`
+  - 下载 `mysql-installer-community-8.0.44.msi`
+- 新：https://dev.mysql.com/downloads/mysql/
+  - 下载 `mysql-8.4.7-winx64.msi`
 - **zip 下载安装不了，就用此方法**
 
 ### 同目录下创建 my.ini
@@ -23,11 +25,12 @@
 
 ### 注册服务（管理员权限操作）
 - `mysqld --install mysql`
+- `.\mysqld --install mysql` (Win10/11 PowerShell)
 - 启动 `net start mysql`
 
 ### 连接并初始密码
 - `mysql -uroot -p`
-- 初始密码 `ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'abc';`
+- 初始密码 `ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'abc123';`
 
 ### 总示例
 ```js
