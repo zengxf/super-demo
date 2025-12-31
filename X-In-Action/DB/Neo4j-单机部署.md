@@ -1,10 +1,12 @@
+# Neo4j-单机部署
+
 
 ## 下载社区版
 - 版本：`2025.11.2` 示例
 - 入口：https://neo4j.com/product/community-edition/
 - 进入：https://neo4j.com/deployment-center/?gdb-selfmanaged&community
-  - 选择`版本`和`Windows`
-  - 点击下载按钮`Download Community`
+  - 选择 `版本` 和 `Windows`
+  - 点击下载按钮 `Download Community`
 - 最终：https://go.neo4j.com/download-thanks.html?edition=community&release=2025.11.2&flavour=winzip
 
 
