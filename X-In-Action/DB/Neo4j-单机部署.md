@@ -28,3 +28,22 @@ cd /d %neo4j%
 
 neo4j21
 ```
+
+
+## Web UI
+- 访问：http://localhost:7474/browser/
+- 初始默认密码：`neo4j / neo4j`
+- 初次要改新密码：`abcd1234`
+
+
+## 忘记密码处理
+- 改 `conf/neo4j.conf` 文件
+```conf
+dbms.security.auth_enabled=false
+```
+
+- 重启之后，重新进入
+```shell
+# 找到 neo4j$ 命令窗口，输入下面的命令：
+ALTER USER neo4j SET PASSWORD 'abcd1234';
+```
