@@ -19,3 +19,12 @@ set JAVA_HOME=D:\Install\Java\JDK\jdk-21
 set PATH=%JAVA_HOME%\bin;%PATH%
 call neo4j console
 ```
+
+- (添加 env 后) 直接运行
+```shell
+# 变量 neo4j = xx/neo4j/bin
+
+cd /d %neo4j%
+
+neo4j21
+```
