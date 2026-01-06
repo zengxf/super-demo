@@ -116,7 +116,7 @@ CREATE USER alice SET PASSWORD '12345678';
 # 要求首次登录修改密码
 CREATE USER bob SET PASSWORD 'test1234' CHANGE REQUIRED;
 
-# 创建后立即分配角色
+# 创建后立即分配角色 (社区版不支持)
 # 只读访问（可查询数据）
 GRANT ROLE reader TO alice;
 # 给管理员权限
@@ -126,5 +126,22 @@ GRANT ROLE admin TO alice;
 DROP USER alice;
 
 # ========== 用户相关操作 ============
+# ===================================
+
+# +++++++++++++++++++++++++++++++++++
+
+# ===================================
+# ========== 数据库相关操作 ==========
+
+# cypher-shell 进入
+cypher-shell -u neo4j -p abcd1234 -d system
+
+# 创建数据库 (社区版不支持)
+CREATE DATABASE mydb;
+
+# 删除数据库 (社区版不支持)
+DROP DATABASE mydb;
+
+# ========== 数据库相关操作 ==========
 # ===================================
 ```
