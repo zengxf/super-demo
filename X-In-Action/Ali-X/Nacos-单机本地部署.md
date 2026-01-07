@@ -77,7 +77,7 @@ db.password=abcd
 - 最终：https://.../nacos-server-3.1.0.zip
 
 #### 配置&启动
-- 除了 `` 没有
+- 加改 `./conf/application.properties`
 ```shell
 # 这个没有了
 # spring.datasource.platform=mysql
@@ -92,7 +92,13 @@ nacos.core.auth.server.identity.value=abcd
 # 需打开注释
 nacos.core.auth.plugin.nacos.token.secret.key=xx
 ```
-- 其他跟上面一样
+
+- 加改 `./bin/startup.cmd`
+```bat
+set JAVA_HOME=D:\Install\Java\JDK\jdk-21
+```
+
+- ***其他跟上面一样***
 
 #### 访问
 - http://127.0.0.1:8080/
