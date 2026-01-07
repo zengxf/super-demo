@@ -79,13 +79,18 @@ db.password=abcd
 #### 配置&启动
 - 除了 `` 没有
 ```shell
-# spring.datasource.platform=mysql 这个没有了
-
-# 需打开注释
-nacos.core.auth.plugin.nacos.token.secret.key=xx
+# 这个没有了
+# spring.datasource.platform=mysql
 
 # Web 端口可改
 nacos.console.port=8080
+
+# 需加下面 2 行
+nacos.core.auth.server.identity.key=abcd
+nacos.core.auth.server.identity.value=abcd
+
+# 需打开注释
+nacos.core.auth.plugin.nacos.token.secret.key=xx
 ```
 - 其他跟上面一样
 
