@@ -14,6 +14,8 @@
 - 在 `/bin` 目录下
 - 创建 `neo4j21.bat` (**指定 JDK-21 运行**)
 ```bat
+rem 直接将下面的 2 句 set 加到 bat 开头也可以，包括 cypher-shell.bat
+
 @echo off
 set JAVA_HOME=D:\Install\Java\JDK\jdk-21
 set PATH=%JAVA_HOME%\bin;%PATH%
