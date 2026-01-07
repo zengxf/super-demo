@@ -169,8 +169,12 @@ ssh-keygen -t rsa -b 4096 -C "xx@xx.com"
 # GitHub  ->  仅勾选 repo，不勾选其他权限
 # Gitee   ->  仅勾选 projects，不勾选其他权限
 
+# GitHub 要走代理，要不然网络出问题
+git config --global http.proxy http://127.0.0.1:7890
+
 # clone
-git clone https://zengxf:ghp_tokens@github.com/zengxf/git-test.git
+# git clone https://zengxf:ghp_tokens@github.com/zengxf/git-test.git
+git clone https://github.com/zengxf/git-test.git  # GitHub 不能用 token 在 URL 上
 git clone https://feng2068:tokens@gitee.com/feng2068/git-test.git
 
 # 使用环境变量 (win cmd)
