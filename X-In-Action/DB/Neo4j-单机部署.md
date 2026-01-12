@@ -31,6 +31,14 @@ cd /d %neo4j%
 neo4j21
 ```
 
+- 修改 `cypher-shell.bat` (**指定 JDK-21 运行**)
+```bat
+rem 在 @echo off 行下面追加 2 行
+
+set JAVA_HOME=D:\Install\Java\JDK\jdk-21
+set PATH=%JAVA_HOME%\bin;%PATH%
+```
+
 
 ## Web UI
 - 访问：http://localhost:7474/browser/
