@@ -54,7 +54,7 @@ flowchart TD
 
 #### Cypher - 基本语法示例
 - https://chatglm.cn/main/alltoolsdetail?cid=695e392bfc159c9685898834
-```cypher
+```sql
 // 1. 清理现有数据（可选）
 MATCH (n) DETACH DELETE n;
 
@@ -90,7 +90,7 @@ CREATE CONSTRAINT person_id_unique IF NOT EXISTS FOR (p:Person) REQUIRE p.id IS 
 
 #### Neo4j Cypher - 删除
 - https://chatglm.cn/main/alltoolsdetail?cid=695f389bada2f6762c425506
-```cypher
+```sql
 // Neo4j 不允许删除还有关系的节点，
 MERGE (p:Person {name: 'NewUser'})
 DELETE p // 如果 p 有任何关系（进或出），操作会失败并报错。
@@ -105,7 +105,7 @@ DETACH DELETE p // 安全删除
 #### Cypher - merge 新增或修改
 - https://chatglm.cn/main/alltoolsdetail?cid=695f389bada2f6762c425506
 - 相当于 MongoDB 的 Upsert 
-```cypher
+```sql
 MERGE (p:Person {name: 'NewUser'})
   // 没有就创建
   ON CREATE SET p.age = 28, p.city = '北京', p.email = 'x@x.com'
@@ -184,7 +184,7 @@ WHERE p.id = 1            -- 对应 Cypher 的 (p:Person {id: 1})
 ```
 
 #### Cypher - 查找共同兴趣的人员对 - 避免重复
-```cypher
+```sql
 // 查询 6: 查找共同兴趣的人员对
 MATCH (p1:Person)-[:HAS_INTEREST]->(i:Interest)<-[:HAS_INTEREST]-(p2:Person)
 WHERE p1.name < p2.name  // 避免重复
@@ -213,7 +213,7 @@ Alice | Bob | 2
 ```
 
 #### Cypher - 关系居中的写法
-```cypher
+```sql
 // 查询 6: 查找共同兴趣的人员对
 MATCH (p1:Person) - [:HAS_INTEREST] -> (i:Interest) <- [:HAS_INTEREST] - (p2:Person)
 RETURN i LIMIT 10;
@@ -222,7 +222,7 @@ RETURN i LIMIT 10;
 - 写成向左的箭头是为了让 i 居中，从而方便连接两个部分。
 
 #### Cypher - 查看某节点所有的边
-```cypher
+```sql
 // 列出该节点所有的入边（指向它的）和出边（它指出去的），以及连线的另一端的节点
 MATCH (p:Person {name: 'NewUser'})-[r]-(other) // 查看所有的边
 RETURN p, r, other
@@ -230,7 +230,7 @@ RETURN p, r, other
 ```
 - `[r]`：不写关系类型和方向，表示匹配任何类型、任何方向的关系。
 - `other`：代表连线另一端的节点。
-```cypher
+```sql
 // 只看边（不关心另一端是谁）
 MATCH (p:Person {name: 'Alice'})-[r]-(other)
 RETURN r
@@ -276,7 +276,7 @@ WITH [expressions] [AS alias]
     [SKIP ...] [LIMIT ...]
 ```
 - **基础示例**
-```cypher
+```sql
 // 查找所有 Person 节点，按年龄降序排列，取前 5 人，返回姓名和年龄
 MATCH (p:Person)
 WITH p // 传递变量
@@ -289,7 +289,7 @@ RETURN p.name, p.age
 
 #### Cypher - with 聚合数据
 - (COUNT, SUM, COLLECT 等)
-```cypher
+```sql
 // 计算每个人拥有的技能数量
 MATCH (p:Person)-[:HAS_SKILL]->(s:Skill)
 WITH p, COUNT(s) AS skill_count // 聚合统计
@@ -298,7 +298,7 @@ RETURN p.name, skill_count
 ```
 
 #### Cypher - with 多次使用 (分步骤处理)
-```cypher
+```sql
 // 1. 找出技能数至少 3 个的人
 // 2. 从这些人中，再筛选出年龄大于 35 岁的人
 // 3. 返回他们的姓名和参演电影数
@@ -312,7 +312,7 @@ RETURN p.name, skill_count
 ```
 
 #### Cypher - with 过滤后再匹配 & 设置
-```cypher
+```sql
 // 1. 找出年龄大于 45 岁的人
 // 2. 然后找出这些人中认识的所有朋友
 // 3. 返回这个人和他朋友的名字
@@ -334,7 +334,7 @@ RETURN p.name
 
 #### Cypher - remove 与 set 使用
 - https://chatglm.cn/main/alltoolsdetail?cid=6960dbad8d9878b41be1768a
-```cypher
+```sql
 // 创建测试数据
 MERGE (p:Person {name: 'Tom Hanks'})
 ON CREATE SET p.age = 28, p.city = '北京' // 没有就创建
@@ -384,18 +384,18 @@ MATCH (p:Person) WHERE p.nationality IS NULL RETURN p;
 *   **关系 (Relationships)**：用中括号 `[]` 表示，代表节点之间的连接（如 `KNOWS`, `WORKS_AT`）。
 *   **路径 (Paths)**：由节点和关系组成的序列。
 - **基础语法与元素**
-```cypher
+```sql
 MATCH (a:Label1)-[r:RELATIONSHIP]->(b:Label2)
 WHERE condition1 AND condition2
 RETURN a, b, r
 ```
 1.  **匹配带有特定属性的节点**
-    ```cypher
+    ```sql
     MATCH (person:Person {name: 'Keanu Reeves'}) RETURN person
     ```
     这会精确匹配名为 'Keanu Reeves' 的 `Person` 节点。
 2.  **匹配节点及其关系**
-    ```cypher
+    ```sql
     MATCH (p:Person)-[r:ACTED_IN]->(m:Movie) RETURN p.name, m.title, r.role
     ```
     这会找出所有参演了电影的演员，并返回演员名、电影名和角色名。
@@ -403,7 +403,7 @@ RETURN a, b, r
 #### Cypher - match 可变长度关系（路径） 🔄
 - https://chatglm.cn/main/alltoolsdetail?lang=zh&cid=696462129cf93d77b9c35c10
 - **不需要知道确切的关系数量，可以匹配一个范围内的跳数**。
-```cypher
+```sql
 // 查找 Alice 和 Bob 之间 1 到 3 层认识的关系
 MATCH (a:Person {name: 'Alice'})-[f:FRIEND*1..3]->(b:Person {name: 'Bob'}) RETURN a, f, b;
 // 最大 2 层关系
@@ -421,7 +421,7 @@ MATCH (a:Person {name: 'Alice'})-[:FRIEND*]->(friend) RETURN friend;
 #### Cypher - match 路径变量 🛣️
 - https://chatglm.cn/main/alltoolsdetail?lang=zh&cid=696462129cf93d77b9c35c10
 - 可以将匹配到的整个路径赋值给一个变量，然后返回它
-```cypher
+```sql
 MATCH sp = shortestPath((a:Person {name: 'Alice'})-[*]-(b:Person {name: 'Bob'}))
 RETURN sp;
 
@@ -434,7 +434,7 @@ RETURN asp;
 #### Cypher - match 无方向关系
 - https://chatglm.cn/main/alltoolsdetail?lang=zh&cid=69646a067cc83323da1762b0
 - 在模式中使用 `- -` 代替 `- ->` 或 `<- -` 可以匹配任一方向的关系。
-```cypher
+```sql
 // 查找“Bob”的所有“FRIEND”关系，不区分方向
 MATCH (a:Person {name: 'Bob'})-[r:FRIEND]-(person)
 RETURN r, person;
@@ -446,7 +446,7 @@ RETURN r, person;
   - 找出“David”的朋友的朋友（2 跳）。
   - 过滤出这些“朋友的朋友”的粉丝数大于 10 的。
   - 返回这些用户及其到“David”的路径。
-```cypher
+```sql
 // 1. 找出“David”的朋友的朋友（2跳）
 MATCH (david:Person {name: 'David'})-[:FRIEND*2]-(friendOfFriend)
 
@@ -488,7 +488,7 @@ ORDER BY followerCount DESC;
 #### Cypher - optional match 说明及示例
 - `OPTIONAL MATCH` 类似于 SQL 里的 `LEFT JOIN`，未匹配到的部分为 `NULL`
 - `MATCH` 类似于 SQL 里的 `INNER JOIN`，未匹配到的部分不返回
-```cypher
+```sql
 MATCH (p:Person)
   OPTIONAL MATCH (p:Person)-[:HAS_SKILL]->(skill:Skill)
 RETURN p.name, collect(skill.name) AS skills;
@@ -507,7 +507,7 @@ RETURN p.name, collect(skill.name) AS skills;
 | **类似概念** | SQL 中的 `SELECT` | SQL 中的 `INSERT ... ON DUPLICATE KEY UPDATE` 或 `UPSERT` |
 | **主要用途** | 查询、检索数据 | **数据同步、初始化、确保数据唯一存在** |
 
-```cypher
+```sql
 // 都可用于查找返回
 MERGE (p:Person {name: 'Tom Hanks'}) RETURN p; // merge -> return
 MATCH (p:Person {name: 'Tom Hanks'}) RETURN p;
