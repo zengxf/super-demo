@@ -20,8 +20,9 @@ wsl -l -o
 wsl --install
 wsl --install Ubuntu-22.04
 
-# 卸载
-wsl --uninstall Ubuntu-22.04
+# 卸载 
+wsl --uninstall Ubuntu-22.04    # 这个不行
+wsl --unregister Ubuntu-22.04   # 这个可以
 
 # 查看帮助
 wsl --help
