@@ -21,7 +21,7 @@ wsl --install
 wsl --install Ubuntu-22.04
 
 # 卸载 
-wsl --uninstall Ubuntu-22.04    # 这个不行
+wsl --uninstall Ubuntu-22.04    # 这个不行 (好像把 wsl 内核版本都给降低了)
 wsl --unregister Ubuntu-22.04   # 这个可以
 
 # 查看帮助
