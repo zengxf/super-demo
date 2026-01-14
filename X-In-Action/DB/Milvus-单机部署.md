@@ -59,5 +59,5 @@ curl --request POST \
     --header "Content-Type: application/json" \
     -d '{
         "collectionName": "customized_setup_1"
-    }' > collection_info.json
+    }' > ci-test.json
 ```
