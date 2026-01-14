@@ -1,3 +1,5 @@
+# Milvus-指南
+
 
 #### Milvus - 使用 mmap
 - https://milvus.io/docs/zh/create-collection.md
@@ -158,19 +160,148 @@ schema = client.create_schema(
 
 #### Milvus - 修改 Collections
 - https://milvus.io/docs/zh/modify-collection.md
+```py
+# 重命名 Collection
+client.rename_collection(
+    old_name="my_collection",
+    new_name="my_new_collection"
+)
+
+# 设置集合属性
+client.alter_collection_properties(
+    collection_name="my_collection",
+    properties={
+      "collection.ttl.seconds": 60, # 设置 TTL
+      "mmap.enabled": True, # 启用 mmap
+      "dynamicfield.enabled": True, # 启用动态字段
+      "timezone": "Asia/Shanghai", # 设置时区
+    }
+)
+
+# 删除 Collection 属性
+client.drop_collection_properties(
+    collection_name="my_collection",
+    property_keys=[
+        "collection.ttl.seconds"
+    ]
+)
+```
+
+
+#### Milvus - 集合 - 加载和释放
+- https://milvus.io/docs/zh/load-and-release.md
+- **加载集合是在集合中进行相似性搜索和查询的前提**。
+- **加载时，会将索引文件和所有字段的原始数据加载到内存中，以便快速响应搜索和查询**。
+```py
+client.load_collection(collection_name="my_collection")
+res = client.get_load_state(collection_name="my_collection")
+print(res)
+# Output
+# { "state": "<LoadState: Loaded>" }
+```
+- **可以只加载搜索和查询所涉及的字段，从而减少内存使用并提高搜索性能**
+```py
+# 应始终在 load_fields 中包含主字段和至少一个向量字段的名称
+client.load_collection(
+    collection_name="my_collection",
+    load_fields=["my_id", "my_vector"] # 只加载指定的字段
+    skip_load_dynamic_field=True # 跳过加载动态字段
+)
+```
+- ***要在加载后加载更多字段，需要先释放***
+- **搜索和查询是内存密集型操作。为节约成本，建议释放当前不使用的 Collection**
+```py
+client.release_collection(collection_name="my_collection")
+```
+
+
+#### Milvus - 集合 - 管理分区
+- https://milvus.io/docs/zh/manage-partitions.md
+- **创建 Collection 时，会创建 `_default` 分区**。
+  - **所有插入、搜索和查询也都在默认分区内进行**。
+- **可以添加更多分区，并根据特定条件将实体插入其中**。
+  - **这样就可以限制在某些分区内进行搜索和查询，从而提高搜索性能**。
+- 一个 Collections **最多 `1024` 个分区**。
+```py
+# --------- 查看分区 ---------
+res = client.list_partitions(collection_name="my_collection")
+print(res)
+
+# --------- 创建分区 ---------
+client.create_partition(collection_name="my_collection", partition_name="partitionA")
+res = client.list_partitions(collection_name="my_collection")
+print(res)
+
+# --------- 加载分区 ---------
+client.load_partitions(collection_name="my_collection", partition_names=["partitionA"])
+res = client.get_load_state(collection_name="my_collection", partition_name="partitionA")
+print(res)
+
+# --------- 释放分区 ---------
+client.release_partitions(collection_name="my_collection", partition_names=["partitionA"])
+res = client.get_load_state(collection_name="my_collection", partition_name="partitionA")
+print(res)
+
+# --------- 删除分区 ---------
+client.drop_partition(collection_name="my_collection", partition_name="partitionA")
+res = client.list_partitions(collection_name="my_collection")
+print(res)
+
+"""
+输出：
+['_default']
+['_default', 'partitionA']
+{'state': <LoadState: Loaded>}
+{'state': <LoadState: NotLoad>}
+['_default']
+"""
+```
+
+
+#### Milvus - 集合 - 管理别名
+- https://milvus.io/docs/zh/manage-aliases.md
+```py
+# --------- 删除别名 ---------
+client.drop_alias(alias="bob")
+client.drop_alias(alias="alice")
+
+# --------- 创建别名 ---------
+client.create_alias(collection_name="my_collection_1", alias="bob")
+client.create_alias(collection_name="my_collection_1", alias="alice")
+
+# --------- 列出别名 ---------
+res = client.list_aliases(collection_name="my_collection_1")
+print("coll 1 alias: ", res)
+
+# --------- 描述别名 ---------
+res = client.describe_alias(alias="bob")
+print("alias 'bob' desc: ",res)
+
+# --------- 更改别名 ---------
+# 将已分配给特定集合的别名重新分配给另一个集合
+client.alter_alias(collection_name="my_collection_2", alias="alice")
+res = client.list_aliases(collection_name="my_collection_1")
+print("coll 1 alias: ", res)
+res = client.list_aliases(collection_name="my_collection_2")
+print("coll 2 alias: ", res)
+
+"""
+Output:
+coll 1 alias:  {'aliases': ['bob', 'alice'], 'collection_name': 'my_collection_1', 'db_name': 'default'}
+alias 'bob' desc:  {'alias': 'bob', 'collection_name': 'my_collection_1', 'db_name': 'default'}
+coll 1 alias:  {'aliases': ['bob'], 'collection_name': 'my_collection_1', 'db_name': 'default'}
+coll 2 alias:  {'aliases': ['alice'], 'collection_name': 'my_collection_2', 'db_name': 'default'}
+"""
+```
 
 
 #### Milvus - xx
-- https://milvus.io/docs/zh/create-collection.md
+- https
 
 
 #### Milvus - xx
-- https://milvus.io/docs/zh/create-collection.md
+- https
 
 
 #### Milvus - xx
-- https://milvus.io/docs/zh/create-collection.md
-
-
-#### Milvus - xx
-- https://milvus.io/docs/zh/create-collection.md
+- https
