@@ -141,10 +141,13 @@ cd /d D:/Data/py-env
 uv venv --python 3.11 py311 -v
 
 # 激活环境
-call py311/Scripts/activate
+call py311/Scripts/activate.bat
+call py311/Scripts/activate         # .bat 后缀可以省略
+# 或
+call D:/Data/py-env/py311/Scripts/activate.bat
 # 或
 cd py311/Scripts
-activate
+activate.bat
 
 # 安装依赖 (只能通过 pip 安装)
 uv pip install pandas -v
