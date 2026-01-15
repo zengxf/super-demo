@@ -61,3 +61,25 @@ curl --request POST \
         "collectionName": "customized_setup_1"
     }' > ci-test.json
 ```
+
+
+## Attu (Web 管理工具)
+- ref: https://github.com/zilliztech/attu
+```bash
+# 先查看主机 ip
+ipconfig
+
+# 输出
+# 以太网适配器 以太网:
+#
+#    连接特定的 DNS 后缀 . . . . . . . :
+#    本地链接 IPv6 地址. . . . . . . . : fe80::33f5:309f:3d67:a76a%3
+#    IPv4 地址 . . . . . . . . . . . . : 192.168.3.181
+#    子网掩码  . . . . . . . . . . . . : 255.255.255.0
+#    默认网关. . . . . . . . . . . . . : 192.168.3.2
+
+# 使用上面 IPv4 地址 -> 192.168.3.181
+docker run -d --name milvus-web -p 8000:3000 -e MILVUS_URL=192.168.3.181:19530 zilliz/attu:v2.6
+```
+- view: http://localhost:8000
+  - 可手动调整用主机 IP 连接，如：`192.168.3.181:19530`

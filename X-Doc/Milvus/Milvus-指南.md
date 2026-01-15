@@ -295,13 +295,114 @@ coll 2 alias:  {'aliases': ['alice'], 'collection_name': 'my_collection_2', 'db_
 ```
 
 
-#### Milvus - xx
-- https
+#### Milvus - 插入实体
+- https://milvus.io/docs/zh/insert-update-delete.md
+```py
+# ---------- 插入实体 ----------
+data = [
+    {"my_id": 110, "my_vector": [0.35, -0.60, 0.18, 1, 1], "my_varchar": "pink_8682"}
+]
+res = client.insert(collection_name="quick_setup", data=data)
+print(res)
+
+# ---------- 插入实体 (指定分区) ----------
+data = [
+    {"my_id": 120, "my_vector": [0.35, -0.60, 0.18, 1, 1], "my_varchar": "pink_8682"}
+]
+res = client.insert(collection_name="quick_setup", partition_name="partitionA", data=data)
+print(res)
+
+# ---------- 插入实体 (带动态字段) ----------
+data = [{
+    "my_id": 130, "my_vector": [0.35, -0.60, 0.18, 1, 2], "my_varchar": "pink_8682",
+    "z_test1": 122, "z_test2": "aaa", "z-test-3": True  # 动态字段
+}]
+res = client.insert(collection_name="quick_setup", data=data)
+print(res)
+
+"""
+Output:
+{'insert_count': 1, 'ids': [110]}
+{'insert_count': 1, 'ids': [120]}
+{'insert_count': 1, 'ids': [130]}
+"""
+```
+- **支持重复插入，相当于根据 id 进行修改**
+- ***不支持部分字段修改，可直接 insert 修改***
 
 
-#### Milvus - xx
-- https
+#### Milvus - 删除实体
+- https://milvus.io/docs/zh/delete-entities.md
+```py
+# -------- 通过筛选条件删除实体 --------
+res = client.delete(collection_name="quick_setup", filter="my_varchar in ['red_7025', 'purple_4976']")
+print(res)
+
+# -------- 通过主键删除实体 --------
+res = client.delete(collection_name="quick_setup", ids=[18, 19])
+print(res)
+
+# -------- 从分区中删除实体 --------
+res = client.delete(collection_name="quick_setup", ids=[18, 19], partition_name="partitionA")
+print(res)
+
+# -------- 删除所有 --------
+res = client.delete(collection_name="quick_setup", filter="my_id > 0")
+print(res)
+
+"""
+Output:
+{}
+{'delete_count': 2}
+{'delete_count': 2}
+{}
+```
 
 
-#### Milvus - xx
-- https
+#### Milvus - 集合统计
+```py
+# -------- 查看集合数据量 --------
+stats = client.get_collection_stats(collection_name="quick_setup")
+print(stats)  # 统计不准
+
+# -------- 查看集合准确行数 --------
+res = client.query(collection_name="quick_setup", output_fields=["count(*)"])
+print(f"准确行数: {res}")
+print(f"准确行数: {res[0]['count(*)']}")
+
+"""
+Output:
+{'row_count': 45}
+准确行数: data: ["{'count(*)': 10}"], extra_info: {}
+准确行数: 10
+"""
+```
+
+
+#### Milvus - 单向量搜索
+- https://milvus.io/docs/zh/single-vector-search.md#Single-Vector-Search
+```py
+# ---------- 单向量搜索 ----------
+query_vector = [0.35, -0.60, 0.18, 1, 1.56]
+res = client.search(
+    collection_name="quick_setup",
+    # anns_field="my_vector",                   # 可以省略
+    data=[query_vector],
+    limit=3,
+    output_fields=["my_varchar", "$meta"],
+    # search_params={"metric_type": "IP"}       # 不能随意指定
+    # search_params={"metric_type": "COSINE"}   # 默认就是 COSINE，因此可以省略
+)
+
+for hits in res:
+    print("----------------------")
+    for hit in hits:
+        print(hit)
+
+"""
+----------------------
+{'my_id': 130, 'distance': 0.9932429194450378, 'entity': {'my_varchar': 'pink_8682', 'z_test1': 122, 'z_test2': 'bbb', 'z-test-3': True}}
+{'my_id': 110, 'distance': 0.975786030292511, 'entity': {'my_varchar': 'pink_8682'}}
+{'my_id': 120, 'distance': 0.975786030292511, 'entity': {'my_varchar': 'pink_8682'}}
+"""
+```
