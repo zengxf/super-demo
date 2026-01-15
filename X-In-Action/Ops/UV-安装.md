@@ -34,6 +34,7 @@ set UV_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple
 
 # 永久设置
 setx UV_INDEX_URL "https://pypi.tuna.tsinghua.edu.cn/simple"
+setx UV_LINK_MODE "copy"
 ```
 
 
@@ -136,11 +137,24 @@ uv build
 # 可以集中目录设置 (如 D:/Data/py-env)
 cd /d D:/Data/py-env
 
-# 指定版本
+# 指定版本创建环境
 uv venv --python 3.11 py311 -v
+
+# 激活环境
+call py311/Scripts/activate
+# 或
+cd py311/Scripts
+activate
+
+# 安装依赖 (只能通过 pip 安装)
+uv pip install pandas -v
+uv pip install requests -v
+
+# 查看安装
+uv pip list
 
 # PyCharm 多项目共用
 #   设置 (File -> Settings/Preferences) -> Python 解释器，
 #   然后选择 "Add Interpreter" -> "Existing Environment" (或 "Add Local Interpreter" -> "uv" 类型)，
-#   指定你已有的 uv 环境的路径，将其添加为现有环境
+#   指定已有的 uv 环境的路径 (python.exe)，将其添加为现有环境
 ```
