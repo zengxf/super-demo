@@ -96,10 +96,18 @@ python3 -m vllm.entrypoints.openai.api_server \
 
 ### 用源码
 ```bash
+# 创建虚拟环境
+conda create -n vllm_cpu python=3.12 -y
+conda activate vllm_cpu
+
+
+# 拉代码
 git clone https://github.com/vllm-project/vllm.git vllm_source
 cd vllm_source
 
 
+# 安装依赖
+# --
 # requirements/cpu.txt 要改下依赖版本
 # --
 # setuptools==80.9.0
@@ -108,7 +116,15 @@ uv pip install --upgrade pip
 uv pip install "cmake>=3.26" wheel packaging ninja "setuptools-scm>=8" numpy
 uv pip install -v -r requirements/cpu.txt --extra-index-url https://download.pytorch.org/whl/cpu
 
+
+# 安装 vllm
 set VLLM_TARGET_DEVICE=cpu
 python setup.py install
+
+
+# 运行 (出错)
+# --
+# ModuleNotFoundError: No module named 'uvloop'
+vllm serve Qwen/Qwen3-0.6B
 ```
-- TODO
+- ***有问题，启动不成功***
