@@ -128,3 +128,35 @@ python setup.py install
 vllm serve Qwen/Qwen3-0.6B
 ```
 - ***有问题，启动不成功***
+
+
+## 运行
+- ref: https://vllm.hyper.ai/docs/getting-started/quickstart
+```bash
+# 启动
+vllm serve Qwen/Qwen3-0.6B
+
+# 列出模型
+curl http://localhost:8000/v1/models
+
+# 补全 API
+curl http://localhost:8000/v1/completions \
+    -H "Content-Type: application/json" \
+    -d '{
+        "model": "Qwen/Qwen2.5-1.5B-Instruct",
+        "prompt": "San Francisco is a",
+        "max_tokens": 7,
+        "temperature": 0
+    }'
+
+# 聊天补全 API
+curl http://localhost:8000/v1/chat/completions \
+    -H "Content-Type: application/json" \
+    -d '{
+        "model": "Qwen/Qwen2.5-1.5B-Instruct",
+        "messages": [
+            {"role": "system", "content": "You are a helpful assistant."},
+            {"role": "user", "content": "Who won the world series in 2020?"}
+        ]
+    }'
+```
