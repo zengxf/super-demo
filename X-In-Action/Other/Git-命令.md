@@ -134,13 +134,24 @@ git fsck
 - https://www.cnblogs.com/tocy/p/git-stash-reference.html
 ```shell
 # 暂存并备注
-git stash save "备注1"
+git stash -m "备注1"
+git stash push -m "备注1"
 
 # 查看暂存记录
 git stash list
+# 输出如下
+# --
+# $ git stash list
+# stash@{0}: On feat/zxf_p23: test 2
+# stash@{1}: On feat/zxf_p23: test 1
+
+# 重新应用不删除
+git stash apply     # 最近一次
+git stash apply stash@{0}
 
 # 重新应用并删除
-git stash pop
+git stash pop       # 最近一次
+git stash pop stash@{0}
 
 # 删除第一个
 git stash drop stash@{0}
@@ -183,7 +194,7 @@ git clone https://feng2068:%gitee_token%@gitee.com/feng2068/git-test.git
 
 
 ---
-## 取消暂存
+## 取消文件添加
 - 使用 `git add` 将文件添加到暂存区后想要取消（即从暂存区移除）
 - **使用 `git restore`**（Git 2.23+ 推荐）
 ```shell
