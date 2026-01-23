@@ -38,27 +38,27 @@ qdrant
 
 **Nginx 配置**
 ```conf
-    # http://localhost:8088/
-    server {
-        listen          8088;            
-        server_name     localhost;     
-        
-        root  D:/Install/DB/qdrant-web-ui-0.2;  # 绝对路径
-		index index.html;
+# http://localhost:8088/
+server {
+    listen          8088;            
+    server_name     localhost;     
+    
+    root  D:/Install/DB/qdrant-web-ui-0.2;  # 绝对路径
+    index index.html;
 
-        location / {
-			try_files $uri $uri/ /index.html;
-        }
-			
-		# 反向代理 Qdrant API
-		# 转发所有以 /collections /points 等开头的路径到 qdrant
-		location ~ ^/(collections|aliases|points|cluster|telemetry|locks|snapshots|metrics|service) {
-			proxy_pass http://127.0.0.1:6333;
-			proxy_set_header Host $host;
-			proxy_set_header X-Real-IP $remote_addr;
-			proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-		}
+    location / {
+        try_files $uri $uri/ /index.html;
     }
+      
+    # 反向代理 Qdrant API
+    # 转发所有以 /collections /points 等开头的路径到 qdrant
+    location ~ ^/(collections|aliases|points|cluster|telemetry|locks|snapshots|metrics|service) {
+        proxy_pass http://127.0.0.1:6333;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+}
 ```
 - `nginx -s reload` 之后，浏览器要 `Ctrl + F5` 刷新
 - 访问：http://localhost:8088/
