@@ -12,8 +12,8 @@
 
 ### 2.启动
 ```bash
-# 导航到 Coze 目录
-cd Coze
+# 导航到 Coze/docker 目录
+cd Coze/docker
 
 # 启动容器
 docker compose up -d
