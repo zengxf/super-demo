@@ -27,7 +27,7 @@ git clone --branch "1.8.1" https://github.com/langgenius/dify.git
 ### 2. 启动 Dify
 ```bash
 # 导航到 Dify 源代码中的 docker 目录
-cd dify/docker
+cd Dify/docker
 
 # 复制示例环境配置文件
 cp .env.example .env
@@ -44,7 +44,7 @@ docker compose up -d
 
 ### 3. 验证
 ```bash
-cd dify/docker
+cd Dify/docker
 
 # 验证所有容器是否成功运行
 docker compose ps
@@ -52,7 +52,7 @@ docker compose ps
 
 ### 4. 重启
 ```bash
-cd dify/docker
+cd Dify/docker
 
 docker compose down
 docker compose up -d
