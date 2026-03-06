@@ -42,19 +42,6 @@ get-command python
 # bash (Linux 或 Windows git bash)
 which python
 
-
-# -------------------------------
-# 查看相关环境变量
-
-# cmd (Windows)
-echo %VIRTUAL_ENV%      # 使用 .venv
-echo %CONDA_PREFIX%     # 使用 Conda
-
-# bash (Linux 或 Windows git bash)
-echo $VIRTUAL_ENV
-echo $CONDA_PREFIX
-
-
 # -------------------------------
 # 查看 Python 解释器路径
 
@@ -63,29 +50,43 @@ python -c "import sys; print(sys.executable)"
 ```
 
 
-## 路径变量
-```shell
-echo %UserProfile%
-echo %HomePath%
-echo %HomeDrive%
-echo %AppData%
-echo %LocalAppData%
+---
+## Ubuntu (WSL) 安装
+```bash
+# 更新系统软件包
+sudo apt update
+sudo apt upgrade -y
 
+# 检查自带的 Python (命令通常是 python3 而不是 python)
+python3 --version
 
-# -------------------------------
+# 安装 pip (如果有就不用安装)
+# sudo apt install python3-pip -y
+pip3 --version
 
-(.venv) D:\MyData\test> echo %UserProfile%
-C:\Users\xx
+# 安装虚拟环境工具 (如果有就不用安装)
+# sudo apt install python3-venv -y
+python3 -m venv --help
+```
 
-(.venv) D:\MyData\test> echo %HomePath%
-\Users\xx
+- **使用**
+```bash
+# 创建项目文件夹并进入
+mkdir my_fastapi_app && cd my_fastapi_app
 
-(.venv) D:\MyData\test> echo %HomeDrive%
-C:
+# 创建并激活虚拟环境 (激活后，你的终端提示符前面会出现 `(venv)` 字样)
+python3 -m venv venv
+source venv/bin/activate
 
-(.venv) D:\MyData\test> echo %AppData%
-C:\Users\xx\AppData\Roaming
+# --------------------
+# 安装依赖
 
-(.venv) D:\MyData\test> echo %LocalAppData%
-C:\Users\xx\AppData\Local
+# 永久配置镜像源
+pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
+pip install uv
+uv pip install fastapi
+
+# 指定镜像源
+pip install uv -i https://pypi.tuna.tsinghua.edu.cn/simple
+uv pip install fastapi -i https://pypi.tuna.tsinghua.edu.cn/simple
 ```
