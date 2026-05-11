@@ -47,3 +47,25 @@ passwd root         # 重置
 cat /etc/os-release
 uname -a
 ```
+
+
+## 配置
+- 打开 Windows 用户文件夹，即 `C:\Users\xx`
+  - 快捷方式 `%userprofile%`
+
+- `.wslconfig`
+```conf
+[wsl2]
+swapFile=D:\\_Data\\WSL
+
+# 开启 WSL 镜像网络模式
+networkingMode=mirrored
+dnsTunneling=true
+firewall=true
+autoProxy=true
+```
+
+- 重启 WSL 使其生效
+```sh
+wsl --shutdown
+```
