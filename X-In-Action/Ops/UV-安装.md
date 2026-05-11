@@ -13,6 +13,7 @@ powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
 # 或直接下面的命令
 irm https://astral.sh/uv/install.ps1 | iex
 ```
+- ***没成功***
 
 ### 方法二：手动下载安装
 - ref: https://github.com/astral-sh/uv/releases
