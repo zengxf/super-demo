@@ -42,6 +42,8 @@ wsl --set-default Ubuntu-22.04  # 设置默认发行版
 wsl --user root     # 进入
 passwd root         # 重置
 
-# (进入之后) 查看 Linux 版本
+# (进入之后)
+# 查看 Linux 版本 和 内核版本
 cat /etc/os-release
+uname -a
 ```
