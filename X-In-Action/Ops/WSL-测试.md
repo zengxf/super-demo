@@ -56,7 +56,7 @@ uname -a
 - `.wslconfig`
 ```conf
 [wsl2]
-swapFile=D:\\_Data\\WSL
+swapFile=D:\\_Data\\WSL\\wsl
 
 # 开启 WSL 镜像网络模式
 networkingMode=mirrored
@@ -68,4 +68,20 @@ autoProxy=true
 - 重启 WSL 使其生效
 ```sh
 wsl --shutdown
+```
+
+## 文件
+- 在 Windows 对应目录栏输入 `cmd`
+- 再输入 `wsl`，可以直接使用对应目录的文件
+- **映射关系**
+```sh
+cmd
+
+wsl
+
+# C 盘 - 文件夹
+c:/Users/admin8  ->  /mnt/c/Users/admin8
+
+# D 盘 - 文件夹
+d:/_Data/WSL     ->  /mnt/d/_Data/WSL
 ```
