@@ -70,6 +70,7 @@ autoProxy=true
 wsl --shutdown
 ```
 
+
 ## 文件
 - 在 Windows 对应目录栏输入 `cmd`
 - 再输入 `wsl`，可以直接使用对应目录的文件
@@ -84,4 +85,17 @@ c:/Users/admin8  ->  /mnt/c/Users/admin8
 
 # D 盘 - 文件夹
 d:/_Data/WSL     ->  /mnt/d/_Data/WSL
+```
+
+**WSL 下的 ~ 目录在 windows 下哪里**
+- 在虚拟文件系统中
+```js
+// 资源管理器直接访问
+\\wsl$
+
+// 会看到类似：
+\\wsl$\Ubuntu-26.04
+
+// ~ 目录
+\\wsl$\Ubuntu-26.04\home\zxf
 ```
