@@ -14,7 +14,7 @@
 
 
 ## 改配置
-- 改 `./conf/application.yml`
+- **改 `./conf/application.yml`**
 ```yaml
 seata:
   store:
@@ -71,3 +71,39 @@ java --version
 4. **访问**
 - http://localhost:8081/
 - 登录账号默认为：`zxf / a`
+
+5. **总结**
+- ***需要 seata-server 连接才有数据，要不然一点意义也没有***
+
+
+
+## 使用注册中心
+
+### 使用 Eureka 注册
+- **改 `./conf/application.yml`**
+```yml
+seata:
+  registry:
+    type: eureka
+    eureka:
+      service-url: http://localhost:8761/eureka
+      application: seata-server # 设置应用名
+      weight: 1
+```
+
+### 使用 Seata 注册 (seata-namingserver)
+- **改 `./conf/application.yml`**
+```yml
+seata:
+  registry:
+    type: seata
+    seata:
+      server-addr: 127.0.0.1:8081
+      cluster: default
+      namespace: public
+      heartbeat-period: 5000
+      metadata-max-age-ms: 30000
+      username: zxf
+      password: a
+      tokenValidityInMilliseconds: 1740000
+```
