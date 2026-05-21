@@ -1,14 +1,15 @@
 # Seata-单机本地部署
 
 ## 参考
-- https://seata.apache.org/zh-cn/unversioned/download/seata-server
-- https://www.youlai.tech/pages/0bzvi/
+- https://seata.apache.org/zh-cn/docs/user/quickstart
 
 
 ## 下载
-- https://github.com/apache/incubator-seata/releases
+- ~~https://github.com/apache/incubator-seata/releases~~
+- https://seata.apache.org/zh-cn/download/seata-server
+- https://seata.apache.org/zh-cn/release-history/seata-server
   - 下载 `seata-server-$version.zip` 包
-- 如：https://github.com/apache/incubator-seata/releases/download/v2.0.0/seata-server-2.0.0.zip
+- 如：https://www.apache.org/dyn/closer.lua/incubator/seata/2.6.0/apache-seata-2.6.0-incubating-bin.tar.gz?action=download
   - 下载后解压
 
 
@@ -20,7 +21,7 @@ seata:
     # support: file 、 db 、 redis 、 raft
     mode: db
     db:
-      datasource: hikari # druid # 使用 hikari 连接池，不用 druid
+      datasource: hikari # 使用 hikari 连接池，不用 druid
       db-type: mysql
       driver-class-name: com.mysql.cj.jdbc.Driver # 使用 MySQL 8.0 连接
       url: jdbc:mysql://127.0.0.1:3306/seata?rewriteBatchedStatements=true&characterEncoding=utf8&connectTimeout=1000&socketTimeout=3000&autoReconnect=true&useUnicode=true&useSSL=false&serverTimezone=GMT%2B8
@@ -31,8 +32,9 @@ seata:
 
 
 ## 补驱动
-- 将 `./lib/jdbc/mysql-connector-java-8.0.27.jar`
-  - 复制到 `./lib` 目录下
+- https://mvnrepository.com/artifact/com.mysql/mysql-connector-j/8.4.0
+- **下载 jar** `mysql-connector-j-8.4.0.jar`
+- 复制到 `./lib` 目录下
 
 
 ## MySQL
@@ -44,6 +46,28 @@ seata:
 - 双击 `./bin/seata-server.bat`
 
 
-## 访问
-- http://localhost:7091/
-  - 登录账号默认为：`seata / seata`
+
+## 配置 seata-namingserver
+1. **改 `./conf/application.yml`**
+```yml
+console:
+  user:
+    username: zxf
+    password: a
+```
+
+2. **改 `./bin/seata-namingserver.bat`**
+```sh
+# 在 
+# if "%JAVACMD%"=="" set JAVACMD=java 
+# 上面加下这 2 段代码
+set PATH=%Java25%\bin;%PATH%
+java --version
+```
+
+3. **启动**
+- 双击 `./bin/seata-namingserver.bat`
+
+4. **访问**
+- http://localhost:8081/
+- 登录账号默认为：`zxf / a`
