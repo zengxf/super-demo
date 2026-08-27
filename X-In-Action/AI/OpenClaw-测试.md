@@ -21,7 +21,7 @@ openclaw gateway --port 18789 --verbose
 ## 配置
 - **文件夹**
 ```bash
-C:\Users\fiu\.openclaw
+C:\Users\my-pri\.openclaw
 ```
 
 - 配置
