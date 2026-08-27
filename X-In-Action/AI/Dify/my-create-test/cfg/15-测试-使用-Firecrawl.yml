@@ -1,0 +1,666 @@
+app:
+  description: test
+  icon: face_with_monocle
+  icon_background: '#E0EAFF'
+  mode: advanced-chat
+  name: 测试-使用-Firecrawl
+  use_icon_as_answer_icon: false
+dependencies:
+- current_identifier: null
+  type: marketplace
+  value:
+    marketplace_plugin_unique_identifier: langgenius/firecrawl:0.0.3@02f037a6e82c44103d3604456f8e57b5516464183344f32d74eec3f82d6036b0
+kind: app
+version: 0.4.0
+workflow:
+  conversation_variables: []
+  environment_variables: []
+  features:
+    file_upload:
+      allowed_file_extensions:
+      - .JPG
+      - .JPEG
+      - .PNG
+      - .GIF
+      - .WEBP
+      - .SVG
+      allowed_file_types:
+      - image
+      allowed_file_upload_methods:
+      - local_file
+      - remote_url
+      enabled: false
+      fileUploadConfig:
+        audio_file_size_limit: 50
+        batch_count_limit: 5
+        file_size_limit: 15
+        image_file_size_limit: 10
+        video_file_size_limit: 100
+        workflow_file_upload_limit: 10
+      image:
+        enabled: false
+        number_limits: 3
+        transfer_methods:
+        - local_file
+        - remote_url
+      number_limits: 3
+    opening_statement: ''
+    retriever_resource:
+      enabled: true
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions: []
+    suggested_questions_after_answer:
+      enabled: false
+    text_to_speech:
+      enabled: false
+      language: ''
+      voice: ''
+  graph:
+    edges:
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: start
+        targetType: tool
+      id: 1770704775743-source-1770711167712-target
+      source: '1770704775743'
+      sourceHandle: source
+      target: '1770711167712'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: tool
+        targetType: answer
+      id: 1770711167712-source-1770709365889-target
+      source: '1770711167712'
+      sourceHandle: source
+      target: '1770709365889'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    nodes:
+    - data:
+        desc: ''
+        selected: false
+        title: 开始
+        type: start
+        variables: []
+      height: 54
+      id: '1770704775743'
+      position:
+        x: 80
+        y: 282
+      positionAbsolute:
+        x: 80
+        y: 282
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        answer: '{{#1770711167712.text#}}
+
+          '
+        desc: ''
+        selected: true
+        title: 直接回复
+        type: answer
+        variables: []
+      height: 105
+      id: '1770709365889'
+      position:
+        x: 821
+        y: 115
+      positionAbsolute:
+        x: 821
+        y: 115
+      selected: true
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: ''
+        is_team_authorization: false
+        output_schema: null
+        paramSchemas:
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            en_US: The base URL to start crawling from.
+            ja_JP: The base URL to start crawling from.
+            pt_BR: The base URL to start crawling from.
+            zh_Hans: 要爬取网站的起始URL。
+          label:
+            en_US: Start URL
+            ja_JP: Start URL
+            pt_BR: Start URL
+            zh_Hans: 起始URL
+          llm_description: The URL of the website that needs to be crawled. This is
+            a required parameter.
+          max: null
+          min: null
+          name: url
+          options: []
+          placeholder: null
+          precision: null
+          required: true
+          scope: null
+          template: null
+          type: string
+        - auto_generate: null
+          default: 1
+          form: form
+          human_description:
+            en_US: If you choose not to wait, it will directly return a job ID. You
+              can use this job ID to check the crawling results or cancel the crawling
+              task, which is usually very useful for a large-scale crawling task.
+            ja_JP: If you choose not to wait, it will directly return a job ID. You
+              can use this job ID to check the crawling results or cancel the crawling
+              task, which is usually very useful for a large-scale crawling task.
+            pt_BR: If you choose not to wait, it will directly return a job ID. You
+              can use this job ID to check the crawling results or cancel the crawling
+              task, which is usually very useful for a large-scale crawling task.
+            zh_Hans: 如果选择不等待，则会直接返回一个job_id，可以通过job_id查询爬取结果或取消爬取任务，这通常对于一个大型爬取任务来说非常有用。
+          label:
+            en_US: Wait For Results
+            ja_JP: Wait For Results
+            pt_BR: Wait For Results
+            zh_Hans: 等待爬取结果
+          llm_description: ''
+          max: null
+          min: null
+          name: wait_for_results
+          options: []
+          placeholder: null
+          precision: null
+          required: false
+          scope: null
+          template: null
+          type: boolean
+        - auto_generate: null
+          default: null
+          form: form
+          human_description:
+            en_US: 'Pages matching these patterns will be skipped. Example: blog/*,
+              about/*'
+            ja_JP: 'Pages matching these patterns will be skipped. Example: blog/*,
+              about/*'
+            pt_BR: 'Pages matching these patterns will be skipped. Example: blog/*,
+              about/*'
+            zh_Hans: 匹配这些模式的页面将被跳过。示例：blog/*, about/*
+          label:
+            en_US: URL patterns to exclude
+            ja_JP: URL patterns to exclude
+            pt_BR: URL patterns to exclude
+            zh_Hans: 要排除的URL模式
+          llm_description: ''
+          max: null
+          min: null
+          name: excludePaths
+          options: []
+          placeholder: null
+          precision: null
+          required: false
+          scope: null
+          template: null
+          type: string
+        - auto_generate: null
+          default: null
+          form: form
+          human_description:
+            en_US: 'Only pages matching these patterns will be crawled. Example: blog/*,
+              about/*'
+            ja_JP: 'Only pages matching these patterns will be crawled. Example: blog/*,
+              about/*'
+            pt_BR: 'Only pages matching these patterns will be crawled. Example: blog/*,
+              about/*'
+            zh_Hans: 只有与这些模式匹配的页面才会被爬取。示例：blog/*, about/*
+          label:
+            en_US: URL patterns to include
+            ja_JP: URL patterns to include
+            pt_BR: URL patterns to include
+            zh_Hans: 要包含的URL模式
+          llm_description: ''
+          max: null
+          min: null
+          name: includePaths
+          options: []
+          placeholder: null
+          precision: null
+          required: false
+          scope: null
+          template: null
+          type: string
+        - auto_generate: null
+          default: 2
+          form: form
+          human_description:
+            en_US: Maximum depth to crawl relative to the entered URL. A maxDepth
+              of 0 scrapes only the entered URL. A maxDepth of 1 scrapes the entered
+              URL and all pages one level deep. A maxDepth of 2 scrapes the entered
+              URL and all pages up to two levels deep. Higher values follow the same
+              pattern.
+            ja_JP: Maximum depth to crawl relative to the entered URL. A maxDepth
+              of 0 scrapes only the entered URL. A maxDepth of 1 scrapes the entered
+              URL and all pages one level deep. A maxDepth of 2 scrapes the entered
+              URL and all pages up to two levels deep. Higher values follow the same
+              pattern.
+            pt_BR: Maximum depth to crawl relative to the entered URL. A maxDepth
+              of 0 scrapes only the entered URL. A maxDepth of 1 scrapes the entered
+              URL and all pages one level deep. A maxDepth of 2 scrapes the entered
+              URL and all pages up to two levels deep. Higher values follow the same
+              pattern.
+            zh_Hans: 相对于输入的URL，爬取的最大深度。maxDepth为0时，仅抓取输入的URL。maxDepth为1时，抓取输入的URL以及所有一级深层页面。maxDepth为2时，抓取输入的URL以及所有两级深层页面。更高值遵循相同模式。
+          label:
+            en_US: Maximum crawl depth
+            ja_JP: Maximum crawl depth
+            pt_BR: Maximum crawl depth
+            zh_Hans: 爬取深度
+          llm_description: ''
+          max: null
+          min: 0
+          name: maxDepth
+          options: []
+          placeholder: null
+          precision: null
+          required: false
+          scope: null
+          template: null
+          type: number
+        - auto_generate: null
+          default: 1
+          form: form
+          human_description:
+            en_US: Ignore the website sitemap when crawling.
+            ja_JP: Ignore the website sitemap when crawling.
+            pt_BR: Ignore the website sitemap when crawling.
+            zh_Hans: 爬取时忽略网站站点地图。
+          label:
+            en_US: ignore Sitemap
+            ja_JP: ignore Sitemap
+            pt_BR: ignore Sitemap
+            zh_Hans: 忽略站点地图
+          llm_description: ''
+          max: null
+          min: null
+          name: ignoreSitemap
+          options: []
+          placeholder: null
+          precision: null
+          required: false
+          scope: null
+          template: null
+          type: boolean
+        - auto_generate: null
+          default: 5
+          form: form
+          human_description:
+            en_US: Specify the maximum number of pages to crawl. The crawler will
+              stop after reaching this limit.
+            ja_JP: Specify the maximum number of pages to crawl. The crawler will
+              stop after reaching this limit.
+            pt_BR: Specify the maximum number of pages to crawl. The crawler will
+              stop after reaching this limit.
+            zh_Hans: 指定要爬取的最大页面数。爬虫将在达到此限制后停止。
+          label:
+            en_US: Maximum pages to crawl
+            ja_JP: Maximum pages to crawl
+            pt_BR: Maximum pages to crawl
+            zh_Hans: 最大爬取页面数
+          llm_description: ''
+          max: null
+          min: 1
+          name: limit
+          options: []
+          placeholder: null
+          precision: null
+          required: false
+          scope: null
+          template: null
+          type: number
+        - auto_generate: null
+          default: 0
+          form: form
+          human_description:
+            en_US: Enables the crawler to navigate from a specific URL to previously
+              linked pages. For instance, from 'example.com/product/123' back to 'example.com/product'
+            ja_JP: Enables the crawler to navigate from a specific URL to previously
+              linked pages. For instance, from 'example.com/product/123' back to 'example.com/product'
+            pt_BR: Enables the crawler to navigate from a specific URL to previously
+              linked pages. For instance, from 'example.com/product/123' back to 'example.com/product'
+            zh_Hans: 使爬虫能够从特定URL导航到之前链接的页面。例如，从'example.com/product/123'返回到'example.com/product'
+          label:
+            en_US: allow Backward Crawling
+            ja_JP: allow Backward Crawling
+            pt_BR: allow Backward Crawling
+            zh_Hans: 允许向后爬取
+          llm_description: ''
+          max: null
+          min: null
+          name: allowBackwardLinks
+          options: []
+          placeholder: null
+          precision: null
+          required: false
+          scope: null
+          template: null
+          type: boolean
+        - auto_generate: null
+          default: 0
+          form: form
+          human_description:
+            en_US: Allows the crawler to follow links to external websites.
+            ja_JP: Allows the crawler to follow links to external websites.
+            pt_BR: Allows the crawler to follow links to external websites.
+            zh_Hans: Allows the crawler to follow links to external websites.
+          label:
+            en_US: allow External Content Links
+            ja_JP: allow External Content Links
+            pt_BR: allow External Content Links
+            zh_Hans: 允许爬取外链
+          llm_description: ''
+          max: null
+          min: null
+          name: allowExternalLinks
+          options: []
+          placeholder: null
+          precision: null
+          required: false
+          scope: null
+          template: null
+          type: boolean
+        - auto_generate: null
+          default: null
+          form: form
+          human_description:
+            en_US: The URL to send the webhook to. This will trigger for crawl started
+              (crawl.started) ,every page crawled (crawl.page) and when the crawl
+              is completed (crawl.completed or crawl.failed). The response will be
+              the same as the /scrape endpoint.
+            ja_JP: The URL to send the webhook to. This will trigger for crawl started
+              (crawl.started) ,every page crawled (crawl.page) and when the crawl
+              is completed (crawl.completed or crawl.failed). The response will be
+              the same as the /scrape endpoint.
+            pt_BR: The URL to send the webhook to. This will trigger for crawl started
+              (crawl.started) ,every page crawled (crawl.page) and when the crawl
+              is completed (crawl.completed or crawl.failed). The response will be
+              the same as the /scrape endpoint.
+            zh_Hans: 发送Webhook的URL。这将在开始爬取（crawl.started）、每爬取一个页面（crawl.page）以及爬取完成（crawl.completed或crawl.failed）时触发。响应将与/scrape端点相同。
+          label:
+            en_US: webhook
+            ja_JP: webhook
+            pt_BR: webhook
+            zh_Hans: webhook
+          llm_description: ''
+          max: null
+          min: null
+          name: webhook
+          options: []
+          placeholder: null
+          precision: null
+          required: false
+          scope: null
+          template: null
+          type: string
+        - auto_generate: null
+          default: null
+          form: form
+          human_description:
+            en_US: 'Formats to include in the output. Available options: markdown,
+              html, rawHtml, links, screenshot'
+            ja_JP: 'Formats to include in the output. Available options: markdown,
+              html, rawHtml, links, screenshot'
+            pt_BR: 'Formats to include in the output. Available options: markdown,
+              html, rawHtml, links, screenshot'
+            zh_Hans: '输出中应包含的格式。可以填入: markdown, html, rawHtml, links, screenshot'
+          label:
+            en_US: Formats
+            ja_JP: Formats
+            pt_BR: Formats
+            zh_Hans: 结果的格式
+          llm_description: ''
+          max: null
+          min: null
+          name: formats
+          options: []
+          placeholder: null
+          precision: null
+          required: false
+          scope: null
+          template: null
+          type: string
+        - auto_generate: null
+          default: null
+          form: form
+          human_description:
+            en_US: 'Headers to send with the request. Can be used to send cookies,
+              user-agent, etc. Example: {"cookies": "testcookies"}'
+            ja_JP: 'Headers to send with the request. Can be used to send cookies,
+              user-agent, etc. Example: {"cookies": "testcookies"}'
+            pt_BR: 'Headers to send with the request. Can be used to send cookies,
+              user-agent, etc. Example: {"cookies": "testcookies"}'
+            zh_Hans: '随请求发送的头部。可以用来发送cookies、用户代理等。示例：{"cookies": "testcookies"}'
+          label:
+            en_US: headers
+            ja_JP: headers
+            pt_BR: headers
+            zh_Hans: 请求头
+          llm_description: ''
+          max: null
+          min: null
+          name: headers
+          options: []
+          placeholder: null
+          precision: null
+          required: false
+          scope: null
+          template: null
+          type: string
+        - auto_generate: null
+          default: null
+          form: form
+          human_description:
+            en_US: 'Only include tags, classes and ids from the page in the final
+              output. Use comma separated values. Example: script, .ad, #footer'
+            ja_JP: 'Only include tags, classes and ids from the page in the final
+              output. Use comma separated values. Example: script, .ad, #footer'
+            pt_BR: 'Only include tags, classes and ids from the page in the final
+              output. Use comma separated values. Example: script, .ad, #footer'
+            zh_Hans: '仅在最终输出中包含HTML页面的这些标签，可以通过标签名、类或ID来设定，使用逗号分隔值。示例：script, .ad,
+              #footer'
+          label:
+            en_US: Include Tags
+            ja_JP: Include Tags
+            pt_BR: Include Tags
+            zh_Hans: 仅抓取这些标签
+          llm_description: ''
+          max: null
+          min: null
+          name: includeTags
+          options: []
+          placeholder: null
+          precision: null
+          required: false
+          scope: null
+          template: null
+          type: string
+        - auto_generate: null
+          default: null
+          form: form
+          human_description:
+            en_US: 'Tags, classes and ids to remove from the page. Use comma separated
+              values. Example: script, .ad, #footer'
+            ja_JP: 'Tags, classes and ids to remove from the page. Use comma separated
+              values. Example: script, .ad, #footer'
+            pt_BR: 'Tags, classes and ids to remove from the page. Use comma separated
+              values. Example: script, .ad, #footer'
+            zh_Hans: '要在最终输出中移除HTML页面的这些标签，可以通过标签名、类或ID来设定，使用逗号分隔值。示例：script, .ad,
+              #footer'
+          label:
+            en_US: Exclude Tags
+            ja_JP: Exclude Tags
+            pt_BR: Exclude Tags
+            zh_Hans: 要移除这些标签
+          llm_description: ''
+          max: null
+          min: null
+          name: excludeTags
+          options: []
+          placeholder: null
+          precision: null
+          required: false
+          scope: null
+          template: null
+          type: string
+        - auto_generate: null
+          default: 0
+          form: form
+          human_description:
+            en_US: Only return the main content of the page excluding headers, navs,
+              footers, etc.
+            ja_JP: Only return the main content of the page excluding headers, navs,
+              footers, etc.
+            pt_BR: Only return the main content of the page excluding headers, navs,
+              footers, etc.
+            zh_Hans: 只返回页面的主要内容，不包括头部、导航栏、尾部等。
+          label:
+            en_US: only Main Content
+            ja_JP: only Main Content
+            pt_BR: only Main Content
+            zh_Hans: 仅抓取主要内容
+          llm_description: ''
+          max: null
+          min: null
+          name: onlyMainContent
+          options: []
+          placeholder: null
+          precision: null
+          required: false
+          scope: null
+          template: null
+          type: boolean
+        - auto_generate: null
+          default: null
+          form: form
+          human_description:
+            en_US: Wait x amount of milliseconds for the page to load to fetch content.
+            ja_JP: Wait x amount of milliseconds for the page to load to fetch content.
+            pt_BR: Wait x amount of milliseconds for the page to load to fetch content.
+            zh_Hans: 等待x毫秒以使页面加载并获取内容。
+          label:
+            en_US: wait For
+            ja_JP: wait For
+            pt_BR: wait For
+            zh_Hans: 等待时间
+          llm_description: ''
+          max: null
+          min: 0
+          name: waitFor
+          options: []
+          placeholder: null
+          precision: null
+          required: false
+          scope: null
+          template: null
+          type: number
+        params:
+          allowBackwardLinks: ''
+          allowExternalLinks: ''
+          excludePaths: ''
+          excludeTags: ''
+          formats: ''
+          headers: ''
+          ignoreSitemap: ''
+          includePaths: ''
+          includeTags: ''
+          limit: ''
+          maxDepth: ''
+          onlyMainContent: ''
+          url: ''
+          waitFor: ''
+          wait_for_results: ''
+          webhook: ''
+        provider_id: langgenius/firecrawl/firecrawl
+        provider_name: langgenius/firecrawl/firecrawl
+        provider_type: builtin
+        selected: false
+        title: 深度爬取
+        tool_configurations:
+          allowBackwardLinks:
+            type: constant
+            value: 0
+          allowExternalLinks:
+            type: constant
+            value: 0
+          excludePaths:
+            type: mixed
+            value: null
+          excludeTags:
+            type: mixed
+            value: null
+          formats:
+            type: mixed
+            value: null
+          headers:
+            type: mixed
+            value: null
+          ignoreSitemap:
+            type: constant
+            value: 1
+          includePaths:
+            type: mixed
+            value: null
+          includeTags:
+            type: mixed
+            value: null
+          limit:
+            type: constant
+            value: 5
+          maxDepth:
+            type: constant
+            value: 2
+          onlyMainContent:
+            type: constant
+            value: true
+          waitFor:
+            type: constant
+            value: null
+          wait_for_results:
+            type: constant
+            value: 1
+          webhook:
+            type: mixed
+            value: null
+        tool_description: 递归爬取一个网址的子域名，并收集内容。
+        tool_label: 深度爬取
+        tool_name: crawl
+        tool_node_version: '2'
+        tool_parameters:
+          url:
+            type: mixed
+            value: '{{#sys.query#}}'
+        type: tool
+      height: 454
+      id: '1770711167712'
+      position:
+        x: 477
+        y: 165
+      positionAbsolute:
+        x: 477
+        y: 165
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    viewport:
+      x: -491
+      y: 97.5
+      zoom: 1

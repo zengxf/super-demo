@@ -1,0 +1,390 @@
+app:
+  description: xx
+  icon: '+1'
+  icon_background: '#E0EAFF'
+  mode: advanced-chat
+  name: 测试条件_代码_变量聚合
+  use_icon_as_answer_icon: false
+dependencies: []
+kind: app
+version: 0.4.0
+workflow:
+  conversation_variables: []
+  environment_variables: []
+  features:
+    file_upload:
+      allowed_file_extensions:
+      - .JPG
+      - .JPEG
+      - .PNG
+      - .GIF
+      - .WEBP
+      - .SVG
+      allowed_file_types:
+      - image
+      allowed_file_upload_methods:
+      - local_file
+      - remote_url
+      enabled: false
+      fileUploadConfig:
+        audio_file_size_limit: 500
+        batch_count_limit: 50
+        file_size_limit: 1500
+        image_file_size_limit: 1000
+        video_file_size_limit: 10000
+        workflow_file_upload_limit: 10
+      image:
+        enabled: false
+        number_limits: 3
+        transfer_methods:
+        - local_file
+        - remote_url
+      number_limits: 3
+    opening_statement: ''
+    retriever_resource:
+      enabled: true
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions: []
+    suggested_questions_after_answer:
+      enabled: false
+    text_to_speech:
+      enabled: false
+      language: ''
+      voice: ''
+  graph:
+    edges:
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: start
+        targetType: code
+      id: 1770633784788-source-1770633826113-target
+      selected: false
+      source: '1770633784788'
+      sourceHandle: source
+      target: '1770633826113'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: if-else
+      id: 1770633826113-source-1770633995648-target
+      source: '1770633826113'
+      sourceHandle: source
+      target: '1770633995648'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: code
+      id: 1770633995648-true-1770634107020-target
+      source: '1770633995648'
+      sourceHandle: 'true'
+      target: '1770634107020'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: if-else
+        targetType: code
+      id: 1770633995648-false-1770634189344-target
+      source: '1770633995648'
+      sourceHandle: 'false'
+      target: '1770634189344'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: variable-aggregator
+      id: 1770634107020-source-1770634553278-target
+      source: '1770634107020'
+      sourceHandle: source
+      target: '1770634553278'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: code
+        targetType: variable-aggregator
+      id: 1770634189344-source-1770634553278-target
+      source: '1770634189344'
+      sourceHandle: source
+      target: '1770634553278'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: variable-aggregator
+        targetType: answer
+      id: 1770634553278-source-1770634722668-target
+      source: '1770634553278'
+      sourceHandle: source
+      target: '1770634722668'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: code
+        targetType: code
+      id: 1770633826113-source-1770634821576-target
+      source: '1770633826113'
+      sourceHandle: source
+      target: '1770634821576'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: code
+        targetType: variable-aggregator
+      id: 1770634821576-source-1770634553278-target
+      source: '1770634821576'
+      sourceHandle: source
+      target: '1770634553278'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    nodes:
+    - data:
+        desc: ''
+        selected: false
+        title: 开始
+        type: start
+        variables: []
+      height: 54
+      id: '1770633784788'
+      position:
+        x: 77
+        y: 195
+      positionAbsolute:
+        x: 77
+        y: 195
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        code: "\ndef main(arg1: str) -> dict:\n    return {\n        \"q_len\": len(arg1)\n\
+          \    }\n"
+        code_language: python3
+        desc: ''
+        outputs:
+          q_len:
+            children: null
+            type: number
+        selected: false
+        title: 计算输入长度
+        type: code
+        variables:
+        - value_selector:
+          - sys
+          - query
+          value_type: string
+          variable: arg1
+      height: 54
+      id: '1770633826113'
+      position:
+        x: 373
+        y: 153
+      positionAbsolute:
+        x: 373
+        y: 153
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        cases:
+        - case_id: 'true'
+          conditions:
+          - comparison_operator: '>'
+            id: 65691089-f9c2-4ec8-a9ca-4cb77d71f829
+            numberVarType: constant
+            value: '8'
+            varType: number
+            variable_selector:
+            - '1770633826113'
+            - q_len
+          id: 'true'
+          logical_operator: and
+        desc: ''
+        selected: false
+        title: 条件分支
+        type: if-else
+      height: 126
+      id: '1770633995648'
+      position:
+        x: 656.9795557575104
+        y: 120.85130164500296
+      positionAbsolute:
+        x: 656.9795557575104
+        y: 120.85130164500296
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        code: "\ndef main() -> dict:\n    return {\n        \"result\": \"gt 8, ok\"\
+          ,\n    }\n"
+        code_language: python3
+        desc: ''
+        outputs:
+          result:
+            children: null
+            type: string
+        selected: false
+        title: GT8处理
+        type: code
+        variables: []
+      height: 54
+      id: '1770634107020'
+      position:
+        x: 1020
+        y: 57
+      positionAbsolute:
+        x: 1020
+        y: 57
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        code: "\ndef main(qstr: str, qlen: float) -> dict:\n    return {\n       \
+          \ \"result\": f\"{qstr or '无'}，长度：{qlen}\"\n    }\n"
+        code_language: python3
+        desc: ''
+        outputs:
+          result:
+            children: null
+            type: string
+        selected: false
+        title: LE8处理
+        type: code
+        variables:
+        - value_selector:
+          - sys
+          - query
+          value_type: string
+          variable: qstr
+        - value_selector:
+          - '1770633826113'
+          - q_len
+          value_type: number
+          variable: qlen
+      height: 54
+      id: '1770634189344'
+      position:
+        x: 1020
+        y: 202.49771521217582
+      positionAbsolute:
+        x: 1020
+        y: 202.49771521217582
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: ''
+        output_type: string
+        selected: true
+        title: 变量聚合器
+        type: variable-aggregator
+        variables:
+        - - '1770634107020'
+          - result
+        - - '1770634189344'
+          - result
+        - - '1770634821576'
+          - result
+      height: 162
+      id: '1770634553278'
+      position:
+        x: 1377
+        y: 267.00000000000006
+      positionAbsolute:
+        x: 1377
+        y: 267.00000000000006
+      selected: true
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        answer: '{{#1770634553278.output#}}'
+        desc: ''
+        selected: false
+        title: 直接回复
+        type: answer
+        variables: []
+      height: 105
+      id: '1770634722668'
+      position:
+        x: 1872
+        y: 19
+      positionAbsolute:
+        x: 1872
+        y: 19
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        code: "\ndef main(qstr: str) -> dict:\n    return {\n        \"result\": \"\
+          Q: \"+qstr,\n    }\n"
+        code_language: python3
+        desc: ''
+        outputs:
+          result:
+            children: null
+            type: string
+        selected: false
+        title: Debug111
+        type: code
+        variables:
+        - value_selector:
+          - sys
+          - query
+          value_type: string
+          variable: qstr
+      height: 54
+      id: '1770634821576'
+      position:
+        x: 680
+        y: 419
+      positionAbsolute:
+        x: 680
+        y: 419
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    viewport:
+      x: -899.3285976836326
+      y: 80.65818810881422
+      zoom: 1.0000000000000002

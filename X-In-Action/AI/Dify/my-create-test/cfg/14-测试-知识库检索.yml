@@ -1,0 +1,221 @@
+app:
+  description: test
+  icon: face_with_monocle
+  icon_background: '#E0EAFF'
+  mode: advanced-chat
+  name: 测试-知识库检索
+  use_icon_as_answer_icon: false
+dependencies:
+- current_identifier: null
+  type: marketplace
+  value:
+    marketplace_plugin_unique_identifier: langgenius/deepseek:0.0.10@7bd3ea26522e06d90b2098ac2f9eb97214d609a8fa4ed0de313abcef07c31477
+- current_identifier: null
+  type: marketplace
+  value:
+    marketplace_plugin_unique_identifier: langgenius/tongyi:0.1.27@787b0cf1b75f43e682396822b527c3d3f77248790d7d3534a7f2ef7ca6b03daf
+kind: app
+version: 0.4.0
+workflow:
+  conversation_variables: []
+  environment_variables: []
+  features:
+    file_upload:
+      allowed_file_extensions:
+      - .JPG
+      - .JPEG
+      - .PNG
+      - .GIF
+      - .WEBP
+      - .SVG
+      allowed_file_types:
+      - image
+      allowed_file_upload_methods:
+      - local_file
+      - remote_url
+      enabled: false
+      fileUploadConfig:
+        audio_file_size_limit: 50
+        batch_count_limit: 5
+        file_size_limit: 15
+        image_file_size_limit: 10
+        video_file_size_limit: 100
+        workflow_file_upload_limit: 10
+      image:
+        enabled: false
+        number_limits: 3
+        transfer_methods:
+        - local_file
+        - remote_url
+      number_limits: 3
+    opening_statement: ''
+    retriever_resource:
+      enabled: true
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions: []
+    suggested_questions_after_answer:
+      enabled: false
+    text_to_speech:
+      enabled: false
+      language: ''
+      voice: ''
+  graph:
+    edges:
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: start
+        targetType: knowledge-retrieval
+      id: 1770704775743-source-1770704786915-target
+      source: '1770704775743'
+      sourceHandle: source
+      target: '1770704786915'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: knowledge-retrieval
+        targetType: llm
+      id: 1770704786915-source-1770709240828-target
+      source: '1770704786915'
+      sourceHandle: source
+      target: '1770709240828'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: llm
+        targetType: answer
+      id: 1770709240828-source-1770709365889-target
+      source: '1770709240828'
+      sourceHandle: source
+      target: '1770709365889'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    nodes:
+    - data:
+        desc: ''
+        selected: false
+        title: 开始
+        type: start
+        variables: []
+      height: 54
+      id: '1770704775743'
+      position:
+        x: 80
+        y: 282
+      positionAbsolute:
+        x: 80
+        y: 282
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        dataset_ids:
+        - /ts6VOVUQJ4B3KXA6vPtEOQRGSX1PaM24ov9wnEDx0gCUHimV3kNn1ZKug88em59
+        - v4C4bQWtXQmf57gBlb1PjbtaIsWxj3XehFHJOE0KtjqoERAMDjBaGrJ3kQ4675DO
+        desc: ''
+        multiple_retrieval_config:
+          reranking_enable: true
+          reranking_mode: reranking_model
+          reranking_model:
+            model: gte-rerank
+            provider: langgenius/tongyi/tongyi
+          score_threshold: null
+          top_k: 4
+        query_variable_selector:
+        - '1770704775743'
+        - sys.query
+        retrieval_mode: multiple
+        selected: false
+        title: 知识检索
+        type: knowledge-retrieval
+      height: 120
+      id: '1770704786915'
+      position:
+        x: 384
+        y: 282
+      positionAbsolute:
+        x: 384
+        y: 282
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        context:
+          enabled: true
+          variable_selector:
+          - '1770704786915'
+          - result
+        desc: ''
+        model:
+          completion_params:
+            temperature: 0.7
+          mode: chat
+          name: deepseek-chat
+          provider: langgenius/deepseek/deepseek
+        prompt_template:
+        - id: 689b2c7a-d82c-43de-88a0-5a29ae02883b
+          role: system
+          text: "根据上下文 ，对用户的请求进行排查输出，格式不变 \n\n{{#context#}}"
+        - id: aaaea4e8-dd0e-4df3-bf0c-d4dd35507dfb
+          role: user
+          text: 用户原始查询{{#sys.query#}}
+        selected: true
+        title: LLM
+        type: llm
+        variables: []
+        vision:
+          enabled: false
+      height: 90
+      id: '1770709240828'
+      position:
+        x: 719
+        y: 288
+      positionAbsolute:
+        x: 719
+        y: 288
+      selected: true
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        answer: '{{#1770709240828.text#}}
+
+          ---------------
+
+          {{#1770709240828.usage#}}'
+        desc: ''
+        selected: false
+        title: 直接回复
+        type: answer
+        variables: []
+      height: 124
+      id: '1770709365889'
+      position:
+        x: 1023
+        y: 288
+      positionAbsolute:
+        x: 1023
+        y: 288
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    viewport:
+      x: -608
+      y: 67.5
+      zoom: 1

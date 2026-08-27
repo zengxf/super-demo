@@ -1,0 +1,118 @@
+app:
+  description: test xx
+  icon: 🤖
+  icon_background: '#FFEAD5'
+  mode: agent-chat
+  name: 公司基本面_test
+  use_icon_as_answer_icon: false
+dependencies:
+- current_identifier: null
+  type: marketplace
+  value:
+    marketplace_plugin_unique_identifier: langgenius/searxng:0.0.7@fce43eac17ce659811cfa35bef8858d06f78bb832eff5d0317dab34982991eca
+- current_identifier: null
+  type: marketplace
+  value:
+    marketplace_plugin_unique_identifier: langgenius/tongyi:0.1.19@12ddda76bb473f9beb52d2ea2a67412d54924f93a29465fffb8635ba62b409c3
+kind: app
+model_config:
+  agent_mode:
+    enabled: true
+    max_iteration: 10
+    prompt: null
+    strategy: function_call
+    tools:
+    - enabled: true
+      notAuthor: false
+      provider_id: langgenius/searxng/searxng
+      provider_name: langgenius/searxng/searxng
+      provider_type: builtin
+      tool_label: SearXNG 搜索
+      tool_name: searxng_search
+      tool_parameters:
+        query: null
+        search_type: general
+        time_range: month
+  annotation_reply:
+    enabled: false
+  chat_prompt_config: {}
+  completion_prompt_config: {}
+  dataset_configs:
+    datasets:
+      datasets: []
+    reranking_enable: false
+    retrieval_model: multiple
+    top_k: 4
+  dataset_query_variable: ''
+  external_data_tools: []
+  file_upload:
+    allowed_file_extensions:
+    - .JPG
+    - .JPEG
+    - .PNG
+    - .GIF
+    - .WEBP
+    - .SVG
+    - .MP4
+    - .MOV
+    - .MPEG
+    - .WEBM
+    allowed_file_types: []
+    allowed_file_upload_methods:
+    - remote_url
+    - local_file
+    enabled: false
+    image:
+      detail: high
+      enabled: false
+      number_limits: 3
+      transfer_methods:
+      - remote_url
+      - local_file
+    number_limits: 3
+  model:
+    completion_params:
+      enable_search: true
+      stop: []
+    mode: chat
+    name: qwen3-max
+    provider: langgenius/tongyi/tongyi
+  more_like_this:
+    enabled: false
+  opening_statement: ''
+  pre_prompt: "你是一个获取上市公司股票某个时间的基本面数据的助手。请按照以下步骤完成任务：\n\n1. 接收输入变量：{{stock_code}}（股票代码）和{{date}}（日期）。\n\
+    2. 根据提供的股票代码和日期，查询该股票在指定日期的基本面数据。\n3. 基本面数据包括但不限于：公告、主营构成、高管持股变动、除权除息、股本结构、财务主要指标、利润表、资产负债表、资金流向表等。\n\
+    4. 将查询到的数据以简洁的文本格式输出，确保输出不包含任何XML标签。\n5. 如果无法获取数据，先调用工具进行搜索，返回搜索结果。\n\n请确保输出格式清晰易读，且不包含任何XML标签。\n\
+    \n\n## 输入\n股票代码: {{stock_code}}\n日期: {{date}}\n\n\n## 输出\n市盈率:  \n市净率:  \n每股收益:\
+    \  \n股息率: \n\n\n## 示例1\n股票代码: 000001\n日期: 2023-10-01\n市盈率: 15.2\n市净率: 1.8\n每股收益:\
+    \ 0.75\n股息率: 2.5%\n\n\n## 示例2\n股票代码: 600519\n日期: 2023-09-30\n未找到数据"
+  prompt_type: simple
+  retriever_resource:
+    enabled: true
+  sensitive_word_avoidance:
+    configs: []
+    enabled: false
+    type: ''
+  speech_to_text:
+    enabled: false
+  suggested_questions: []
+  suggested_questions_after_answer:
+    enabled: false
+  text_to_speech:
+    enabled: false
+    language: ''
+    voice: ''
+  user_input_form:
+  - text-input:
+      default: ''
+      label: stock_code
+      max_length: 48
+      required: true
+      variable: stock_code
+  - text-input:
+      default: ''
+      label: date
+      max_length: 48
+      required: true
+      variable: date
+version: 0.4.0

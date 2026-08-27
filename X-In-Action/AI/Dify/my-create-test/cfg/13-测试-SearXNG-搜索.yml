@@ -1,0 +1,345 @@
+app:
+  description: ''
+  icon: 🤖
+  icon_background: '#FFEAD5'
+  mode: advanced-chat
+  name: 测试-SearXNG-搜索
+  use_icon_as_answer_icon: false
+dependencies:
+- current_identifier: null
+  type: marketplace
+  value:
+    marketplace_plugin_unique_identifier: langgenius/searxng:0.0.7@fce43eac17ce659811cfa35bef8858d06f78bb832eff5d0317dab34982991eca
+kind: app
+version: 0.4.0
+workflow:
+  conversation_variables: []
+  environment_variables: []
+  features:
+    file_upload:
+      allowed_file_extensions:
+      - .JPG
+      - .JPEG
+      - .PNG
+      - .GIF
+      - .WEBP
+      - .SVG
+      allowed_file_types:
+      - image
+      allowed_file_upload_methods:
+      - local_file
+      - remote_url
+      enabled: false
+      fileUploadConfig:
+        audio_file_size_limit: 50
+        batch_count_limit: 5
+        file_size_limit: 15
+        image_file_size_limit: 10
+        video_file_size_limit: 100
+        workflow_file_upload_limit: 10
+      image:
+        enabled: false
+        number_limits: 3
+        transfer_methods:
+        - local_file
+        - remote_url
+      number_limits: 3
+    opening_statement: ''
+    retriever_resource:
+      enabled: true
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions: []
+    suggested_questions_after_answer:
+      enabled: false
+    text_to_speech:
+      enabled: false
+      language: ''
+      voice: ''
+  graph:
+    edges:
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: start
+        targetType: tool
+      id: 1770701937643-source-1770701964171-target
+      source: '1770701937643'
+      sourceHandle: source
+      target: '1770701964171'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: tool
+        targetType: answer
+      id: 1770701964171-source-1770704265351-target
+      source: '1770701964171'
+      sourceHandle: source
+      target: '1770704265351'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    nodes:
+    - data:
+        desc: ''
+        selected: false
+        title: 开始
+        type: start
+        variables: []
+      height: 54
+      id: '1770701937643'
+      position:
+        x: 80
+        y: 282
+      positionAbsolute:
+        x: 80
+        y: 282
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: ''
+        is_team_authorization: false
+        output_schema: null
+        paramSchemas:
+        - auto_generate: null
+          default: null
+          form: llm
+          human_description:
+            en_US: Enter your search query
+            ja_JP: Enter your search query
+            pt_BR: Enter your search query
+            zh_Hans: 输入搜索关键词
+          label:
+            en_US: Query string
+            ja_JP: Query string
+            pt_BR: Query string
+            zh_Hans: 查询语句
+          llm_description: Key words for searching
+          max: null
+          min: null
+          name: query
+          options: []
+          placeholder: null
+          precision: null
+          required: true
+          scope: null
+          template: null
+          type: string
+        - auto_generate: null
+          default: general
+          form: form
+          human_description:
+            en_US: Search the web using SearXNG, a privacy-respecting metasearch engine
+            ja_JP: Search the web using SearXNG, a privacy-respecting metasearch engine
+            pt_BR: Search the web using SearXNG, a privacy-respecting metasearch engine
+            zh_Hans: 使用注重隐私的元搜索引擎 SearXNG 搜索网页
+          label:
+            en_US: search type
+            ja_JP: search type
+            pt_BR: search type
+            zh_Hans: 搜索类型
+          llm_description: ''
+          max: null
+          min: null
+          name: search_type
+          options:
+          - icon: ''
+            label:
+              en_US: General
+              ja_JP: General
+              pt_BR: General
+              zh_Hans: 综合
+            value: general
+          - icon: ''
+            label:
+              en_US: Images
+              ja_JP: Images
+              pt_BR: Images
+              zh_Hans: 图片
+            value: images
+          - icon: ''
+            label:
+              en_US: Videos
+              ja_JP: Videos
+              pt_BR: Videos
+              zh_Hans: 视频
+            value: videos
+          - icon: ''
+            label:
+              en_US: News
+              ja_JP: News
+              pt_BR: News
+              zh_Hans: 新闻
+            value: news
+          - icon: ''
+            label:
+              en_US: Map
+              ja_JP: Map
+              pt_BR: Map
+              zh_Hans: 地图
+            value: map
+          - icon: ''
+            label:
+              en_US: Music
+              ja_JP: Music
+              pt_BR: Music
+              zh_Hans: 音乐
+            value: music
+          - icon: ''
+            label:
+              en_US: It
+              ja_JP: It
+              pt_BR: It
+              zh_Hans: 信息技术
+            value: it
+          - icon: ''
+            label:
+              en_US: Science
+              ja_JP: Science
+              pt_BR: Science
+              zh_Hans: 科学
+            value: science
+          - icon: ''
+            label:
+              en_US: Files
+              ja_JP: Files
+              pt_BR: Files
+              zh_Hans: 文件
+            value: files
+          - icon: ''
+            label:
+              en_US: Social Media
+              ja_JP: Social Media
+              pt_BR: Social Media
+              zh_Hans: 社交媒体
+            value: social_media
+          placeholder: null
+          precision: null
+          required: true
+          scope: null
+          template: null
+          type: select
+        - auto_generate: null
+          default: null
+          form: form
+          human_description:
+            en_US: corresponding to the SearXNG API's time_range parameter, also depends
+              on whether the search engine supports it
+            ja_JP: corresponding to the SearXNG API's time_range parameter, also depends
+              on whether the search engine supports it
+            pt_BR: corresponding to the SearXNG API's time_range parameter, also depends
+              on whether the search engine supports it
+            zh_Hans: 对应的是 SearXNG API 的 time_range 参数，也取决于搜索引擎是否支持
+          label:
+            en_US: time range
+            ja_JP: time range
+            pt_BR: time range
+            zh_Hans: 时间范围
+          llm_description: ''
+          max: null
+          min: null
+          name: time_range
+          options:
+          - icon: ''
+            label:
+              en_US: In a day
+              ja_JP: In a day
+              pt_BR: In a day
+              zh_Hans: 一天内
+            value: day
+          - icon: ''
+            label:
+              en_US: In a week
+              ja_JP: In a week
+              pt_BR: In a week
+              zh_Hans: 一周内
+            value: week
+          - icon: ''
+            label:
+              en_US: In a month
+              ja_JP: In a month
+              pt_BR: In a month
+              zh_Hans: 一个月内
+            value: month
+          - icon: ''
+            label:
+              en_US: In a year
+              ja_JP: In a year
+              pt_BR: In a year
+              zh_Hans: 一年内
+            value: year
+          placeholder: null
+          precision: null
+          required: false
+          scope: null
+          template: null
+          type: select
+        params:
+          query: ''
+          search_type: ''
+          time_range: ''
+        provider_id: langgenius/searxng/searxng
+        provider_name: langgenius/searxng/searxng
+        provider_type: builtin
+        selected: false
+        title: SearXNG 搜索
+        tool_configurations:
+          search_type:
+            type: constant
+            value: general
+          time_range:
+            type: constant
+            value: week
+        tool_description: SearXNG 是一个免费的互联网元搜索引擎，它从70多个不同的搜索服务中聚合搜索结果。
+        tool_label: SearXNG 搜索
+        tool_name: searxng_search
+        tool_node_version: '2'
+        tool_parameters:
+          query:
+            type: mixed
+            value: '{{#sys.query#}}'
+        type: tool
+      height: 116
+      id: '1770701964171'
+      position:
+        x: 380
+        y: 129
+      positionAbsolute:
+        x: 380
+        y: 129
+      selected: true
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        answer: xxx => {{#1770701964171.text#}}
+        desc: ''
+        selected: true
+        title: 直接回复
+        type: answer
+        variables: []
+      height: 105
+      id: '1770704265351'
+      position:
+        x: 684
+        y: 129
+      positionAbsolute:
+        x: 684
+        y: 129
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    viewport:
+      x: -453
+      y: 77.5
+      zoom: 1

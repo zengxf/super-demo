@@ -1,0 +1,257 @@
+app:
+  description: test
+  icon: '100'
+  icon_background: '#FFEAD5'
+  mode: advanced-chat
+  name: 提取CSV输出Json_test
+  use_icon_as_answer_icon: false
+dependencies:
+- current_identifier: null
+  type: marketplace
+  value:
+    marketplace_plugin_unique_identifier: langgenius/openai_api_compatible:0.0.30@065d5a0ef2af4f50887dbb245113a9754eec8ea7f0d753fa4102395f52fdfed8
+kind: app
+version: 0.4.0
+workflow:
+  conversation_variables: []
+  environment_variables: []
+  features:
+    file_upload:
+      allowed_file_extensions:
+      - .JPG
+      - .JPEG
+      - .PNG
+      - .GIF
+      - .WEBP
+      - .SVG
+      allowed_file_types:
+      - document
+      allowed_file_upload_methods:
+      - remote_url
+      - local_file
+      enabled: true
+      fileUploadConfig:
+        audio_file_size_limit: 500
+        batch_count_limit: 50
+        file_size_limit: 1500
+        image_file_size_limit: 1000
+        video_file_size_limit: 10000
+        workflow_file_upload_limit: 10
+      number_limits: 3
+    opening_statement: ''
+    retriever_resource:
+      enabled: false
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions: []
+    suggested_questions_after_answer:
+      enabled: false
+    text_to_speech:
+      enabled: false
+      language: ''
+      voice: ''
+  graph:
+    edges:
+    - data:
+        isInIteration: false
+        isInLoop: false
+        sourceType: start
+        targetType: document-extractor
+      id: 1770605197399-source-1770605336160-target
+      source: '1770605197399'
+      sourceHandle: source
+      target: '1770605336160'
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: document-extractor
+        targetType: llm
+      id: 1770605336160-source-llm-target
+      source: '1770605336160'
+      sourceHandle: source
+      target: llm
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInLoop: false
+        sourceType: llm
+        targetType: answer
+      id: llm-source-answer-target
+      source: llm
+      sourceHandle: source
+      target: answer
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    nodes:
+    - data:
+        desc: ''
+        selected: true
+        title: 开始
+        type: start
+        variables: []
+      height: 54
+      id: '1770605197399'
+      position:
+        x: -28
+        y: 283
+      positionAbsolute:
+        x: -28
+        y: 283
+      selected: true
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        desc: ''
+        model:
+          completion_params:
+            temperature: 0.7
+          mode: chat
+          name: deepseek-v3
+          provider: langgenius/openai_api_compatible/openai_api_compatible
+        prompt_config:
+          jinja2_variables: []
+        prompt_template:
+        - edition_type: basic
+          id: 66e75a14-38c5-4476-b497-90d613db980c
+          role: system
+          text: '### 整体任务概述
+
+            你是一个专业的数据提取智能助手，主要负责从各类文件中精准提取表格数据，并将每个表格数据转换为JSON结构的字符串输出。
+
+
+            ### 输入文件相关
+
+            1. **文件格式支持**：支持CSV、Excel等常见包含表格的文件格式。
+
+
+            ### 数据提取规则
+
+            1. **表格识别**：准确识别文件中的所有表格，不能遗漏。对于嵌套表格，需分别处理每个独立表格。
+
+            2. **表头处理**：将表格的第一行（若为表头）作为JSON对象的键。如果表格没有明确表头，可按顺序生成默认键，如 "col1", "col2",
+            "col3" 等。
+
+            3. **合并单元格处理**：对于合并单元格，要根据合并规则合理填充数据。水平合并的单元格，数据应填充到对应列；垂直合并的单元格，数据应填充到对应行。
+
+            4. **数据清洗**：去除表格数据中的不必要空格、特殊字符等，确保数据的准确性和一致性。
+
+
+            ### 输出要求
+
+            1. **JSON结构**：每个表格转换为一个独立的JSON结构的字符串。JSON对象的键为表头（或默认键），值为对应单元格的数据。
+
+            2. **数据顺序**：JSON对象中的数据顺序应与表格中的行顺序一致。
+
+            3. **输出格式**：输出为一系列JSON结构的字符串，每个字符串代表一个表格。若文件中有多个表格，按表格在文件中出现的顺序依次输出。
+
+
+            ### 特殊情况处理
+
+            1. **文件损坏或格式不支持**：若遇到文件损坏或不支持的文件格式，需明确告知用户无法处理该文件，并说明原因。
+
+            2. **数据不完整或缺失**：若表格中存在数据不完整或缺失的情况，在JSON对象中用 null 表示。
+
+            3. **数据如果分页或被分割**：若表格中的数据被标签分割了，需要自动合并数据。
+
+
+            ### 示例
+
+            假设文件中有一个简单的表格如下：
+
+            | Name | Age |
+
+            |------|-----|
+
+            | John | 25  |
+
+            | Jane | 30  |
+
+
+            输出的JSON结构的字符串应为：
+
+            ```
+
+            [{"Name": "John", "Age": 25}, {"Name": "Jane", "Age": 30}]
+
+            ```'
+        - id: 8593d011-6699-4b87-bf1f-a0422b3bbb5a
+          role: user
+          text: '{{#sys.query#}}
+
+            {{#1770605336160.text#}}'
+        selected: false
+        title: LLM
+        type: llm
+        variables: []
+        vision:
+          enabled: false
+      height: 90
+      id: llm
+      position:
+        x: 624
+        y: 184
+      positionAbsolute:
+        x: 624
+        y: 184
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        answer: '{{#llm.text#}}'
+        desc: ''
+        selected: false
+        title: 直接回复
+        type: answer
+        variables: []
+      height: 105
+      id: answer
+      position:
+        x: 964
+        y: 297
+      positionAbsolute:
+        x: 964
+        y: 297
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: ''
+        is_array_file: true
+        selected: false
+        title: 文档提取器
+        type: document-extractor
+        variable_selector:
+        - sys
+        - files
+      height: 94
+      id: '1770605336160'
+      position:
+        x: 302
+        y: 305
+      positionAbsolute:
+        x: 302
+        y: 305
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    viewport:
+      x: 109
+      y: 63
+      zoom: 1
