@@ -30,7 +30,8 @@
 
 ### 连接并初始密码
 - `mysql -uroot -p`
-- 初始密码 `ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'abc123';`
+- 初始密码 `ALTER USER 'root'@'localhost' IDENTIFIED WITH caching_sha2_password BY 'abc123';`
+  - 密码认证（新-`caching_sha2_password` 或 旧-`mysql_native_password`）
 
 ### 总示例
 ```js
@@ -64,7 +65,7 @@ D:\Install\DB\MySQL\mysql-8.0.37-winx64\bin> mysql -u root -p.;(hmqrW/2gc // 使
 Server version: 8.0.37
 ...
 
-mysql> ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'abcd'; // 改密码为 "abcd"
+mysql> ALTER USER 'root'@'localhost' IDENTIFIED WITH caching_sha2_password BY 'abcd'; // 改密码为 "abcd"
 Query OK, 0 rows affected (0.01 sec)
 ```
 
@@ -85,6 +86,6 @@ Query OK, 0 rows affected (0.01 sec)
 - `mysql -uroot -p`
   - 使用上面的密码：`SFqn0cuep:-L`
   - 如果设置了 socket 文件，则用参数 `-S /tmp/mysql-8808.sock` 指定
-- `ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'pwd';`
+- `ALTER USER 'root'@'localhost' IDENTIFIED WITH caching_sha2_password BY 'pwd';`
 
 
