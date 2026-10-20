@@ -31,7 +31,7 @@
 ### 连接并初始密码
 - `mysql -uroot -p`
 - 初始密码 `ALTER USER 'root'@'localhost' IDENTIFIED WITH caching_sha2_password BY 'abc123';`
-  - 密码认证（新-`caching_sha2_password` 或 旧-`mysql_native_password`）
+  - 密码认证（新`caching_sha2_password` 或 旧`mysql_native_password`）
 
 ### 总示例
 ```js
